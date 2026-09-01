@@ -17,6 +17,6 @@ import lombok.Setter;
 public abstract class EntidadEmpresa {
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "empresa_id", nullable = false)
+    @JoinColumn(name = "empresa_id", nullable = false, updatable = false)
     protected Empresa empresa;
 }
