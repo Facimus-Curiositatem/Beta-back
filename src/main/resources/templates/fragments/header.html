@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<body>
+
+    <header class="header" th:fragment="header">
+        <div class="nav-container">
+            <a th:href="@{/procesos}" class="logo">Gestion de Procesos</a>
+
+            <nav th:if="${sesionActiva}">
+                <ul>
+                    <li><a th:href="@{/procesos}">Procesos</a></li>
+                    <li><a th:href="@{/roles}">Roles de proceso</a></li>
+                    <li th:if="${esAdministradorSesion}"><a th:href="@{/usuarios}">Usuarios</a></li>
+                </ul>
+            </nav>
+
+            <div class="sesion-info" th:if="${sesionActiva}">
+                <span th:text="${nombreEmpresaSesion} + ' · ' + ${nombreUsuarioSesion}">Empresa · Usuario</span>
+                <form method="post" th:action="@{/logout}">
+                    <button type="submit" class="btn btn-secundario btn-pequeno">Cerrar sesion</button>
+                </form>
+            </div>
+            <div class="sesion-info" th:unless="${sesionActiva}">
+                <a th:href="@{/login}" class="btn btn-primario btn-pequeno">Iniciar sesion</a>
+            </div>
+        </div>
+    </header>
+
+</body>
+</html>
