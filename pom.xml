@@ -12,7 +12,7 @@
 	<artifactId>procesos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>procesos</name>
-	<description>Sistema de Gestion de Procesos multiempresa - Entrega 1 (Spring Boot + Thymeleaf + JPA)</description>
+	<description>Sistema de Gestion de Procesos multiempresa - API REST (Spring Boot + JPA)</description>
 
 	<properties>
 		<java.version>21</java.version>
@@ -22,10 +22,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
