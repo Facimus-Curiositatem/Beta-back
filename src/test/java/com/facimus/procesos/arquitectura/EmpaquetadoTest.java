@@ -13,7 +13,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
  * ADR-001: empaquetado modular por dominio (gestion + modelado).
- * Los controllers solo viven en gestion (Entrega 1 = Thymeleaf).
+ * Cada modulo tiene su propio paquete controller/, service/ y repository/.
  * Los servicios y repositorios viven en su paquete correspondiente.
  */
 class EmpaquetadoTest {
@@ -28,10 +28,10 @@ class EmpaquetadoTest {
     }
 
     @Test
-    @DisplayName("Los @Controller viven en un paquete controller")
+    @DisplayName("Los @RestController viven en un paquete controller")
     void controllers_en_paquete_controller() {
         classes()
-                .that().areAnnotatedWith(org.springframework.stereotype.Controller.class)
+                .that().areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
                 .should().resideInAPackage("..controller..")
                 .because("ADR-001: cada modulo tiene su propio controller/")
                 .check(clases);
