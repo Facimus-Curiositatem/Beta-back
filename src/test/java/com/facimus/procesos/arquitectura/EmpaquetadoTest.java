@@ -87,4 +87,45 @@ class EmpaquetadoTest {
                 .because("ADR-001: modelado no debe depender de controllers de gestion")
                 .check(clases);
     }
+
+    @Test
+    @DisplayName("Los servicios no dependen de controllers")
+    void servicios_no_dependen_de_controllers() {
+        noClasses()
+                .that().resideInAPackage("..service..")
+                .should().dependOnClassesThat().resideInAPackage("..controller..")
+                .because("La capa de servicio no debe conocer la capa de presentacion")
+                .check(clases);
+    }
+
+    @Test
+    @DisplayName("Los repositorios no dependen de controllers ni de services")
+    void repositorios_no_dependen_de_capas_superiores() {
+        noClasses()
+                .that().resideInAPackage("..repository..")
+                .should().dependOnClassesThat().resideInAnyPackage("..controller..", "..service..")
+                .because("La capa de persistencia no debe conocer capas superiores")
+                .check(clases);
+    }
+
+    @Test
+    @DisplayName("Las clases de modelo no dependen de services ni controllers")
+    void modelo_no_depende_de_capas_superiores() {
+        noClasses()
+                .that().resideInAPackage("..model..")
+                .should().dependOnClassesThat().resideInAnyPackage("..controller..", "..service..")
+                .because("El modelo de dominio debe ser independiente de la infraestructura")
+                .check(clases);
+    }
+
+    @Test
+    @DisplayName("Los DTOs viven en controller.dto")
+    void dtos_en_paquete_dto() {
+        classes()
+                .that().haveSimpleNameEndingWith("Request")
+                .or().haveSimpleNameEndingWith("Response")
+                .should().resideInAnyPackage("..controller.dto..", "..common..")
+                .because("Los DTOs de entrada/salida pertenecen a la capa de presentacion o common")
+                .check(clases);
+    }
 }
