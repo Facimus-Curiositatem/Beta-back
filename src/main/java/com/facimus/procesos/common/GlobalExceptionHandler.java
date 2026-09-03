@@ -1,30 +1,46 @@
 package com.facimus.procesos.common;
 
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Manejador global de errores. Traduce las excepciones de dominio en un
- * mensaje de error visible para el usuario, sin exponer trazas internas.
+ * Manejador global de errores. Traduce las excepciones de dominio en
+ * respuestas JSON con el codigo HTTP apropiado.
  */
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ReglaNegocioException.class)
-    public String manejarReglaNegocio(ReglaNegocioException ex, RedirectAttributes redirectAttributes,
-            HttpServletRequest request) {
-        redirectAttributes.addFlashAttribute("error", ex.getMessage());
-        String referer = request.getHeader("Referer");
-        return "redirect:" + (referer != null ? referer : "/procesos");
+    public ResponseEntity<ErrorResponse> manejarReglaNegocio(ReglaNegocioException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(HttpStatus.CONFLICT.value(), ex.getMessage()));
     }
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
-    public String manejarRecursoNoEncontrado(RecursoNoEncontradoException ex, Model model) {
-        model.addAttribute("mensaje", ex.getMessage());
-        return "error/404";
+    public ResponseEntity<ErrorResponse> manejarRecursoNoEncontrado(RecursoNoEncontradoException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> manejarValidacion(MethodArgumentNotValidException ex) {
+        Map<String, String> errores = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        fe -> fe.getField(),
+                        fe -> fe.getDefaultMessage(),
+                        (a, b) -> a));
+        return ResponseEntity.badRequest().body(errores);
+    }
+
+    @ExceptionHandler(AccesoProhibidoException.class)
+    public ResponseEntity<ErrorResponse> manejarAccesoProhibido(AccesoProhibidoException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(HttpStatus.FORBIDDEN.value(), ex.getMessage()));
     }
 }
