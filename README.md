@@ -1,138 +1,745 @@
-# Beta-back — Modulación de tareas pendientes
->
-> **Alcance:** únicamente backend. El frontend queda fuera de esta etapa y el trabajo de CI/CD se presenta en un módulo independiente, asignado a la persona que ya está encargada de esa área.
+# Beta-back — Plan de Migración RESTful
 
-## Objetivo
+## 1. Objetivo
 
-Completar la evolución del backend actual hacia una API REST versionada, segura y stateless, manteniendo temporalmente la aplicación MVC/Thymeleaf existente y reutilizando la misma capa de servicios y repositorios.
+El objetivo de esta migración es convertir `Beta-back` en un backend exclusivamente RESTful.
 
-La arquitectura objetivo es una migración incremental:
+La arquitectura final no utilizará:
+
+- Thymeleaf;
+- controllers MVC para renderizar HTML;
+- templates;
+- `HttpSession`;
+- autenticación basada en sesión;
+- interceptores destinados a navegación web;
+- lógica de presentación en el backend.
+
+Toda comunicación con clientes se realizará mediante:
 
 ```text
-MVC / Thymeleaf existente ──┐
-                            ├── Services ── Repositories ── Base de datos
-API REST /api/v1/** ────────┘
+HTTP + JSON
 ```
 
-No se debe duplicar lógica de negocio ni exponer entidades JPA directamente desde los controladores REST.
+a través de una API versionada:
 
-## Distribución principal — 5 personas
+```text
+/api/v1/**
+```
 
-| Persona | Módulo | Responsabilidad principal | Entregable |
-|---|---|---|---|
-| **Persona 1** | Seguridad REST + JWT | Implementar autenticación stateless para `/api/v1/**` | Login REST, emisión y validación de JWT, principal autenticado y respuestas 401/403 |
-| **Persona 2** | Normalización RESTful y contrato API | Definir y aplicar las convenciones HTTP transversales | API `/api/v1`, DTOs comunes, `ProblemDetail`, `PageResponse`, códigos y headers consistentes |
-| **Persona 3** | Multitenancy y autorización | Garantizar aislamiento entre empresas y permisos por rol | Tenant derivado del principal, controles anti-IDOR y autorización centralizada |
-| **Persona 4** | REST de Gestión | Exponer y completar los recursos del dominio de gestión | API de usuarios, procesos, roles, empresa e historial, alineada con el contrato común |
-| **Persona 5** | REST de Modelado BPMN | Exponer y completar los recursos del dominio de modelado | API de pools, lanes, actividades, gateways, arcos, mensajes y correlaciones |
+La arquitectura objetivo será:
 
-## Persona 1 — Seguridad REST, JWT y API stateless
+```text
+Cliente
+   |
+HTTP + JSON
+   |
+/api/v1/**
+   |
+Spring Security
+   |
+Bearer JWT
+   |
+ApiPrincipal
+   |
+REST Controllers
+   |
+Request / Response DTOs
+   |
+Services
+   |
+Repositories
+   |
+JPA
+   |
+PostgreSQL / H2
+```
+
+---
+
+## 2. Decisiones arquitectónicas definitivas
+
+| Área | Decisión |
+|---|---|
+| Arquitectura backend | Backend exclusivamente RESTful |
+| API | `/api/v1/**` |
+| Formato | HTTP + JSON |
+| Presentación | No existe presentación HTML en backend |
+| Thymeleaf | Se elimina |
+| Controllers MVC | Se eliminan |
+| HttpSession | Se elimina de la API |
+| Seguridad | Spring Security |
+| Autenticación | Bearer JWT |
+| Estado | API stateless |
+| Identidad | `ApiPrincipal` |
+| Multitenancy | `empresaId` obtenido desde el principal autenticado |
+| Contratos | Request DTO + Response DTO |
+| Persistencia | JPA / Hibernate |
+| Errores | `ProblemDetail` |
+| Cobertura | JaCoCo |
+| Análisis de calidad | SonarQube |
+| Arquitectura | ArchUnit |
+
+---
+
+## 3. Componentes del backend que se conservan
+
+La migración no implica reconstruir el dominio desde cero.
+
+Se conservarán principalmente:
+
+```text
+Model
+Repository
+Service
+```
+
+Es decir:
+
+```text
+gestion/
+├── model/
+├── repository/
+└── service/
+
+modelado/
+├── model/
+├── repository/
+└── service/
+```
+
+Estos componentes seguirán conteniendo:
+
+- entidades JPA;
+- repositorios;
+- multitenancy;
+- reglas de negocio;
+- operaciones de dominio;
+- persistencia.
+
+---
+
+## 4. Componentes que reemplazan la arquitectura anterior
+
+La capa web anterior:
+
+```text
+Controller MVC
+Thymeleaf
+HttpSession
+SesionActiva
+AutenticacionInterceptor
+VistaGlobalAdvice
+Templates
+```
+
+será reemplazada por:
+
+```text
+REST Controller
+Request DTO
+Response DTO
+Mapper
+Spring Security
+JWT
+ApiPrincipal
+ProblemDetail
+```
+
+---
+
+## 5. Arquitectura propuesta
+
+```text
+com.facimus.procesos
+|
++-- common/
+|   |
+|   +-- api/
+|       +-- ApiExceptionHandler
+|       +-- PageResponse
+|
++-- security/
+|   +-- ApiPrincipal
+|   +-- JwtService
+|   +-- JwtAuthenticationFilter
+|   +-- SecurityConfig
+|
++-- gestion/
+|   +-- model/
+|   +-- repository/
+|   +-- service/
+|   +-- controller/
+|       +-- rest/
+|           +-- dto/
+|           |   +-- request/
+|           |   +-- response/
+|           |
+|           +-- mapper/
+|
++-- modelado/
+    +-- model/
+    +-- repository/
+    +-- service/
+    +-- controller/
+        +-- rest/
+            +-- dto/
+            |   +-- request/
+            |   +-- response/
+            |
+            +-- mapper/
+```
+
+---
+
+## 6. API REST versionada
+
+Todos los endpoints públicos deben ubicarse bajo:
+
+```text
+/api/v1/**
+```
+
+Ejemplos:
+
+```text
+/api/v1/auth
+/api/v1/usuarios
+/api/v1/procesos
+/api/v1/roles
+/api/v1/pools
+/api/v1/lanes
+/api/v1/actividades
+/api/v1/gateways
+/api/v1/arcos
+/api/v1/mensajes
+/api/v1/correlaciones
+```
+
+No deben permanecer rutas funcionales bajo:
+
+```text
+/api/**
+```
+
+sin versionado cuando se complete la migración.
+
+---
+
+## 7. Seguridad final
+
+La API será completamente stateless.
+
+Se debe configurar:
+
+```java
+SessionCreationPolicy.STATELESS
+```
+
+No se utilizará:
+
+```text
+HttpSession
+```
+
+para almacenar:
+
+```text
+empresaId
+usuarioId
+rol
+nombreUsuario
+nombreEmpresa
+```
+
+La identidad se obtendrá del Bearer JWT.
+
+Flujo:
+
+```text
+Request
+   |
+Authorization: Bearer <JWT>
+   |
+JwtAuthenticationFilter
+   |
+Spring Security
+   |
+ApiPrincipal
+   |
+usuarioId
+empresaId
+rol
+   |
+REST Controller
+   |
+Service
+```
+
+---
+
+## 8. Login REST
+
+Endpoint:
+
+```http
+POST /api/v1/auth/login
+```
+
+Request:
+
+```json
+{
+  "email": "usuario@empresa.com",
+  "password": "password"
+}
+```
+
+Respuesta:
+
+```json
+{
+  "accessToken": "<jwt>",
+  "tokenType": "Bearer",
+  "expiresIn": 1800,
+  "usuario": {
+    "id": 1,
+    "nombre": "Usuario",
+    "email": "usuario@empresa.com",
+    "rol": "ADMINISTRADOR"
+  }
+}
+```
+
+---
+
+## 9. JWT
+
+El JWT debe contener únicamente claims necesarios:
+
+```text
+usuarioId
+empresaId
+rol
+```
+
+Los secretos JWT deberán manejarse mediante variables de entorno.
+
+Nunca deben almacenarse directamente en Git.
+
+---
+
+## 10. Multitenancy
+
+El cliente nunca selecciona el tenant.
+
+No debe aceptarse como fuente confiable:
+
+```json
+{
+  "empresaId": 10
+}
+```
+
+El flujo correcto será:
+
+```text
+JWT
+ |
+ApiPrincipal
+ |
+empresaId
+ |
+Service
+ |
+RepositorioTenant
+ |
+Database
+```
+
+Todos los recursos identificados por ID deben comprobar pertenencia al tenant autenticado.
+
+---
+
+## 11. Prevención de IDOR
+
+Se deben proteger recursos como:
+
+```text
+/api/v1/usuarios/{id}
+/api/v1/procesos/{id}
+/api/v1/roles/{id}
+/api/v1/pools/{id}
+/api/v1/lanes/{id}
+/api/v1/actividades/{id}
+/api/v1/gateways/{id}
+/api/v1/arcos/{id}
+/api/v1/mensajes/{id}
+/api/v1/correlaciones/{id}
+```
+
+Un usuario de Empresa A nunca debe poder acceder a información perteneciente a Empresa B modificando un identificador.
+
+---
+
+## 12. DTOs
+
+Las entidades JPA no deben ser expuestas directamente.
+
+Flujo obligatorio:
+
+```text
+JSON
+ |
+Request DTO
+ |
+REST Controller
+ |
+Service
+ |
+Entity
+ |
+Mapper
+ |
+Response DTO
+ |
+JSON
+```
+
+---
+
+## 13. Manejo de errores
+
+La API deberá utilizar:
+
+```text
+ProblemDetail
+```
+
+compatible con RFC 9457.
+
+Ejemplo:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Recurso no encontrado",
+  "status": 404,
+  "detail": "No existe el proceso solicitado",
+  "instance": "/api/v1/procesos/99"
+}
+```
+
+Mapeo esperado:
+
+| Situación | HTTP |
+|---|---|
+| Request inválido | `400` |
+| Sin autenticación | `401` |
+| Sin permisos | `403` |
+| Recurso inexistente | `404` |
+| Regla de negocio | `409` |
+
+---
+
+## 14. Paginación
+
+No se debe exponer directamente:
+
+```java
+Page<T>
+```
+
+como contrato público.
+
+Se utilizará un DTO propio:
+
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 10,
+  "totalElements": 50,
+  "totalPages": 5
+}
+```
+
+Por ejemplo:
+
+```java
+PageResponse<ProcesoResponse>
+```
+
+---
+
+## 15. Semántica RESTful
+
+### Creación
+
+```http
+POST /api/v1/procesos
+```
+
+Respuesta:
+
+```http
+201 Created
+Location: /api/v1/procesos/{id}
+```
+
+### Consulta
+
+```http
+GET /api/v1/procesos/{id}
+```
+
+### Actualización completa
+
+```http
+PUT /api/v1/procesos/{id}
+```
+
+### Actualización parcial
+
+```http
+PATCH /api/v1/procesos/{id}
+```
+
+### Eliminación
+
+```http
+DELETE /api/v1/procesos/{id}
+```
+
+Respuesta:
+
+```http
+204 No Content
+```
+
+---
+
+## 16. Publicación de procesos
+
+Actualmente existe una operación similar a:
+
+```text
+POST /api/procesos/{id}/publicar
+```
+
+Debe revisarse para evitar una ruta basada directamente en un verbo.
+
+La opción preferida es:
+
+```http
+PATCH /api/v1/procesos/{id}
+```
+
+con:
+
+```json
+{
+  "estado": "PUBLICADO"
+}
+```
+
+si las reglas del dominio permiten modelarlo como transición de estado.
+
+---
+
+## 17. Eliminación de Thymeleaf y arquitectura MVC
+
+Una vez existan los endpoints REST equivalentes y hayan sido verificados, se deberá retirar completamente la arquitectura anterior.
+
+### Eliminar templates
+
+Eliminar:
+
+```text
+src/main/resources/templates/
+```
+
+incluyendo cualquier vista relacionada con:
+
+```text
+empresas
+procesos
+roles
+sesion
+usuarios
+fragments
+error
+```
+
+### Eliminar dependencia Thymeleaf
+
+Retirar del `pom.xml` cualquier dependencia como:
+
+```text
+spring-boot-starter-thymeleaf
+```
+
+si todavía se encuentra presente.
+
+### Eliminar controllers MVC
+
+Eliminar cualquier controller cuya función sea renderizar vistas.
+
+### Eliminar infraestructura de sesión web
+
+Retirar cuando ya no tenga consumidores:
+
+```text
+SesionActiva
+AutenticacionInterceptor
+VistaGlobalAdvice
+WebConfig relacionado con navegación MVC
+```
+
+### Eliminar DTOs exclusivos de formularios HTML
+
+Revisar DTOs como:
+
+```text
+LoginForm
+ProcesoForm
+RegistroEmpresaForm
+RolProcesoForm
+UsuarioForm
+```
+
+y eliminarlos si solo eran utilizados por Thymeleaf.
+
+---
+
+## 18. Reglas de arquitectura
+
+ArchUnit deberá reflejar la arquitectura final.
+
+Permitido:
+
+```text
+REST Controller -> Service
+Service -> Repository
+```
+
+Prohibido:
+
+```text
+REST Controller -> Repository
+```
+
+También debe validarse:
+
+- entidades multiempresa;
+- acceso tenant-aware;
+- dependencias entre `gestion` y `modelado`;
+- security desacoplado de repositories;
+- controllers REST sin lógica de persistencia.
+
+---
+
+## 19. Distribución de tareas pendientes
+
+La migración backend restante se divide entre 5 personas.
+
+No se incluye:
+
+- frontend;
+- Angular;
+- CI/CD.
+
+Esos componentes están fuera de esta distribución.
+
+---
+
+## Persona 1 — Seguridad REST, JWT y API Stateless
 
 ### Objetivo
 
-Reemplazar el uso de `HttpSession` como mecanismo de autenticación de la nueva API por Spring Security y Bearer JWT. La sesión actual puede mantenerse únicamente para los controladores MVC/Thymeleaf mientras dure la migración.
+Eliminar completamente la autenticación basada en sesión e implementar seguridad REST.
 
 ### Tareas
 
-- Configurar `SecurityFilterChain` para `/api/v1/**`.
-- Aplicar `SessionCreationPolicy.STATELESS` a la API REST.
-- Implementar `ApiPrincipal` con los datos mínimos de identidad:
-  - `usuarioId`;
-  - `empresaId`;
-  - `rol`.
-- Implementar el servicio de creación y validación de JWT.
-- Implementar el filtro de autenticación Bearer.
-- Crear `POST /api/v1/auth/login`.
-- Mantener BCrypt para la validación de contraseñas.
-- Configurar secreto y expiración del JWT mediante variables de entorno.
-- Diferenciar correctamente:
-  - token ausente, inválido o expirado: `401 Unauthorized`;
-  - usuario autenticado sin permisos: `403 Forbidden`.
-- No implementar refresh tokens en esta etapa, salvo que aparezca una necesidad técnica justificada.
-- Agregar pruebas de login, token válido, token inválido, token expirado, token ausente y permisos insuficientes.
+- implementar `SecurityFilterChain`;
+- configurar `SessionCreationPolicy.STATELESS`;
+- implementar `JwtService`;
+- implementar `JwtAuthenticationFilter`;
+- implementar `ApiPrincipal`;
+- migrar login a JWT;
+- eliminar dependencia de `HttpSession`;
+- eliminar uso de `SesionActiva` dentro de REST;
+- retirar `AutenticacionInterceptor` cuando quede obsoleto;
+- diferenciar correctamente `401` y `403`;
+- mantener BCrypt;
+- manejar secret JWT mediante variables de entorno;
+- revisar permisos por rol.
 
 ### Resultado esperado
 
 ```text
-POST /api/v1/auth/login
-          ↓
-         JWT
-          ↓
-Authorization: Bearer <token>
-          ↓
+Request
+ ↓
+JWT
+ ↓
 Spring Security
-          ↓
+ ↓
 ApiPrincipal
+ ↓
+REST Controller
 ```
 
-La nueva API no depende de la sesión web y no contiene secretos hardcodeados.
+---
 
-## Persona 2 — Normalización RESTful y contrato `/api/v1`
+## Persona 2 — Normalización RESTful y contrato API
 
 ### Objetivo
 
-Definir el contrato HTTP común que deberán respetar los módulos de Gestión y Modelado.
+Dejar toda la API bajo un estándar REST coherente.
 
 ### Tareas
 
-- Versionar todos los endpoints REST bajo `/api/v1/**`.
-- Usar sustantivos plurales y evitar rutas verbales cuando una modificación de recurso o subrecurso represente mejor la operación.
-- Definir DTOs explícitos de request y response; no serializar entidades JPA.
-- Incorporar Jakarta Bean Validation para validaciones sintácticas.
-- Estandarizar los códigos de respuesta:
-  - `200 OK` para consultas y actualizaciones con cuerpo;
-  - `201 Created` y header `Location` para creaciones;
-  - `204 No Content` para eliminaciones correctas;
-  - `400 Bad Request` para solicitudes inválidas;
-  - `401 Unauthorized` para autenticación faltante o inválida;
-  - `403 Forbidden` para falta de permisos;
-  - `404 Not Found` para recursos inexistentes o no visibles;
-  - `409 Conflict` para conflictos de negocio.
-- Adaptar el manejo de errores REST a `ProblemDetail`, compatible con RFC 9457.
-- Crear un contrato estable `PageResponse<T>` en lugar de exponer `Page<T>` de Spring.
-- Revisar la publicación de procesos y decidir entre:
-  - `PATCH /api/v1/procesos/{id}` para modificar su estado; o
-  - un subrecurso `publicacion`, si las reglas del dominio lo justifican.
-- Revisar que `GET` sea seguro, `PUT` y `DELETE` sean idempotentes, y `PATCH` represente cambios parciales.
-- Si OpenAPI es compatible con la versión real de Spring Boot, documentar el contrato sin bloquear la migración por esta dependencia.
+- migrar `/api/**` a `/api/v1/**`;
+- revisar naming de recursos;
+- eliminar endpoints verbales innecesarios;
+- implementar `ProblemDetail`;
+- retirar `ErrorResponse` cuando deje de ser necesario;
+- crear `PageResponse<T>`;
+- eliminar exposición pública de `Page<T>`;
+- agregar `Location` en creaciones;
+- revisar `201`, `204`, `400`, `404`, `409`;
+- revisar consistencia de Request/Response DTOs;
+- auditar rutas de Gestión y Modelado;
+- documentar contrato final con OpenAPI.
 
-### Entregables compartidos
+### Resultado esperado
 
-- Convenciones de rutas y nombres.
-- DTO común de paginación.
-- Formato común de errores.
-- Matriz de códigos HTTP.
-- Criterios de validación de requests.
-- Contrato base que usarán Personas 4 y 5.
+Una API estable, versionada y completamente RESTful.
+
+---
 
 ## Persona 3 — Multitenancy, autorización e IDOR
 
 ### Objetivo
 
-Garantizar que cada usuario solo pueda consultar o modificar información de su propia empresa y dentro de los permisos de su rol.
+Garantizar aislamiento entre empresas y autorización centralizada.
 
 ### Tareas
 
-- Obtener siempre `empresaId` desde `ApiPrincipal`.
-- Prohibir que el cliente seleccione el tenant mediante JSON, query params o URL.
-- Reutilizar el patrón multiempresa existente y `RepositorioTenant<T>`.
-- Auditar todos los accesos por identificador, incluidos:
-  - usuarios;
-  - procesos;
-  - roles;
-  - pools;
-  - lanes;
-  - actividades;
-  - gateways;
-  - arcos;
-  - mensajes;
-  - correlaciones.
-- Validar pertenencia al tenant tanto del recurso solicitado como de los recursos relacionados.
-- Evitar ataques IDOR: conocer un ID de otra empresa nunca debe permitir acceder a sus datos.
-- Centralizar la autorización con Spring Security, según los roles reales del dominio, evitando validaciones dispersas en controladores.
-- Definir una respuesta consistente para recursos de otro tenant sin revelar su existencia.
-- Agregar pruebas de aislamiento Empresa A/Empresa B para lectura, creación, actualización y eliminación.
-- Actualizar las reglas ArchUnit que correspondan sin retirar las protecciones arquitectónicas actuales.
+- obtener `empresaId` desde `ApiPrincipal`;
+- obtener `usuarioId` desde `ApiPrincipal`;
+- obtener rol desde `ApiPrincipal`;
+- eliminar dependencias de tenant basadas en sesión;
+- verificar todos los accesos por ID;
+- prevenir IDOR;
+- revisar repositories tenant-aware;
+- asegurar `findBy...AndEmpresaId`;
+- centralizar autorización por roles;
+- revisar permisos de:
+  - administrador;
+  - editor;
+  - lector;
+- comprobar relaciones entre recursos del mismo tenant;
+- validar que ningún request pueda seleccionar manualmente empresa.
 
 ### Resultado esperado
 
@@ -141,293 +748,330 @@ JWT
  ↓
 ApiPrincipal
  ↓
-empresaId / usuarioId / rol
+empresaId
  ↓
 Service
  ↓
 RepositorioTenant
- ↓
-Base de datos
 ```
 
-Ninguna operación puede cambiar de empresa manipulando un identificador o el cuerpo de la petición.
+---
 
 ## Persona 4 — REST del módulo Gestión
 
 ### Objetivo
 
-Exponer el dominio de Gestión mediante la nueva API reutilizando los servicios existentes y el contrato definido por Persona 2.
+Cerrar completamente la API de Gestión.
 
-### Alcance
+### Recursos
 
-- `Empresa`
-- `Usuario`
-- `Proceso`
-- `RolProceso`
-- `HistorialCambio`
+```text
+Empresa
+Usuario
+Proceso
+RolProceso
+HistorialCambio
+```
 
 ### Tareas
 
-- Crear o completar controladores REST, DTOs y mappers del módulo.
-- Implementar las operaciones necesarias de usuarios: listar, crear, consultar, actualizar rol/estado y desactivar.
-- Implementar las operaciones de procesos: listar, filtrar, paginar, crear, consultar, actualizar, publicar/cambiar estado y eliminar lógicamente.
-- Mantener la trazabilidad mediante `HistorialCambio`.
-- Implementar las operaciones necesarias de roles: listar, crear, consultar, actualizar y eliminar lógicamente.
-- Exponer únicamente las operaciones de empresa necesarias para el dominio.
-- Aplicar permisos, aislamiento por tenant, validación, códigos HTTP, `Location`, `ProblemDetail` y `PageResponse` definidos transversalmente.
-- Mantener la separación:
+#### Usuarios
+
+- revisar CRUD;
+- desactivación;
+- DTOs;
+- permisos;
+- respuestas HTTP.
+
+#### Procesos
+
+- revisar CRUD;
+- filtros;
+- paginación;
+- historial;
+- publicación;
+- cambio de estado;
+- soft delete.
+
+#### Roles
+
+- revisar CRUD;
+- eliminación lógica;
+- uso dentro de procesos.
+
+#### Empresa
+
+- revisar endpoints necesarios;
+- eliminar operaciones relacionadas únicamente con páginas HTML.
+
+#### Limpieza
+
+- eliminar controllers MVC del módulo;
+- eliminar formularios Thymeleaf que queden obsoletos;
+- asegurar:
 
 ```text
-Controller → Service → Repository
+Controller -> Service -> Repository
 ```
-
-- No acceder a repositorios desde controladores.
-- No duplicar reglas existentes de los servicios.
-- Agregar pruebas REST funcionales del módulo, incluidos filtros, paginación, soft delete y conflictos de negocio.
 
 ### Resultado esperado
 
-El módulo Gestión queda disponible bajo `/api/v1/**`, conserva el comportamiento del dominio actual y puede coexistir con los controladores Thymeleaf.
+Todo `gestion` expuesto únicamente mediante `/api/v1/**`.
+
+---
 
 ## Persona 5 — REST del módulo Modelado BPMN
 
 ### Objetivo
 
-Exponer todo el modelo BPMN mediante una API coherente, aprovechando las entidades, repositorios y servicios ya existentes.
+Cerrar y normalizar la API de modelado.
 
-### Alcance
+### Recursos
 
-- `Pool`
-- `Lane`
-- `Actividad`
-- `Gateway`
-- `Arco`
-- `Mensaje`
-- `Correlacion`
+```text
+Pool
+Lane
+Actividad
+Gateway
+Arco
+Mensaje
+Correlacion
+```
 
 ### Tareas
 
-- Crear controladores REST, DTOs y mappers para todos los recursos del módulo.
-- Definir las relaciones jerárquicas naturales sin usar nesting excesivo.
-- Implementar operaciones de pools vinculadas a procesos.
-- Implementar operaciones de lanes vinculadas a pools.
-- Implementar actividades y gateways vinculados a lanes, incluidos `posX`, `posY` y tipo cuando corresponda.
-- Implementar arcos con origen, destino, condición y etiqueta.
-- Validar que origen y destino de un arco pertenezcan al proceso y tenant correctos.
-- Implementar mensajes y determinar su relación correcta con procesos y pools según el modelo real.
-- Implementar correlaciones y validar su cardinalidad con mensajes.
-- Aplicar el contrato común de DTOs, errores, códigos HTTP y validaciones.
-- Agregar pruebas REST funcionales y casos negativos de relaciones cruzadas o inválidas.
+#### Pool
 
-### Guía inicial de rutas
+- revisar CRUD;
+- relación con Proceso;
+- tenant.
 
-```text
-GET  /api/v1/procesos/{procesoId}/pools
-POST /api/v1/procesos/{procesoId}/pools
-GET  /api/v1/pools/{poolId}
+#### Lane
 
-GET  /api/v1/pools/{poolId}/lanes
-POST /api/v1/pools/{poolId}/lanes
-GET  /api/v1/lanes/{laneId}
+- revisar CRUD;
+- relación con Pool;
+- relación con RolProceso.
 
-POST /api/v1/lanes/{laneId}/actividades
-GET  /api/v1/actividades/{id}
+#### Actividad
 
-POST /api/v1/lanes/{laneId}/gateways
-GET  /api/v1/gateways/{id}
-```
+- revisar CRUD;
+- posición;
+- relación con Lane.
 
-Las rutas de arcos, mensajes y correlaciones deben decidirse después de validar el padre natural en el modelo real; esta guía no sustituye esa revisión.
+#### Gateway
 
-## Coordinación y dependencias
+- revisar CRUD;
+- tipo;
+- posición.
 
-```text
-Persona 1: identidad y autenticación
-                 │
-                 ▼
-Persona 3: tenant y autorización
+#### Arco
 
-Persona 2: contrato REST transversal
-        ├───────────────┐
-        ▼               ▼
-Persona 4           Persona 5
-Gestión             Modelado BPMN
-```
+- revisar origen;
+- destino;
+- condición;
+- etiqueta;
+- consistencia de tenant y proceso.
 
-- Persona 1 debe estabilizar `ApiPrincipal` pronto para desbloquear a Persona 3.
-- Persona 2 define el contrato común y lo coordina con Personas 4 y 5, pero no implementa sus reglas de negocio.
-- Personas 4 y 5 pueden avanzar en paralelo usando dobles de autenticación mientras se estabiliza la seguridad.
-- Persona 3 revisa transversalmente los endpoints construidos por Personas 4 y 5.
-- Cada persona debe mantener pruebas de su módulo; la persona de CI/CD integra su ejecución y sus reportes en el pipeline.
+#### Mensaje
 
-## Criterios comunes de terminado
+- revisar relaciones;
+- origen y destino;
+- proceso relacionado.
 
-Una tarea de backend se considera terminada cuando:
+#### Correlación
 
-- reutiliza servicios y repositorios existentes;
-- no expone entidades JPA directamente;
-- respeta `/api/v1/**` y las convenciones HTTP acordadas;
-- deriva el tenant del usuario autenticado;
-- tiene pruebas positivas, negativas y de autorización aplicables;
-- no rompe el flujo MVC/Thymeleaf existente;
-- mantiene las reglas ArchUnit;
-- no introduce secretos en Git;
-- pasa `mvn test` y `mvn clean verify`;
-- actualiza la documentación solo con comportamiento ya implementado y verificado.
+- revisar relación con Mensaje;
+- cardinalidad;
+- contrato REST.
+
+#### Arquitectura
+
+- revisar nesting;
+- reducir URLs excesivamente profundas;
+- mantener Services existentes;
+- eliminar cualquier dependencia de presentación anterior.
+
+### Resultado esperado
+
+Todo el módulo BPMN accesible únicamente mediante REST.
 
 ---
 
-# Módulo separado — CI/CD y calidad
-
-> Este módulo **no forma parte del reparto entre las cinco personas**. Pertenece exclusivamente a la persona que ya está encargada de CI/CD.
-
-## Objetivo
-
-Evolucionar el pipeline actual para integrar análisis SonarQube y un Quality Gate bloqueante, conservando JaCoCo, JUnit, ArchUnit y el Dockerfile existente.
-
-## Principio de calidad
-
-SonarQube no reemplaza a JaCoCo. La cadena esperada es:
+## 20. Dependencias entre tareas
 
 ```text
-JUnit
-  ↓
-JaCoCo
-  ↓
-target/site/jacoco/jacoco.xml
-  ↓
-SonarQube
-  ↓
-Quality Gate
+Persona 1
+Seguridad + JWT
+     |
+     v
+Persona 3
+Multitenancy + autorización
 ```
 
-JaCoCo mide y genera la cobertura; SonarQube importa el reporte XML y lo combina con análisis de bugs, vulnerabilidades, duplicación y mantenibilidad.
-
-## Trabajo pendiente
-
-### 1. Auditar el pipeline existente
-
-- Revisar `.github/workflows/ci.yml` antes de modificarlo.
-- Conservar los jobs actuales de build, tests, guardas de arquitectura y Docker.
-- Identificar dependencias, condiciones y matrices Linux/Windows existentes.
-- Evitar duplicar innecesariamente el mismo análisis Sonar en cada sistema operativo.
-
-### 2. Preparar Maven y JaCoCo
-
-- Mantener `jacoco-maven-plugin`.
-- Garantizar que `mvn clean verify` genere:
+En paralelo:
 
 ```text
-target/site/jacoco/jacoco.xml
+Persona 2
+Contrato REST transversal
+
+Persona 4
+Gestión
+
+Persona 5
+Modelado BPMN
 ```
 
-- Verificar que el reporte XML incluya los módulos y paquetes relevantes.
-- Mantener JUnit y ArchUnit como controles independientes.
-- Configurar SonarScanner for Maven con una versión compatible con el proyecto.
-- No fijar versiones arbitrarias sin revisar primero el `pom.xml` y la compatibilidad real.
-
-### 3. Integrar SonarQube
-
-- Configurar el identificador y nombre del proyecto Sonar.
-- Configurar la ruta del reporte XML de JaCoCo.
-- Ejecutar el análisis después de compilar y probar el código.
-- Usar exclusivamente secretos del repositorio:
-  - `SONAR_TOKEN`;
-  - `SONAR_HOST_URL`.
-- No guardar tokens, URLs sensibles ni credenciales en el repositorio o Dockerfile.
-
-### 4. Configurar el Quality Gate
-
-Aplicar el control principalmente sobre **código nuevo**, con objetivos recomendados:
-
-| Métrica de código nuevo | Umbral recomendado |
-|---|---:|
-| Bugs | 0 |
-| Vulnerabilidades | 0 |
-| Cobertura | ≥ 80 % |
-| Líneas duplicadas | < 3 % |
-
-No imponer inicialmente un umbral global artificial que bloquee el proyecto por deuda heredada. Los security hotspots deben revisarse según la política acordada en SonarQube.
-
-### 5. Orden y dependencias del pipeline
-
-Evolucionar el flujo hacia:
+La coordinación será:
 
 ```text
-Build & Test
-      ↓
-Architecture Guard
-      ↓
-JaCoCo XML
-      ↓
-SonarQube Analysis
-      ↓
-Quality Gate
-      ↓
-Docker Build
+Persona 1 -> identidad
+Persona 2 -> estándar HTTP/REST
+Persona 3 -> seguridad de datos
+Persona 4 -> dominio Gestión
+Persona 5 -> dominio BPMN
 ```
 
-- El Docker build debe ejecutarse solo cuando las verificaciones anteriores sean satisfactorias.
-- El job del Quality Gate debe esperar el resultado real del servidor SonarQube.
-- Un Quality Gate fallido debe marcar el workflow como fallido.
-- Mantener el Dockerfile multi-stage y verificar que el contenedor siga ejecutándose con usuario no root.
+---
 
-### 6. Triggers y protección de ramas
+## 21. Orden recomendado
 
-- Revisar los triggers de `push` y `pull_request`.
-- Incluir la rama real de migración REST, prevista como `feature/migracion-rest`, si ese es finalmente el nombre usado en el repositorio.
-- Alinear el workflow con las ramas que realmente existan; no asumir que `develop` existe.
-- Configurar el check de CI/Quality Gate como obligatorio para merge cuando la administración del repositorio lo permita.
-- No hacer merge automático ni force push.
+### Bloque 1
 
-### 7. Verificación final
+Persona 1:
 
-Comprobar y registrar:
+- Security;
+- JWT;
+- stateless;
+- ApiPrincipal.
 
-- cantidad de tests ejecutados y fallos;
-- resultado de `mvn test`;
-- resultado de `mvn clean verify`;
-- ejecución correcta de ArchUnit;
-- generación de `target/site/jacoco/jacoco.xml`;
-- importación de cobertura en SonarQube;
-- resultado real del Quality Gate;
-- comportamiento del pipeline ante un Quality Gate fallido;
-- ejecución condicional del Docker build;
-- resultado de `docker build -t facimus/procesos-back:test .`;
-- ausencia de secretos en archivos versionados;
-- ejecución del workflow en la rama de migración y en un pull request.
+Persona 2:
 
-No se debe afirmar que SonarQube o GitHub Actions están en verde sin evidencia de una ejecución real.
+- `/api/v1`;
+- ProblemDetail;
+- PageResponse;
+- contrato HTTP.
 
-## Entregables de CI/CD
+### Bloque 2
 
-- `pom.xml` ajustado para JaCoCo XML y SonarScanner, si corresponde.
-- `.github/workflows/ci.yml` actualizado sin eliminar las verificaciones actuales.
-- Quality Gate creado y asociado al proyecto SonarQube.
-- Secrets requeridos documentados y configurados fuera de Git.
-- Evidencia de una ejecución exitosa y de una ejecución bloqueada deliberadamente por el Quality Gate.
-- Documentación de comandos locales de prueba, cobertura, análisis y Docker.
+Persona 3:
 
-## Criterios de aceptación de CI/CD
+- tenant desde principal;
+- autorización;
+- IDOR.
 
-- `mvn clean verify` genera un XML de cobertura válido.
-- SonarQube muestra la cobertura importada desde JaCoCo.
-- El Quality Gate bloquea el pipeline cuando no se cumple.
-- El Docker build no se ejecuta si falla una verificación previa.
-- El pipeline se activa en las ramas y eventos acordados.
-- JUnit, ArchUnit y JaCoCo continúan funcionando.
-- No hay secretos hardcodeados.
-- Existe evidencia reproducible del pipeline completo.
+### Bloque 3
 
-## Fuera de alcance
+Persona 4:
 
-- Implementación de frontend o Angular.
-- Integración visual o consumo de la API desde frontend.
-- Docker o despliegue del frontend.
-- Pruebas E2E de interfaz.
-- Sustitución de JaCoCo o ArchUnit por SonarQube.
-- Refresh tokens, salvo decisión técnica posterior justificada.
+- cierre Gestión.
 
-## Nota de validación
+Persona 5:
 
-Esta modulación se basa en el mapeo previo de Beta-back. Antes de iniciar cada módulo se deben contrastar rutas, paquetes, ramas y versiones con el estado actual del repositorio, ya que pueden haber cambiado desde el último levantamiento.
+- cierre Modelado.
+
+### Bloque 4
+
+Limpieza final:
+
+- eliminar Thymeleaf;
+- eliminar templates;
+- eliminar MVC;
+- eliminar sesión;
+- eliminar clases obsoletas;
+- actualizar documentación.
+
+---
+
+## 22. Definition of Done
+
+La migración REST se considera terminada cuando:
+
+- no existen templates Thymeleaf;
+- no existen controllers MVC;
+- no existe autenticación por `HttpSession`;
+- `/api/v1/**` es la única API pública;
+- Spring Security utiliza JWT;
+- la API es stateless;
+- existe `ApiPrincipal`;
+- el tenant se deriva del principal;
+- no se serializan Entities directamente;
+- se utiliza `ProblemDetail`;
+- existe `PageResponse`;
+- los POST devuelven `201 + Location` cuando corresponde;
+- DELETE devuelve `204`;
+- todos los recursos respetan aislamiento multiempresa;
+- ArchUnit refleja la arquitectura REST final;
+- OpenAPI documenta el contrato final.
+
+---
+
+## 23. Arquitectura final esperada
+
+```text
+                    BETA-BACK
+                        |
+                    /api/v1/**
+                        |
+                 Spring Security
+                        |
+                   Bearer JWT
+                        |
+                  ApiPrincipal
+                        |
+              REST Controllers
+                        |
+              Request/Response DTO
+                        |
+                     Mapper
+                        |
+                    Services
+                        |
+                  Repositories
+                        |
+                     JPA
+                        |
+              PostgreSQL / H2
+```
+
+No existirán en la arquitectura final:
+
+```text
+Thymeleaf
+MVC Views
+Templates
+HttpSession
+SesionActiva
+Controllers de presentación
+```
+
+---
+
+## 24. Decisión final
+
+`Beta-back` será un backend exclusivamente RESTful.
+
+La migración conservará:
+
+```text
+Model
+Repository
+Service
+```
+
+y sustituirá completamente la capa web anterior por:
+
+```text
+REST Controller
+DTO
+Mapper
+Spring Security
+JWT
+ApiPrincipal
+ProblemDetail
+```
+
+Toda comunicación externa se realizará mediante HTTP + JSON a través de:
+
+```text
+/api/v1/**
+```
