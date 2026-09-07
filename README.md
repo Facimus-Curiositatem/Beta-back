@@ -1,6 +1,4 @@
 # Beta-back — Modulación de tareas pendientes
-
-> Documento de trabajo para incorporar al `README.md` del repositorio **Beta-back**.
 >
 > **Alcance:** únicamente backend. El frontend queda fuera de esta etapa y el trabajo de CI/CD se presenta en un módulo independiente, asignado a la persona que ya está encargada de esa área.
 
