@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No encontrado - Gestion de Procesos</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+    <header th:replace="~{fragments/header :: header}"></header>
+
+    <main class="contenido">
+        <div class="tarjeta tarjeta-angosta">
+            <h1>No encontrado</h1>
+            <p th:text="${mensaje}">El recurso solicitado no existe.</p>
+            <a th:href="@{/procesos}" class="btn btn-primario">Volver a procesos</a>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>

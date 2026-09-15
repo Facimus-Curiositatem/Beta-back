@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles de proceso - Gestion de Procesos</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+    <header th:replace="~{fragments/header :: header}"></header>
+
+    <main class="contenido">
+        <div class="barra-acciones">
+            <h1>Roles de proceso</h1>
+            <a th:if="${esAdministradorSesion}" th:href="@{/roles/nuevo}" class="btn btn-primario">Nuevo rol</a>
+        </div>
+
+        <div class="alerta alerta-error" th:if="${error}" th:text="${error}"></div>
+
+        <table th:if="${not #lists.isEmpty(roles)}">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripcion</th>
+                    <th>Uso</th>
+                    <th th:if="${esAdministradorSesion}">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="vista : ${roles}">
+                    <td th:text="${vista.rol.nombre}">Analista</td>
+                    <td th:text="${vista.rol.descripcion}">Descripcion</td>
+                    <td>
+                        <span class="etiqueta etiqueta-en-uso" th:if="${vista.enUso}"
+                              th:text="'En uso (' + ${vista.procesosQueLoUsan} + ')'">En uso</span>
+                        <span class="etiqueta etiqueta-libre" th:unless="${vista.enUso}">Disponible</span>
+                    </td>
+                    <td class="acciones-tabla" th:if="${esAdministradorSesion}">
+                        <a th:href="@{'/roles/' + ${vista.rol.id} + '/editar'}" class="btn btn-secundario btn-pequeno">Editar</a>
+                        <form method="post" th:action="@{'/roles/' + ${vista.rol.id} + '/eliminar'}"
+                              onsubmit="return confirm('¿Eliminar este rol de proceso?');">
+                            <button type="submit" class="btn btn-peligro btn-pequeno" th:disabled="${vista.enUso}">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="vacio" th:if="${#lists.isEmpty(roles)}">
+            Aun no hay roles de proceso definidos.
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>
