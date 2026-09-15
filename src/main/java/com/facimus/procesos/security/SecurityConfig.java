@@ -10,6 +10,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.facimus.procesos.gestion.service.UsuarioService;
 
 @Configuration
 @EnableWebSecurity
@@ -24,8 +27,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, UsuarioService usuarioService)
+            throws Exception {
+        reglasComunes(http)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
+                // Sin @Bean a proposito: como bean, Spring Boot tambien lo registraria como filtro del servlet.
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioService),
+                        UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    /** Reglas compartidas con la configuracion de seguridad de los tests de controllers. */
+    static HttpSecurity reglasComunes(HttpSecurity http) throws Exception {
+        return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -34,11 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/empresas", "/api/v1/empresas").permitAll()
                         .requestMatchers("/h2-console/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                 "/error").permitAll()
-                        .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(jwtAuthEntryPoint)
-                        .accessDeniedHandler(jwtAccessDeniedHandler));
-        return http.build();
+                        .anyRequest().authenticated());
     }
 
     @Bean

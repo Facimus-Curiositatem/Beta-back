@@ -1,14 +1,18 @@
 package com.facimus.procesos.config;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.facimus.procesos.gestion.model.RolAcceso;
+import com.facimus.procesos.security.ApiPrincipal;
 
 import jakarta.servlet.http.HttpSession;
 
 /**
- * Acceso tipado a los atributos de sesion que guarda el login (empresaId,
- * usuarioId, rolAcceso, nombreUsuario). Evita repetir casts y nombres de
- * atributo "a mano" en cada controlador.
+ * Acceso tipado a la identidad del usuario autenticado. Conserva las firmas con HttpSession
+ * que usan los controllers, pero los datos salen del ApiPrincipal del JWT.
  */
+// ponytail: puente mientras los controllers reciban HttpSession; al migrarlos a ApiPrincipal se elimina esta clase.
 public final class SesionActiva {
 
     public static final String EMPRESA_ID = "empresaId";
@@ -21,19 +25,22 @@ public final class SesionActiva {
     }
 
     public static boolean haySesion(HttpSession session) {
-        return session != null && session.getAttribute(EMPRESA_ID) != null;
+        return principal() != null;
     }
 
     public static Long empresaId(HttpSession session) {
-        return (Long) session.getAttribute(EMPRESA_ID);
+        ApiPrincipal principal = principal();
+        return principal == null ? null : principal.empresaId();
     }
 
     public static Long usuarioId(HttpSession session) {
-        return (Long) session.getAttribute(USUARIO_ID);
+        ApiPrincipal principal = principal();
+        return principal == null ? null : principal.usuarioId();
     }
 
     public static RolAcceso rolAcceso(HttpSession session) {
-        return (RolAcceso) session.getAttribute(ROL_ACCESO);
+        ApiPrincipal principal = principal();
+        return principal == null ? null : principal.rol();
     }
 
     public static boolean esAdministrador(HttpSession session) {
@@ -43,5 +50,12 @@ public final class SesionActiva {
     public static boolean puedeEditar(HttpSession session) {
         RolAcceso rol = rolAcceso(session);
         return rol == RolAcceso.ADMINISTRADOR || rol == RolAcceso.EDITOR;
+    }
+
+    private static ApiPrincipal principal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof ApiPrincipal principal
+                ? principal
+                : null;
     }
 }
