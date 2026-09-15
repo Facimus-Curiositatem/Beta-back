@@ -24,10 +24,6 @@ public final class SesionActiva {
     private SesionActiva() {
     }
 
-    public static boolean haySesion(HttpSession session) {
-        return principal() != null;
-    }
-
     public static Long empresaId(HttpSession session) {
         ApiPrincipal principal = principal();
         return principal == null ? null : principal.empresaId();
