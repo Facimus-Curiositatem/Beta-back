@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-17 a HU-20: roles de proceso (solo administrador crea/edita/elimina). */
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor
 public class RolProcesoController {
 

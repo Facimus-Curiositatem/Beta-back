@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-02: administracion de colaboradores de la empresa (solo administrador). */
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping("/api/v1/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
 

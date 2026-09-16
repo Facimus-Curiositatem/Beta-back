@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
 @RestController
-@RequestMapping("/api/procesos")
+@RequestMapping("/api/v1/procesos")
 @RequiredArgsConstructor
 public class ProcesoController {
 
