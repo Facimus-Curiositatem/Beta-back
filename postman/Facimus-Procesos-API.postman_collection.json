@@ -98,9 +98,9 @@
 							"raw": "{\n  \"nombreEmpresa\": \"Acme Corp\",\n  \"nit\": \"900123456-1\",\n  \"correoContacto\": \"contacto@acme.com\",\n  \"nombreAdmin\": \"Administrador\",\n  \"emailAdmin\": \"admin@acme.com\",\n  \"passwordAdmin\": \"secret123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/empresas",
+							"raw": "{{baseUrl}}/api/v1/v1/empresas",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "empresas"]
+							"path": ["api", "v1", "v1", "empresas"]
 						},
 						"description": "HU-01: Registra una nueva empresa con su administrador inicial. Endpoint publico."
 					},
@@ -139,9 +139,9 @@
 							"raw": "{\n  \"email\": \"admin@acme.com\",\n  \"password\": \"secret123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
+							"raw": "{{baseUrl}}/api/v1/auth/login",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"path": ["api", "v1", "auth", "login"]
 						},
 						"description": "HU-03: Inicia sesion. La cookie JSESSIONID se guarda automaticamente."
 					},
@@ -153,9 +153,9 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/logout",
+							"raw": "{{baseUrl}}/api/v1/auth/logout",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "logout"]
+							"path": ["api", "v1", "auth", "logout"]
 						},
 						"description": "HU-03: Cierra la sesion activa e invalida la cookie."
 					},
@@ -173,9 +173,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios",
+							"raw": "{{baseUrl}}/api/v1/usuarios",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios"]
+							"path": ["api", "v1", "usuarios"]
 						},
 						"description": "HU-02: Lista todos los usuarios de la empresa. Solo administrador."
 					},
@@ -210,9 +210,9 @@
 							"raw": "{\n  \"nombre\": \"Juan Editor\",\n  \"email\": \"juan@acme.com\",\n  \"password\": \"secret123\",\n  \"rolAcceso\": \"EDITOR\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios",
+							"raw": "{{baseUrl}}/api/v1/usuarios",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios"]
+							"path": ["api", "v1", "usuarios"]
 						},
 						"description": "HU-02: Crea un colaborador. Solo administrador. Roles: ADMINISTRADOR, EDITOR, SOLO_LECTURA."
 					},
@@ -224,9 +224,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios", "{{usuarioId}}"]
+							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
 						},
 						"description": "Obtiene los datos de un usuario por su ID."
 					},
@@ -247,9 +247,9 @@
 							"raw": "{\n  \"rolAcceso\": \"ADMINISTRADOR\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
+							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/rol",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios", "{{usuarioId}}", "rol"]
+							"path": ["api", "v1", "usuarios", "{{usuarioId}}", "rol"]
 						},
 						"description": "HU-02: Cambia el rol de acceso de un usuario. Solo administrador."
 					},
@@ -261,9 +261,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios", "{{usuarioId}}"]
+							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
 						},
 						"description": "HU-02: Desactiva (eliminacion logica) un usuario. Solo administrador."
 					},
@@ -281,9 +281,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos?pagina=0",
+							"raw": "{{baseUrl}}/api/v1/procesos?pagina=0",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos"],
+							"path": ["api", "v1", "procesos"],
 							"query": [
 								{ "key": "pagina", "value": "0" },
 								{ "key": "nombre", "value": "", "disabled": true },
@@ -324,9 +324,9 @@
 							"raw": "{\n  \"nombre\": \"Proceso de Ventas\",\n  \"descripcion\": \"Flujo completo del proceso de ventas B2B\",\n  \"categoria\": \"Comercial\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos",
+							"raw": "{{baseUrl}}/api/v1/procesos",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos"]
+							"path": ["api", "v1", "procesos"]
 						},
 						"description": "HU-04: Crea un nuevo proceso en estado BORRADOR. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -338,9 +338,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}"]
 						},
 						"description": "HU-07: Obtiene el detalle del proceso con su historial de cambios."
 					},
@@ -361,9 +361,9 @@
 							"raw": "{\n  \"nombre\": \"Proceso de Ventas v2\",\n  \"descripcion\": \"Flujo actualizado\",\n  \"categoria\": \"Comercial\",\n  \"estado\": \"BORRADOR\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}"]
 						},
 						"description": "HU-05: Edita un proceso existente. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -375,9 +375,9 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}/publicar",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/publicar",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}", "publicar"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "publicar"]
 						},
 						"description": "HU-05: Cambia el estado del proceso a PUBLICADO. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -389,9 +389,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}"]
 						},
 						"description": "HU-06: Eliminacion logica del proceso. Solo ADMINISTRADOR."
 					},
@@ -409,9 +409,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/roles",
+							"raw": "{{baseUrl}}/api/v1/roles",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles"]
+							"path": ["api", "v1", "roles"]
 						},
 						"description": "HU-20: Lista todos los roles con informacion de uso."
 					},
@@ -446,9 +446,9 @@
 							"raw": "{\n  \"nombre\": \"Analista\",\n  \"descripcion\": \"Responsable del analisis de procesos\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/roles",
+							"raw": "{{baseUrl}}/api/v1/roles",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles"]
+							"path": ["api", "v1", "roles"]
 						},
 						"description": "HU-17: Crea un nuevo rol de proceso. Solo ADMINISTRADOR."
 					},
@@ -460,9 +460,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/roles/{{rolId}}",
+							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{rolId}}"]
+							"path": ["api", "v1", "roles", "{{rolId}}"]
 						},
 						"description": "Obtiene un rol de proceso por su ID."
 					},
@@ -483,9 +483,9 @@
 							"raw": "{\n  \"nombre\": \"Analista Senior\",\n  \"descripcion\": \"Analista con experiencia\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/roles/{{rolId}}",
+							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{rolId}}"]
+							"path": ["api", "v1", "roles", "{{rolId}}"]
 						},
 						"description": "HU-18: Edita un rol existente. Solo ADMINISTRADOR."
 					},
@@ -497,9 +497,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/roles/{{rolId}}",
+							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles", "{{rolId}}"]
+							"path": ["api", "v1", "roles", "{{rolId}}"]
 						},
 						"description": "HU-19: Elimina un rol de proceso. Solo ADMINISTRADOR. Falla si el rol esta en uso."
 					},
@@ -517,9 +517,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}/pools",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/pools",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}", "pools"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "pools"]
 						},
 						"description": "HU-23: Lista todos los pools de un proceso."
 					},
@@ -554,9 +554,9 @@
 							"raw": "{\n  \"nombre\": \"Departamento Comercial\",\n  \"tipoParticipante\": \"EMPRESA\",\n  \"cajaNegra\": false\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}/pools",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/pools",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}", "pools"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "pools"]
 						},
 						"description": "HU-21: Crea un pool. Tipos: EMPRESA, CLIENTE, PROVEEDOR, SISTEMA_EXTERNO."
 					},
@@ -577,9 +577,9 @@
 							"raw": "{\n  \"nombre\": \"Departamento Comercial v2\",\n  \"tipoParticipante\": \"EMPRESA\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/pools/{{poolId}}",
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "pools", "{{poolId}}"]
+							"path": ["api", "v1", "pools", "{{poolId}}"]
 						},
 						"description": "Edita el nombre y tipo de participante de un pool."
 					},
@@ -591,9 +591,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/pools/{{poolId}}",
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "pools", "{{poolId}}"]
+							"path": ["api", "v1", "pools", "{{poolId}}"]
 						},
 						"description": "Elimina un pool y sus lanes asociados."
 					},
@@ -611,9 +611,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/pools/{{poolId}}/lanes",
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "pools", "{{poolId}}", "lanes"]
+							"path": ["api", "v1", "pools", "{{poolId}}", "lanes"]
 						},
 						"description": "HU-24: Lista las lanes de un pool."
 					},
@@ -648,9 +648,9 @@
 							"raw": "{\n  \"nombre\": \"Recepcion de solicitudes\",\n  \"rolProcesoId\": {{rolId}}\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/pools/{{poolId}}/lanes",
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "pools", "{{poolId}}", "lanes"]
+							"path": ["api", "v1", "pools", "{{poolId}}", "lanes"]
 						},
 						"description": "HU-22: Crea una lane dentro de un pool, asociada a un rol de proceso."
 					},
@@ -671,9 +671,9 @@
 							"raw": "{\n  \"nombre\": \"Recepcion v2\",\n  \"rolProcesoId\": {{rolId}}\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/lanes/{{laneId}}",
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "lanes", "{{laneId}}"]
+							"path": ["api", "v1", "lanes", "{{laneId}}"]
 						},
 						"description": "Edita el nombre y rol de una lane."
 					},
@@ -685,9 +685,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/lanes/{{laneId}}",
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "lanes", "{{laneId}}"]
+							"path": ["api", "v1", "lanes", "{{laneId}}"]
 						},
 						"description": "Elimina una lane."
 					},
@@ -728,9 +728,9 @@
 							"raw": "{\n  \"nombre\": \"Revisar solicitud\",\n  \"descripcion\": \"Verificar datos del cliente\",\n  \"posicionX\": 200,\n  \"posicionY\": 150\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/lanes/{{laneId}}/actividades",
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/actividades",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "lanes", "{{laneId}}", "actividades"]
+							"path": ["api", "v1", "lanes", "{{laneId}}", "actividades"]
 						},
 						"description": "HU-08: Crea una actividad dentro de una lane."
 					},
@@ -751,9 +751,9 @@
 							"raw": "{\n  \"nombre\": \"Revisar solicitud v2\",\n  \"descripcion\": \"Verificar datos actualizados\",\n  \"posicionX\": 250,\n  \"posicionY\": 150\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/actividades/{{actividadId}}",
+							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "actividades", "{{actividadId}}"]
+							"path": ["api", "v1", "actividades", "{{actividadId}}"]
 						},
 						"description": "HU-09: Edita una actividad existente."
 					},
@@ -765,9 +765,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/actividades/{{actividadId}}",
+							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "actividades", "{{actividadId}}"]
+							"path": ["api", "v1", "actividades", "{{actividadId}}"]
 						},
 						"description": "HU-10: Elimina una actividad."
 					},
@@ -808,9 +808,9 @@
 							"raw": "{\n  \"nombre\": \"Aprobacion requerida?\",\n  \"tipoGateway\": \"EXCLUSIVO\",\n  \"posicionX\": 400,\n  \"posicionY\": 150\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/lanes/{{laneId}}/gateways",
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/gateways",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "lanes", "{{laneId}}", "gateways"]
+							"path": ["api", "v1", "lanes", "{{laneId}}", "gateways"]
 						},
 						"description": "HU-14: Crea un gateway. Tipos: EXCLUSIVO, PARALELO, INCLUSIVO."
 					},
@@ -831,9 +831,9 @@
 							"raw": "{\n  \"nombre\": \"Decision de pago\",\n  \"tipoGateway\": \"PARALELO\",\n  \"posicionX\": 400,\n  \"posicionY\": 200\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/gateways/{{gatewayId}}",
+							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "gateways", "{{gatewayId}}"]
+							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
 						},
 						"description": "HU-15: Edita un gateway existente."
 					},
@@ -845,9 +845,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/gateways/{{gatewayId}}",
+							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "gateways", "{{gatewayId}}"]
+							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
 						},
 						"description": "HU-16: Elimina un gateway."
 					},
@@ -888,9 +888,9 @@
 							"raw": "{\n  \"origenId\": {{actividadId}},\n  \"destinoId\": {{gatewayId}},\n  \"etiqueta\": \"completado\",\n  \"condicion\": null\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/arcos",
+							"raw": "{{baseUrl}}/api/v1/arcos",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "arcos"]
+							"path": ["api", "v1", "arcos"]
 						},
 						"description": "HU-11: Crea un arco (flujo) entre dos nodos del mismo pool."
 					},
@@ -911,9 +911,9 @@
 							"raw": "{\n  \"etiqueta\": \"si\",\n  \"condicion\": \"monto > 1000\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/arcos/{{arcoId}}",
+							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "arcos", "{{arcoId}}"]
+							"path": ["api", "v1", "arcos", "{{arcoId}}"]
 						},
 						"description": "HU-12: Edita la etiqueta y condicion de un arco."
 					},
@@ -925,9 +925,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/arcos/{{arcoId}}",
+							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "arcos", "{{arcoId}}"]
+							"path": ["api", "v1", "arcos", "{{arcoId}}"]
 						},
 						"description": "HU-13: Elimina un arco."
 					},
@@ -945,9 +945,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}/mensajes",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}", "mensajes"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "mensajes"]
 						},
 						"description": "HU-27: Lista todos los mensajes de un proceso."
 					},
@@ -982,9 +982,9 @@
 							"raw": "{\n  \"nombre\": \"Orden de compra\",\n  \"contenido\": \"Datos del pedido\",\n  \"poolOrigenId\": {{poolId}},\n  \"poolDestinoId\": {{poolId}}\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/procesos/{{procesoId}}/mensajes",
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "procesos", "{{procesoId}}", "mensajes"]
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "mensajes"]
 						},
 						"description": "HU-25: Crea un mensaje entre dos pools."
 					},
@@ -1005,9 +1005,9 @@
 							"raw": "{\n  \"nombre\": \"Orden actualizada\",\n  \"contenido\": \"Datos del pedido corregidos\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/mensajes/{{mensajeId}}",
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "mensajes", "{{mensajeId}}"]
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
 						},
 						"description": "HU-26: Edita un mensaje existente."
 					},
@@ -1019,9 +1019,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/mensajes/{{mensajeId}}",
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "mensajes", "{{mensajeId}}"]
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
 						},
 						"description": "Elimina un mensaje."
 					},
@@ -1048,9 +1048,9 @@
 							"raw": "{\n  \"criterio\": \"orderId\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/mensajes/{{mensajeId}}/correlacion",
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "mensajes", "{{mensajeId}}", "correlacion"]
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
 						},
 						"description": "HU-28: Define o actualiza el criterio de correlacion de un mensaje."
 					},
@@ -1062,9 +1062,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/mensajes/{{mensajeId}}/correlacion",
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "mensajes", "{{mensajeId}}", "correlacion"]
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
 						},
 						"description": "HU-28: Obtiene la correlacion de un mensaje."
 					},

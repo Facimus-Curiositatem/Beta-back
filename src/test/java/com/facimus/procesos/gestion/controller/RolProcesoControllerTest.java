@@ -51,7 +51,7 @@ class RolProcesoControllerTest {
     @Test
     @DisplayName("GET /api/v1/roles - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/roles"))
+        mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isUnauthorized());
     }
 

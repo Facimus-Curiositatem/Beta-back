@@ -48,7 +48,7 @@ class ProcesoControllerTest {
         Page<Proceso> page = new PageImpl<>(List.of(p));
         given(procesoService.buscar(eq(1L), any(), any(), any(), any())).willReturn(page);
 
-        mockMvc.perform(get("/api/procesos").session(sesionEditor()))
+        mockMvc.perform(get("/api/v1/procesos").session(sesionEditor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nombre").value("Ventas"));
     }

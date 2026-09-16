@@ -63,7 +63,7 @@ class EmpresaControllerTest {
     @Test
     @DisplayName("POST /api/v1/empresas - validacion falla (400)")
     void registrar_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/empresas")
+        mockMvc.perform(post("/api/v1/empresas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

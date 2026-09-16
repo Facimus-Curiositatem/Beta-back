@@ -58,7 +58,7 @@ class SeguridadIntegracionTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.title").value("No autenticado"))
-                .andExpect(jsonPath("$.instance").value("/api/procesos"));
+                .andExpect(jsonPath("$.instance").value("/api/v1/procesos"));
     }
 
     @Test
