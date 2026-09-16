@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.facimus.procesos.common.api.PageResponse;
 import org.springframework.security.access.AccessDeniedException;
 import com.facimus.procesos.config.SesionActiva;
+import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoDetalleResponse;
@@ -90,12 +92,20 @@ public class ProcesoController {
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
-    @PostMapping("/{id}/publicar")
-    public ResponseEntity<ProcesoResponse> publicar(@PathVariable Long id, HttpSession session) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProcesoResponse> cambiarEstado(@PathVariable Long id,
+            @Validated @RequestBody CambiarEstadoProcesoRequest request, HttpSession session) {
         exigirEditor(session);
         Long empresaId = SesionActiva.empresaId(session);
         Long usuarioId = SesionActiva.usuarioId(session);
-        Proceso proceso = procesoService.publicar(empresaId, id, usuarioId);
+        Proceso proceso;
+        if (request.estado() == EstadoProceso.PUBLICADO) {
+            proceso = procesoService.publicar(empresaId, id, usuarioId);
+        } else {
+            Proceso actual = procesoService.obtener(empresaId, id);
+            proceso = procesoService.editar(empresaId, id, usuarioId, actual.getNombre(),
+                    actual.getDescripcion(), actual.getCategoria(), request.estado());
+        }
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 

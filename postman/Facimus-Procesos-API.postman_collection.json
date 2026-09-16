@@ -372,14 +372,23 @@
 				{
 					"name": "Publicar proceso",
 					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/publicar",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "publicar"]
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"estado\": \"PUBLICADO\"\n}"
 						},
-						"description": "HU-05: Cambia el estado del proceso a PUBLICADO. Requiere EDITOR o ADMINISTRADOR."
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}"]
+						},
+						"description": "HU-05: Publica el proceso mediante PATCH con estado=PUBLICADO. Requiere EDITOR o ADMINISTRADOR."
 					},
 					"response": []
 				},

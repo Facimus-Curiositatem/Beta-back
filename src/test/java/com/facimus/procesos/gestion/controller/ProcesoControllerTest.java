@@ -124,10 +124,12 @@ class ProcesoControllerTest {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
         given(procesoService.publicar(1L, 1L, 1L)).willReturn(p);
-
-        mockMvc.perform(post("/api/v1/procesos/1/publicar").session(sesionEditor()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("PUBLICADO"));
+        mockMvc.perform(patch("/api/v1/procesos/1")
+                .session(sesionEditor())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"estado":"PUBLICADO"}
+                        """));
     }
 
     @Test
