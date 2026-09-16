@@ -69,8 +69,9 @@ public class RolProcesoController {
         exigirAdministrador(session);
         Long empresaId = SesionActiva.empresaId(session);
         RolProceso rol = rolProcesoService.editar(empresaId, id, request.nombre(), request.descripcion());
+        long usos = rolProcesoService.contarUsos(empresaId, id);
         return ResponseEntity.ok(
-                new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
+                new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), usos, usos > 0));
     }
 
     @DeleteMapping("/{id}")
