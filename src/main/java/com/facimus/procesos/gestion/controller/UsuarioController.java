@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.AccessDeniedException;
 
+import com.facimus.procesos.common.AccesoProhibidoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
 import com.facimus.procesos.gestion.controller.dto.CrearUsuarioRequest;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-02: administracion de colaboradores de la empresa (solo administrador). */
 @RestController
-@RequestMapping("/api/v1/usuarios")
+@RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
 
@@ -79,7 +79,7 @@ public class UsuarioController {
 
     private void exigirAdministrador(HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new AccessDeniedException("Solo un administrador puede realizar esta operacion.");
+            throw new AccesoProhibidoException("Solo un administrador puede realizar esta operacion.");
         }
     }
 }

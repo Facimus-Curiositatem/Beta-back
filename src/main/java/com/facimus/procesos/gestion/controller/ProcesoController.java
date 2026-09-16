@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.facimus.procesos.common.api.PageResponse;
-import org.springframework.security.access.AccessDeniedException;
+
+import com.facimus.procesos.common.AccesoProhibidoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
@@ -30,13 +30,12 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 
-
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
 @RestController
-@RequestMapping("/api/v1/procesos")
+@RequestMapping("/api/procesos")
 @RequiredArgsConstructor
 public class ProcesoController {
 
@@ -46,7 +45,7 @@ public class ProcesoController {
     private final HistorialCambioService historialCambioService;
 
     @GetMapping
-    public ResponseEntity<PageResponse<ProcesoResponse>> listar(
+    public ResponseEntity<Page<ProcesoResponse>> listar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
@@ -56,7 +55,7 @@ public class ProcesoController {
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
-        return ResponseEntity.ok(PageResponse.from(procesos));
+        return ResponseEntity.ok(procesos);
     }
 
     @PostMapping
@@ -102,7 +101,7 @@ public class ProcesoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new AccessDeniedException("Solo un administrador puede eliminar procesos.");
+            throw new AccesoProhibidoException("Solo un administrador puede eliminar procesos.");
         }
         Long empresaId = SesionActiva.empresaId(session);
         Long usuarioId = SesionActiva.usuarioId(session);
@@ -112,7 +111,7 @@ public class ProcesoController {
 
     private void exigirEditor(HttpSession session) {
         if (!SesionActiva.puedeEditar(session)) {
-            throw new AccessDeniedException("No tienes permisos para modificar procesos.");
+            throw new AccesoProhibidoException("No tienes permisos para modificar procesos.");
         }
     }
 }

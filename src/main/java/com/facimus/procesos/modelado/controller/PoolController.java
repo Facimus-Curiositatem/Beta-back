@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-21 y HU-23: pools (participantes del proceso). */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class PoolController {
 

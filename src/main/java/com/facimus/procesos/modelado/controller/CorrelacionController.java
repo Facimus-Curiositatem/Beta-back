@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-28: correlacion de mensajes. */
 @RestController
-@RequestMapping("/api/v1/mensajes/{mensajeId}/correlacion")
+@RequestMapping("/api/mensajes/{mensajeId}/correlacion")
 @RequiredArgsConstructor
 public class CorrelacionController {
 

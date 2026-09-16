@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-25 a HU-27: mensajes (comunicacion entre pools). */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class MensajeController {
 

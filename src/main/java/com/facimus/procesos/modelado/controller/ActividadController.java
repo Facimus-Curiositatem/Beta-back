@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-08 a HU-10: actividades (tareas del proceso). */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class ActividadController {
 
