@@ -64,6 +64,9 @@ public class LaneService {
     }
 
     public List<Lane> listarPorPool(Long empresaId, Long poolId) {
+        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
+            throw new RecursoNoEncontradoException("Pool no encontrado.");
+        }
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 

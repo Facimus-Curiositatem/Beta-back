@@ -69,6 +69,9 @@ public class MensajeService {
     }
 
     public List<Mensaje> listarPorProceso(Long empresaId, Long procesoId) {
+        if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
+            throw new RecursoNoEncontradoException("Proceso no encontrado.");
+        }
         return mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
     }
 

@@ -66,6 +66,9 @@ public class PoolService {
     }
 
     public List<Pool> listarPorProceso(Long empresaId, Long procesoId) {
+        if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
+            throw new RecursoNoEncontradoException("Proceso no encontrado.");
+        }
         return poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
     }
 
