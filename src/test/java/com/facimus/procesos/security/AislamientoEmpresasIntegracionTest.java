@@ -59,6 +59,7 @@ import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.model.TipoParticipante;
+import com.facimus.procesos.modelado.service.ActividadService;
 import com.facimus.procesos.modelado.service.ArcoService;
 import com.facimus.procesos.modelado.service.CorrelacionService;
 import com.facimus.procesos.modelado.service.GatewayService;
@@ -104,6 +105,9 @@ class AislamientoEmpresasIntegracionTest {
     private LaneService laneService;
 
     @Autowired
+    private ActividadService actividadService;
+
+    @Autowired
     private GatewayService gatewayService;
 
     @Autowired
@@ -131,13 +135,12 @@ class AislamientoEmpresasIntegracionTest {
     private Long poolB;
     private Long rolB;
     private Long laneB;
+    private Long actividadB;
     private Long gatewayB;
     private Long gatewayCierreB;
     private Long arcoB;
     private Long mensajeB;
 
-    // ponytail: los nodos son gateways porque hoy no se puede guardar una Actividad (nodos_flujo.tipo_gateway es
-    // NOT NULL para toda la tabla); cuando se corrija, sumar PUT y DELETE de /api/actividades/{id}.
     @BeforeAll
     void crearDosEmpresas() throws Exception {
         empresaA = empresaService
@@ -163,7 +166,8 @@ class AislamientoEmpresasIntegracionTest {
                 .crear(empresaB, procesoB, "Proveedor", TipoParticipante.PROVEEDOR, true).getId();
         rolB = rolProcesoService.crear(empresaB, "Comprador", "Gestiona las compras").getId();
         laneB = laneService.crear(empresaB, poolB, "Compras", rolB).getId();
-        gatewayB = gatewayService.crear(empresaB, laneB, "Aprobar compra", TipoGateway.PARALELO, 100, 100).getId();
+        actividadB = actividadService.crear(empresaB, laneB, "Solicitar cotizacion", "Pide precios", 100, 300).getId();
+        gatewayB =gatewayService.crear(empresaB, laneB, "Aprobar compra", TipoGateway.PARALELO, 100, 100).getId();
         gatewayCierreB = gatewayService
                 .crear(empresaB, laneB, "Cerrar compra", TipoGateway.PARALELO, 300, 100).getId();
         arcoB = arcoService.crear(empresaB, gatewayB, gatewayCierreB, "Continuar", null).getId();
@@ -196,6 +200,7 @@ class AislamientoEmpresasIntegracionTest {
 
     // README §11: cada recurso de la empresa B pedido por su id con el token de la empresa A.
     Stream<Arguments> recursosDeLaEmpresaBPorId() {
+        ActividadRequest actividad = new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0);
         GatewayRequest gateway = new GatewayRequest("Intruso", TipoGateway.PARALELO, 0, 0);
         LaneRequest lane = new LaneRequest("Intrusa", rolA);
         return Stream.of(
@@ -221,8 +226,10 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.POST, "/api/pools/{id}/lanes", poolB, lane, "Pool no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/lanes/{id}", laneB, lane, "Lane no encontrada"),
                 Arguments.of(HttpMethod.DELETE, "/api/lanes/{id}", laneB, null, "Lane no encontrada"),
-                Arguments.of(HttpMethod.POST, "/api/lanes/{id}/actividades", laneB,
-                        new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0), "Lane no encontrada"),
+                Arguments.of(HttpMethod.POST, "/api/lanes/{id}/actividades", laneB, actividad, "Lane no encontrada"),
+                Arguments.of(HttpMethod.PUT, "/api/actividades/{id}", actividadB, actividad,
+                        "Actividad no encontrada"),
+                Arguments.of(HttpMethod.DELETE, "/api/actividades/{id}", actividadB, null, "Actividad no encontrada"),
                 Arguments.of(HttpMethod.POST, "/api/lanes/{id}/gateways", laneB, gateway, "Lane no encontrada"),
                 Arguments.of(HttpMethod.PUT, "/api/gateways/{id}", gatewayB, gateway, "Gateway no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/gateways/{id}", gatewayB, null, "Gateway no encontrado"),
@@ -329,6 +336,7 @@ class AislamientoEmpresasIntegracionTest {
                 admin.getRolAcceso(), admin.isActivo(),
                 poolService.listarPorProceso(empresaB, procesoB).stream().map(Pool::getNombre).toList(),
                 laneService.listarPorPool(empresaB, poolB).stream().map(Lane::getNombre).toList(),
+                actividadService.obtener(empresaB, actividadB).getNombre(),
                 gatewayService.obtener(empresaB, gatewayB).getNombre(),
                 gatewayService.obtener(empresaB, gatewayCierreB).getNombre(),
                 arcoService.obtener(empresaB, arcoB).getEtiqueta(),
