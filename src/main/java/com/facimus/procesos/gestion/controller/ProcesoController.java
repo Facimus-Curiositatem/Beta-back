@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import com.facimus.procesos.common.api.PageResponse;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
@@ -44,7 +44,7 @@ public class ProcesoController {
     private final HistorialCambioService historialCambioService;
 
     @GetMapping
-    public ResponseEntity<Page<ProcesoResponse>> listar(
+    public ResponseEntity<PageResponse<ProcesoResponse>> listar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
@@ -54,7 +54,7 @@ public class ProcesoController {
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
-        return ResponseEntity.ok(procesos);
+        return ResponseEntity.ok(PageResponse.from(procesos));
     }
 
     @PostMapping
