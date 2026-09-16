@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
@@ -84,7 +85,7 @@ public class RolProcesoController {
 
     private void exigirAdministrador(HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new org.springframework.security.access.AccessDeniedException("Solo un administrador puede gestionar roles de proceso.");
+            throw new AccessDeniedException("Solo un administrador puede gestionar roles de proceso.");
         }
     }
 }
