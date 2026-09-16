@@ -3,6 +3,10 @@ package com.facimus.procesos.common.api;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -15,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
-public class ApiExceptionHandler {
+public class ApiExceptionHandler extends ResponseEntityExceptionHandler{
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
@@ -39,12 +43,14 @@ public class ApiExceptionHandler {
         return construir(HttpStatus.FORBIDDEN, "Sin permisos", "No tienes permisos para esta operación", req);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail manejarValidacion(MethodArgumentNotValidException ex, WebRequest req) {
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest req) {
         String detalle = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .collect(Collectors.joining("; "));
-        return construir(HttpStatus.BAD_REQUEST, "Validación fallida", detalle, req);
+        return ResponseEntity.badRequest()
+                .body(construir(HttpStatus.BAD_REQUEST, "Validación fallida", detalle, req));
     }
 
     @ExceptionHandler(Exception.class)
