@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.facimus.procesos.common.AccesoProhibidoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
@@ -101,7 +100,7 @@ public class ProcesoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new AccesoProhibidoException("Solo un administrador puede eliminar procesos.");
+            throw new org.springframework.security.access.AccessDeniedException("Solo un administrador puede eliminar procesos.");
         }
         Long empresaId = SesionActiva.empresaId(session);
         Long usuarioId = SesionActiva.usuarioId(session);
@@ -111,7 +110,7 @@ public class ProcesoController {
 
     private void exigirEditor(HttpSession session) {
         if (!SesionActiva.puedeEditar(session)) {
-            throw new AccesoProhibidoException("No tienes permisos para modificar procesos.");
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para modificar procesos.");
         }
     }
 }
