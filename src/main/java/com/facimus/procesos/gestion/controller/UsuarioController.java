@@ -2,7 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -51,7 +51,8 @@ public class UsuarioController {
         Long empresaId = SesionActiva.empresaId(session);
         Usuario usuario = usuarioService.crearColaborador(empresaId, request.nombre(), request.email(),
                 request.password(), request.rolAcceso());
-        return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.of(usuario));
+        return ResponseEntity.created(URI.create("/api/v1/usuarios/" + usuario.getId()))
+        .body(UsuarioResponse.of(usuario));
     }
 
     @GetMapping("/{id}")

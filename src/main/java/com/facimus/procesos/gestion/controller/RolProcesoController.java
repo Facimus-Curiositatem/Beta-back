@@ -2,7 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -47,8 +47,8 @@ public class RolProcesoController {
         exigirAdministrador(session);
         Long empresaId = SesionActiva.empresaId(session);
         RolProceso rol = rolProcesoService.crear(empresaId, request.nombre(), request.descripcion());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
+        return ResponseEntity.created(URI.create("/api/v1/roles/" + rol.getId()))
+        .body(new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
     }
 
     @GetMapping("/{id}")

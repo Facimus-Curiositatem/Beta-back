@@ -2,7 +2,7 @@ package com.facimus.procesos.modelado.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,7 +45,8 @@ public class LaneController {
             @Validated @RequestBody LaneRequest request, HttpSession session) {
         Long empresaId = SesionActiva.empresaId(session);
         Lane lane = laneService.crear(empresaId, poolId, request.nombre(), request.rolProcesoId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(LaneResponse.of(lane));
+        return ResponseEntity.created(URI.create("/api/v1/lanes/" + lane.getId()))
+        .body(LaneResponse.of(lane));
     }
 
     @PutMapping("/lanes/{id}")

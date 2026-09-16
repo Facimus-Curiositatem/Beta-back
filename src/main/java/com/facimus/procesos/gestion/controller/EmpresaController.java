@@ -1,6 +1,6 @@
 package com.facimus.procesos.gestion.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +30,7 @@ public class EmpresaController {
     public ResponseEntity<EmpresaResponse> registrar(@Validated @RequestBody RegistroEmpresaRequest request) {
         Empresa empresa = empresaService.registrar(request.nombreEmpresa(), request.nit(),
                 request.correoContacto(), request.nombreAdmin(), request.emailAdmin(), request.passwordAdmin());
-        return ResponseEntity.status(HttpStatus.CREATED).body(EmpresaResponse.of(empresa));
+        return ResponseEntity.created(URI.create("/api/v1/empresas/" + empresa.getId()))
+        .body(EmpresaResponse.of(empresa));
     }
 }

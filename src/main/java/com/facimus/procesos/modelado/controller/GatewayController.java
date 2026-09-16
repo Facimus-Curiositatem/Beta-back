@@ -1,6 +1,6 @@
 package com.facimus.procesos.modelado.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +34,8 @@ public class GatewayController {
         Long empresaId = SesionActiva.empresaId(session);
         Gateway gateway = gatewayService.crear(empresaId, laneId, request.nombre(), request.tipoGateway(),
                 request.posicionX(), request.posicionY());
-        return ResponseEntity.status(HttpStatus.CREATED).body(GatewayResponse.of(gateway));
+        return ResponseEntity.created(URI.create("/api/v1/gateways/" + gateway.getId()))
+                .body(GatewayResponse.of(gateway));
     }
 
     @PutMapping("/gateways/{id}")

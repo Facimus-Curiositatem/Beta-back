@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -68,7 +68,8 @@ public class ProcesoController {
         Long usuarioId = SesionActiva.usuarioId(session);
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoResponse.of(proceso));
+        return ResponseEntity.created(URI.create("/api/v1/procesos/" + proceso.getId()))
+        .body(ProcesoResponse.of(proceso));
     }
 
     @GetMapping("/{id}")

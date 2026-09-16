@@ -2,7 +2,7 @@ package com.facimus.procesos.modelado.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -47,7 +47,8 @@ public class PoolController {
         Long empresaId = SesionActiva.empresaId(session);
         Pool pool = poolService.crear(empresaId, procesoId, request.nombre(), request.tipoParticipante(),
                 request.cajaNegra());
-        return ResponseEntity.status(HttpStatus.CREATED).body(PoolResponse.of(pool));
+        return ResponseEntity.created(URI.create("/api/v1/pools/" + pool.getId()))
+        .body(PoolResponse.of(pool));
     }
 
     @PutMapping("/pools/{id}")
