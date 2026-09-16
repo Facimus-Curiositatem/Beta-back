@@ -11,9 +11,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
     public ProblemDetail manejarNoEncontrado(RecursoNoEncontradoException ex, WebRequest req) {
@@ -42,8 +46,10 @@ public class ApiExceptionHandler {
                 .collect(Collectors.joining("; "));
         return construir(HttpStatus.BAD_REQUEST, "Validación fallida", detalle, req);
     }
+    
     @ExceptionHandler(Exception.class)
     public ProblemDetail manejarErrorInesperado(Exception ex, WebRequest req) {
+        log.error("Error inesperado en {}", req.getDescription(false), ex);
         return construir(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno",
                 "Ocurrió un error inesperado. Intenta nuevamente más tarde.", req);
     }
