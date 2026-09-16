@@ -17,7 +17,9 @@ import lombok.Setter;
 @DiscriminatorValue("GATEWAY")
 public class Gateway extends NodoFlujo {
 
+    // Sin nullable = false: con SINGLE_TABLE las actividades comparten esta columna y no tienen tipo.
+    // El tipo del gateway lo exige GatewayRequest con @NotNull.
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_gateway", nullable = false)
+    @Column(name = "tipo_gateway")
     private TipoGateway tipoGateway;
 }

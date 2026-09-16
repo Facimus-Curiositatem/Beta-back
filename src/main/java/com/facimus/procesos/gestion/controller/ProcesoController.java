@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.facimus.procesos.common.AccesoProhibidoException;
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoDetalleResponse;
@@ -29,8 +28,8 @@ import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import com.facimus.procesos.security.ApiPrincipal;
 
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
@@ -50,8 +49,8 @@ public class ProcesoController {
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
             @RequestParam(defaultValue = "0") int pagina,
-            HttpSession session) {
-        Long empresaId = SesionActiva.empresaId(session);
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
@@ -59,18 +58,19 @@ public class ProcesoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+    public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
         return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoResponse.of(proceso));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id, HttpSession session) {
-        Long empresaId = SesionActiva.empresaId(session);
+    public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
         Proceso proceso = procesoService.obtener(empresaId, id);
         List<HistorialCambioResponse> historial = historialCambioService.listarPorProceso(empresaId, id).stream()
                 .map(HistorialCambioResponse::of)
@@ -80,38 +80,28 @@ public class ProcesoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ProcesoResponse> editar(@PathVariable Long id,
-            @Validated @RequestBody EditarProcesoRequest request, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+            @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.editar(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria(), request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
     @PostMapping("/{id}/publicar")
-    public ResponseEntity<ProcesoResponse> publicar(@PathVariable Long id, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+    public ResponseEntity<ProcesoResponse> publicar(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.publicar(empresaId, id, usuarioId);
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id, HttpSession session) {
-        if (!SesionActiva.esAdministrador(session)) {
-            throw new AccesoProhibidoException("Solo un administrador puede eliminar procesos.");
-        }
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         procesoService.eliminarLogico(empresaId, id, usuarioId);
         return ResponseEntity.noContent().build();
-    }
-
-    private void exigirEditor(HttpSession session) {
-        if (!SesionActiva.puedeEditar(session)) {
-            throw new AccesoProhibidoException("No tienes permisos para modificar procesos.");
-        }
     }
 }
