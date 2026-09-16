@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.facimus.procesos.common.AccesoProhibidoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
 import com.facimus.procesos.gestion.controller.dto.CrearUsuarioRequest;
@@ -79,7 +78,7 @@ public class UsuarioController {
 
     private void exigirAdministrador(HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new AccesoProhibidoException("Solo un administrador puede realizar esta operacion.");
+            throw new org.springframework.security.access.AccessDeniedException("Solo un administrador puede realizar esta operacion.");
         }
     }
 }
