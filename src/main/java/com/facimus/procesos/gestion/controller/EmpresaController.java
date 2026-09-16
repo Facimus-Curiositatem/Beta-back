@@ -15,6 +15,8 @@ import com.facimus.procesos.gestion.service.EmpresaService;
 
 import lombok.RequiredArgsConstructor;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+
 /** HU-01: registro de una nueva empresa y su administrador inicial. */
 @RestController
 @RequestMapping("/api/v1/empresas")
@@ -23,6 +25,7 @@ public class EmpresaController {
 
     private final EmpresaService empresaService;
 
+    @SecurityRequirements()
     @PostMapping
     public ResponseEntity<EmpresaResponse> registrar(@Validated @RequestBody RegistroEmpresaRequest request) {
         Empresa empresa = empresaService.registrar(request.nombreEmpresa(), request.nit(),

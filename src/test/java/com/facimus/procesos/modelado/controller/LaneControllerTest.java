@@ -36,23 +36,23 @@ class LaneControllerTest {
     private LaneService laneService;
 
     @Test
-    @DisplayName("GET /api/pools/{poolId}/lanes - listar lanes (200)")
+    @DisplayName("GET /api/v1/pools/{poolId}/lanes - listar lanes (200)")
     void listar_lanes() throws Exception {
         Lane lane = crearLane(1L, "Recepcion");
         given(laneService.listarPorPool(1L, 5L)).willReturn(List.of(lane));
 
-        mockMvc.perform(get("/api/pools/5/lanes").session(sesion()))
+        mockMvc.perform(get("/api/v1/pools/5/lanes").session(sesion()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Recepcion"));
     }
 
     @Test
-    @DisplayName("POST /api/pools/{poolId}/lanes - crear lane (201)")
+    @DisplayName("POST /api/v1/pools/{poolId}/lanes - crear lane (201)")
     void crear_lane() throws Exception {
         Lane lane = crearLane(2L, "Analisis");
         given(laneService.crear(eq(1L), eq(5L), anyString(), anyLong())).willReturn(lane);
 
-        mockMvc.perform(post("/api/pools/5/lanes")
+        mockMvc.perform(post("/api/v1/pools/5/lanes")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -63,9 +63,9 @@ class LaneControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/pools/{poolId}/lanes - validacion falla (400)")
+    @DisplayName("POST /api/v1/pools/{poolId}/lanes - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/pools/5/lanes")
+        mockMvc.perform(post("/api/v1/pools/5/lanes")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -75,12 +75,12 @@ class LaneControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/lanes/{id} - editar lane (200)")
+    @DisplayName("PUT /api/v1/lanes/{id} - editar lane (200)")
     void editar_lane() throws Exception {
         Lane lane = crearLane(1L, "Recepcion v2");
         given(laneService.editar(eq(1L), eq(1L), anyString(), anyLong())).willReturn(lane);
 
-        mockMvc.perform(put("/api/lanes/1")
+        mockMvc.perform(put("/api/v1/lanes/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -91,11 +91,11 @@ class LaneControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/lanes/{id} - eliminar lane (204)")
+    @DisplayName("DELETE /api/v1/lanes/{id} - eliminar lane (204)")
     void eliminar_lane() throws Exception {
         doNothing().when(laneService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/lanes/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/lanes/1").session(sesion()))
                 .andExpect(status().isNoContent());
     }
 

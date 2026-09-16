@@ -53,7 +53,7 @@ class SeguridadIntegracionTest {
     @Test
     @DisplayName("Sin token, un endpoint protegido responde 401 con ProblemDetail")
     void Seguridad_endpointProtegido_sinToken_devuelve401() throws Exception {
-        mockMvc.perform(get("/api/procesos"))
+        mockMvc.perform(get("/api/v1/procesos"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
@@ -64,7 +64,7 @@ class SeguridadIntegracionTest {
     @Test
     @DisplayName("Con un token invalido responde 401")
     void Seguridad_endpointProtegido_tokenInvalido_devuelve401() throws Exception {
-        mockMvc.perform(get("/api/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer no-es-un-token"))
+        mockMvc.perform(get("/api/v1/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer no-es-un-token"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -82,7 +82,7 @@ class SeguridadIntegracionTest {
     void Seguridad_endpointProtegido_tokenDelLogin_devuelve200() throws Exception {
         String token = login(ADMIN_DEMO, CLAVE_DEMO);
 
-        mockMvc.perform(get("/api/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/v1/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
     }
 
@@ -92,7 +92,7 @@ class SeguridadIntegracionTest {
         crearColaborador("lector@demo.com", "lector123", RolAcceso.SOLO_LECTURA);
         String token = login("lector@demo.com", "lector123");
 
-        mockMvc.perform(post("/api/procesos")
+        mockMvc.perform(post("/api/v1/procesos")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(
@@ -108,14 +108,14 @@ class SeguridadIntegracionTest {
 
         usuarioService.desactivar(editor.getEmpresa().getId(), editor.getId());
 
-        mockMvc.perform(get("/api/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/v1/procesos").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("El AccessDeniedHandler responde 403 con ProblemDetail")
     void Seguridad_accessDeniedHandler_respondeProblemDetail403() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("DELETE", "/api/procesos/1");
+        MockHttpServletRequest request = new MockHttpServletRequest("DELETE", "/api/v1/procesos/1");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         jwtAccessDeniedHandler.handle(request, response, new AccessDeniedException("rol insuficiente"));

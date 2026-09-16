@@ -46,7 +46,7 @@ public class ApiExceptionHandler {
                 .collect(Collectors.joining("; "));
         return construir(HttpStatus.BAD_REQUEST, "Validación fallida", detalle, req);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail manejarErrorInesperado(Exception ex, WebRequest req) {
         log.error("Error inesperado en {}", req.getDescription(false), ex);

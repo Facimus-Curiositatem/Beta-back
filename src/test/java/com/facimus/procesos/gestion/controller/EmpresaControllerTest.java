@@ -30,7 +30,7 @@ class EmpresaControllerTest {
     private EmpresaService empresaService;
 
     @Test
-    @DisplayName("POST /api/empresas - registrar empresa exitoso (201)")
+    @DisplayName("POST /api/v1/empresas - registrar empresa exitoso (201)")
     void registrar_exitoso() throws Exception {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
@@ -42,7 +42,7 @@ class EmpresaControllerTest {
         given(empresaService.registrar(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
                 .willReturn(empresa);
 
-        mockMvc.perform(post("/api/empresas")
+        mockMvc.perform(post("/api/v1/empresas")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -61,7 +61,7 @@ class EmpresaControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/empresas - validacion falla (400)")
+    @DisplayName("POST /api/v1/empresas - validacion falla (400)")
     void registrar_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/empresas")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -36,30 +36,30 @@ class PoolControllerTest {
     private PoolService poolService;
 
     @Test
-    @DisplayName("GET /api/procesos/{procesoId}/pools - listar pools (200)")
+    @DisplayName("GET /api/v1/procesos/{procesoId}/pools - listar pools (200)")
     void listar_pools() throws Exception {
         Pool pool = crearPool(1L, "Cliente");
         given(poolService.listarPorProceso(1L, 10L)).willReturn(List.of(pool));
 
-        mockMvc.perform(get("/api/procesos/10/pools").session(sesion()))
+        mockMvc.perform(get("/api/v1/procesos/10/pools").session(sesion()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Cliente"));
     }
 
     @Test
-    @DisplayName("GET /api/procesos/{procesoId}/pools - sin sesion retorna 401")
+    @DisplayName("GET /api/v1/procesos/{procesoId}/pools - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/procesos/10/pools"))
+        mockMvc.perform(get("/api/v1/procesos/10/pools"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("POST /api/procesos/{procesoId}/pools - crear pool (201)")
+    @DisplayName("POST /api/v1/procesos/{procesoId}/pools - crear pool (201)")
     void crear_pool() throws Exception {
         Pool pool = crearPool(2L, "Proveedor");
         given(poolService.crear(eq(1L), eq(10L), anyString(), any(), anyBoolean())).willReturn(pool);
 
-        mockMvc.perform(post("/api/procesos/10/pools")
+        mockMvc.perform(post("/api/v1/procesos/10/pools")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -70,9 +70,9 @@ class PoolControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/procesos/{procesoId}/pools - validacion falla (400)")
+    @DisplayName("POST /api/v1/procesos/{procesoId}/pools - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/procesos/10/pools")
+        mockMvc.perform(post("/api/v1/procesos/10/pools")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -82,12 +82,12 @@ class PoolControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/pools/{id} - editar pool (200)")
+    @DisplayName("PUT /api/v1/pools/{id} - editar pool (200)")
     void editar_pool() throws Exception {
         Pool pool = crearPool(1L, "Cliente VIP");
         given(poolService.editar(eq(1L), eq(1L), anyString(), any())).willReturn(pool);
 
-        mockMvc.perform(put("/api/pools/1")
+        mockMvc.perform(put("/api/v1/pools/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -98,11 +98,11 @@ class PoolControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/pools/{id} - eliminar pool (204)")
+    @DisplayName("DELETE /api/v1/pools/{id} - eliminar pool (204)")
     void eliminar_pool() throws Exception {
         doNothing().when(poolService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/pools/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/pools/1").session(sesion()))
                 .andExpect(status().isNoContent());
     }
 
