@@ -74,7 +74,7 @@ class ProcesoControllerTest {
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos/2"))   // ← evidencia
+                .andExpect(header().string("Location", "/api/v1/procesos/2"))   
                 .andExpect(jsonPath("$.nombre").value("Compras"));
     }
 
@@ -121,7 +121,7 @@ class ProcesoControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/procesos/{id}/publicar - publicar proceso (200)")
+    @DisplayName("PATCH /api/v1/procesos/{id}/publicar - publicar proceso (200)")
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
