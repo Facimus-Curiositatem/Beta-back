@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Facimus Procesos - API REST",
-		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/empresas)\n2. Iniciar sesion (POST /api/auth/login)\n3. Usar los demas endpoints con la cookie de sesion activa",
+		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/v1/empresas)\n2. Iniciar sesion (POST /api/v1/auth/login)\n3. Usar los demas endpoints con la cookie de sesion activa",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -98,9 +98,9 @@
 							"raw": "{\n  \"nombreEmpresa\": \"Acme Corp\",\n  \"nit\": \"900123456-1\",\n  \"correoContacto\": \"contacto@acme.com\",\n  \"nombreAdmin\": \"Administrador\",\n  \"emailAdmin\": \"admin@acme.com\",\n  \"passwordAdmin\": \"secret123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/v1/empresas",
+							"raw": "{{baseUrl}}/api/v1/empresas",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "v1", "empresas"]
+							"path": ["api", "v1", "empresas"]
 						},
 						"description": "HU-01: Registra una nueva empresa con su administrador inicial. Endpoint publico."
 					},
@@ -235,7 +235,7 @@
 				{
 					"name": "Cambiar rol de usuario",
 					"request": {
-						"method": "PUT",
+						"method": "PATCH",
 						"header": [
 							{
 								"key": "Content-Type",
@@ -247,9 +247,9 @@
 							"raw": "{\n  \"rolAcceso\": \"ADMINISTRADOR\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/rol",
+							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "{{usuarioId}}", "rol"]
+							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
 						},
 						"description": "HU-02: Cambia el rol de acceso de un usuario. Solo administrador."
 					},

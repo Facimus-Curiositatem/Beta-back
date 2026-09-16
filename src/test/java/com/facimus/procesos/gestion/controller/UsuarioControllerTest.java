@@ -107,12 +107,12 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/usuarios/{id}/rol - cambiar rol (200)")
+    @DisplayName("PATCH /api/v1/usuarios/{id} - cambiar rol (200)")
     void cambiar_rol() throws Exception {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
         given(usuarioService.cambiarRolAcceso(1L, 5L, RolAcceso.ADMINISTRADOR)).willReturn(u);
 
-        mockMvc.perform(put("/api/v1/usuarios/5/rol")
+        mockMvc.perform(patch("/api/v1/usuarios/5")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
