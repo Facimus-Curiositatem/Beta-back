@@ -24,7 +24,7 @@ import com.facimus.procesos.modelado.service.PoolService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
-/** HU-21 y HU-23: pools (participantes del proceso). */
+/** HU-21 y HU-23: pools (participantes del proceso).. */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
