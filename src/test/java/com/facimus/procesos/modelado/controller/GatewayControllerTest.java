@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(GatewayController.class)
 class GatewayControllerTest {
@@ -46,6 +47,7 @@ class GatewayControllerTest {
                                 {"nombre":"Decision pago","tipoGateway":"EXCLUSIVO","posicionX":300,"posicionY":150}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/gateways/1"))
                 .andExpect(jsonPath("$.nombre").value("Decision pago"))
                 .andExpect(jsonPath("$.tipoGateway").value("EXCLUSIVO"));
     }

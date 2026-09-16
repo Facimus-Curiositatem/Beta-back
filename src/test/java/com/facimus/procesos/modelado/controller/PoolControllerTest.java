@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(PoolController.class)
 class PoolControllerTest {
@@ -66,6 +67,7 @@ class PoolControllerTest {
                                 {"nombre":"Proveedor","tipoParticipante":"PROVEEDOR","cajaNegra":false}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/pools/2"))
                 .andExpect(jsonPath("$.nombre").value("Proveedor"));
     }
 

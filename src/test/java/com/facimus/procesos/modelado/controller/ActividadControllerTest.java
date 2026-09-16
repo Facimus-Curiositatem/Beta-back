@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ActividadController.class)
 class ActividadControllerTest {
@@ -45,6 +46,7 @@ class ActividadControllerTest {
                                 {"nombre":"Revisar solicitud","descripcion":"Verifica datos","posicionX":100,"posicionY":200}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/actividades/1"))
                 .andExpect(jsonPath("$.nombre").value("Revisar solicitud"))
                 .andExpect(jsonPath("$.posicionX").value(100));
     }
