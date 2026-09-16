@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-22 y HU-24: lanes (divisiones internas de un pool). */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class LaneController {
 
