@@ -129,7 +129,9 @@ class ProcesoControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"estado":"PUBLICADO"}
-                        """));
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("PUBLICADO"));
     }
 
     @Test
