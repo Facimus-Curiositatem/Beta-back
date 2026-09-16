@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-14 a HU-16: gateways (puntos de decision). */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class GatewayController {
 

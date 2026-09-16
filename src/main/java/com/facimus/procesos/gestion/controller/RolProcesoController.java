@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.AccessDeniedException;
 
+import com.facimus.procesos.common.AccesoProhibidoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-17 a HU-20: roles de proceso (solo administrador crea/edita/elimina). */
 @RestController
-@RequestMapping("/api/v1/roles")
+@RequestMapping("/api/roles")
 @RequiredArgsConstructor
 public class RolProcesoController {
 
@@ -85,7 +85,7 @@ public class RolProcesoController {
 
     private void exigirAdministrador(HttpSession session) {
         if (!SesionActiva.esAdministrador(session)) {
-            throw new AccessDeniedException("Solo un administrador puede gestionar roles de proceso.");
+            throw new AccesoProhibidoException("Solo un administrador puede gestionar roles de proceso.");
         }
     }
 }
