@@ -1,6 +1,6 @@
 package com.facimus.procesos.modelado.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +34,8 @@ public class ActividadController {
         Long empresaId = SesionActiva.empresaId(session);
         Actividad actividad = actividadService.crear(empresaId, laneId, request.nombre(), request.descripcion(),
                 request.posicionX(), request.posicionY());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ActividadResponse.of(actividad));
+        return ResponseEntity.created(URI.create("/api/v1/actividades/" + actividad.getId()))
+        .body(ActividadResponse.of(actividad));
     }
 
     @PutMapping("/actividades/{id}")

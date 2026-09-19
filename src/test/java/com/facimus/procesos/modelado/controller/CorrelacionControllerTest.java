@@ -34,12 +34,12 @@ class CorrelacionControllerTest {
     private CorrelacionService correlacionService;
 
     @Test
-    @DisplayName("PUT /api/mensajes/{mensajeId}/correlacion - definir correlacion (200)")
+    @DisplayName("PUT /api/v1/mensajes/{mensajeId}/correlacion - definir correlacion (200)")
     void definir_correlacion() throws Exception {
         Correlacion c = crearCorrelacion(1L, "orderId");
         given(correlacionService.definir(eq(1L), eq(5L), anyString())).willReturn(c);
 
-        mockMvc.perform(put("/api/mensajes/5/correlacion")
+        mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -51,9 +51,9 @@ class CorrelacionControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/mensajes/{mensajeId}/correlacion - validacion falla (400)")
+    @DisplayName("PUT /api/v1/mensajes/{mensajeId}/correlacion - validacion falla (400)")
     void definir_validacion_falla() throws Exception {
-        mockMvc.perform(put("/api/mensajes/5/correlacion")
+        mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -63,20 +63,20 @@ class CorrelacionControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/mensajes/{mensajeId}/correlacion - obtener correlacion (200)")
+    @DisplayName("GET /api/v1/mensajes/{mensajeId}/correlacion - obtener correlacion (200)")
     void obtener_correlacion() throws Exception {
         Correlacion c = crearCorrelacion(1L, "customerId");
         given(correlacionService.obtener(1L, 5L)).willReturn(c);
 
-        mockMvc.perform(get("/api/mensajes/5/correlacion").session(sesion()))
+        mockMvc.perform(get("/api/v1/mensajes/5/correlacion").session(sesion()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.criterio").value("customerId"));
     }
 
     @Test
-    @DisplayName("GET /api/mensajes/{mensajeId}/correlacion - sin sesion retorna 401")
+    @DisplayName("GET /api/v1/mensajes/{mensajeId}/correlacion - sin sesion retorna 401")
     void obtener_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/mensajes/5/correlacion"))
+        mockMvc.perform(get("/api/v1/mensajes/5/correlacion"))
                 .andExpect(status().isUnauthorized());
     }
 

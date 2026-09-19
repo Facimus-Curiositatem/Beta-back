@@ -28,6 +28,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ProcesoController.class)
 class ProcesoControllerTest {
@@ -42,44 +43,45 @@ class ProcesoControllerTest {
     private HistorialCambioService historialCambioService;
 
     @Test
-    @DisplayName("GET /api/procesos - listar procesos (200)")
+    @DisplayName("GET /api/v1/procesos - listar procesos (200)")
     void listar_procesos() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         Page<Proceso> page = new PageImpl<>(List.of(p));
         given(procesoService.buscar(eq(1L), any(), any(), any(), any())).willReturn(page);
 
-        mockMvc.perform(get("/api/procesos").session(sesionEditor()))
+        mockMvc.perform(get("/api/v1/procesos").session(sesionEditor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nombre").value("Ventas"));
     }
 
     @Test
-    @DisplayName("GET /api/procesos - sin sesion retorna 401")
+    @DisplayName("GET /api/v1/procesos - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/procesos"))
+        mockMvc.perform(get("/api/v1/procesos"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("POST /api/procesos - crear proceso como editor (201)")
+    @DisplayName("POST /api/v1/procesos - crear proceso como editor (201)")
     void crear_proceso() throws Exception {
         Proceso p = crearProceso(2L, "Compras");
         given(procesoService.crear(eq(1L), eq(1L), anyString(), anyString(), anyString())).willReturn(p);
 
-        mockMvc.perform(post("/api/procesos")
+        mockMvc.perform(post("/api/v1/procesos")
                         .session(sesionEditor())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/procesos/2"))   
                 .andExpect(jsonPath("$.nombre").value("Compras"));
     }
 
     @Test
-    @DisplayName("POST /api/procesos - solo lectura retorna 403")
+    @DisplayName("POST /api/v1/procesos - solo lectura retorna 403")
     void crear_proceso_solo_lectura() throws Exception {
-        mockMvc.perform(post("/api/procesos")
+        mockMvc.perform(post("/api/v1/procesos")
                         .session(sesionConRol(RolAcceso.SOLO_LECTURA))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -89,26 +91,26 @@ class ProcesoControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/procesos/{id} - detalle proceso (200)")
+    @DisplayName("GET /api/v1/procesos/{id} - detalle proceso (200)")
     void detalle_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         given(procesoService.obtener(1L, 1L)).willReturn(p);
         given(historialCambioService.listarPorProceso(1L, 1L)).willReturn(List.of());
 
-        mockMvc.perform(get("/api/procesos/1").session(sesionEditor()))
+        mockMvc.perform(get("/api/v1/procesos/1").session(sesionEditor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.proceso.nombre").value("Ventas"))
                 .andExpect(jsonPath("$.historial").isArray());
     }
 
     @Test
-    @DisplayName("PUT /api/procesos/{id} - editar proceso (200)")
+    @DisplayName("PUT /api/v1/procesos/{id} - editar proceso (200)")
     void editar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas v2");
         given(procesoService.editar(eq(1L), eq(1L), eq(1L), anyString(), anyString(), anyString(), any()))
                 .willReturn(p);
 
-        mockMvc.perform(put("/api/procesos/1")
+        mockMvc.perform(put("/api/v1/procesos/1")
                         .session(sesionEditor())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -119,30 +121,34 @@ class ProcesoControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/procesos/{id}/publicar - publicar proceso (200)")
+    @DisplayName("PATCH /api/v1/procesos/{id}/publicar - publicar proceso (200)")
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
         given(procesoService.publicar(1L, 1L, 1L)).willReturn(p);
-
-        mockMvc.perform(post("/api/procesos/1/publicar").session(sesionEditor()))
+        mockMvc.perform(patch("/api/v1/procesos/1")
+                .session(sesionEditor())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"estado":"PUBLICADO"}
+                        """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
     }
 
     @Test
-    @DisplayName("DELETE /api/procesos/{id} - eliminar como admin (204)")
+    @DisplayName("DELETE /api/v1/procesos/{id} - eliminar como admin (204)")
     void eliminar_proceso() throws Exception {
         doNothing().when(procesoService).eliminarLogico(1L, 1L, 1L);
 
-        mockMvc.perform(delete("/api/procesos/1").session(sesionConRol(RolAcceso.ADMINISTRADOR)))
+        mockMvc.perform(delete("/api/v1/procesos/1").session(sesionConRol(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("DELETE /api/procesos/{id} - editor no puede eliminar (403)")
+    @DisplayName("DELETE /api/v1/procesos/{id} - editor no puede eliminar (403)")
     void eliminar_como_editor() throws Exception {
-        mockMvc.perform(delete("/api/procesos/1").session(sesionEditor()))
+        mockMvc.perform(delete("/api/v1/procesos/1").session(sesionEditor()))
                 .andExpect(status().isForbidden());
     }
 

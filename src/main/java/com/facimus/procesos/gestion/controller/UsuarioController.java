@@ -2,7 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,7 +51,8 @@ public class UsuarioController {
         Long empresaId = SesionActiva.empresaId(session);
         Usuario usuario = usuarioService.crearColaborador(empresaId, request.nombre(), request.email(),
                 request.password(), request.rolAcceso());
-        return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.of(usuario));
+        return ResponseEntity.created(URI.create("/api/v1/usuarios/" + usuario.getId()))
+        .body(UsuarioResponse.of(usuario));
     }
 
     @GetMapping("/{id}")
@@ -60,7 +62,7 @@ public class UsuarioController {
         return ResponseEntity.ok(UsuarioResponse.of(usuario));
     }
 
-    @PutMapping("/{id}/rol")
+    @PatchMapping("/{id}")
     public ResponseEntity<UsuarioResponse> cambiarRol(@PathVariable Long id,
             @Validated @RequestBody CambiarRolRequest request, HttpSession session) {
         exigirAdministrador(session);

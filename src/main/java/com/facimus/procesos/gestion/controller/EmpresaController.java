@@ -1,6 +1,6 @@
 package com.facimus.procesos.gestion.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +15,8 @@ import com.facimus.procesos.gestion.service.EmpresaService;
 
 import lombok.RequiredArgsConstructor;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+
 /** HU-01: registro de una nueva empresa y su administrador inicial. */
 @RestController
 @RequestMapping("/api/v1/empresas")
@@ -23,10 +25,12 @@ public class EmpresaController {
 
     private final EmpresaService empresaService;
 
+    @SecurityRequirements()
     @PostMapping
     public ResponseEntity<EmpresaResponse> registrar(@Validated @RequestBody RegistroEmpresaRequest request) {
         Empresa empresa = empresaService.registrar(request.nombreEmpresa(), request.nit(),
                 request.correoContacto(), request.nombreAdmin(), request.emailAdmin(), request.passwordAdmin());
-        return ResponseEntity.status(HttpStatus.CREATED).body(EmpresaResponse.of(empresa));
+        return ResponseEntity.created(URI.create("/api/v1/empresas/" + empresa.getId()))
+        .body(EmpresaResponse.of(empresa));
     }
 }

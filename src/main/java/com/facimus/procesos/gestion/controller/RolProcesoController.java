@@ -2,7 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.AccessDeniedException;
 
+import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
@@ -47,22 +48,19 @@ public class RolProcesoController {
         exigirAdministrador(session);
         Long empresaId = SesionActiva.empresaId(session);
         RolProceso rol = rolProcesoService.crear(empresaId, request.nombre(), request.descripcion());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
+        return ResponseEntity.created(URI.create("/api/v1/roles/" + rol.getId()))
+        .body(new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<RolProcesoVistaResponse> obtener(@PathVariable Long id, HttpSession session) {
         Long empresaId = SesionActiva.empresaId(session);
-        return rolProcesoService.listarConUso(empresaId).stream()
+        RolProcesoVistaResponse rol = rolProcesoService.listarConUso(empresaId).stream()
                 .filter(v -> v.rol().getId().equals(id))
                 .map(RolProcesoVistaResponse::of)
                 .findFirst()
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    rolProcesoService.obtener(empresaId, id);
-                    return ResponseEntity.notFound().build();
-                });
+                .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
+        return ResponseEntity.ok(rol);
     }
 
     @PutMapping("/{id}")
@@ -71,8 +69,9 @@ public class RolProcesoController {
         exigirAdministrador(session);
         Long empresaId = SesionActiva.empresaId(session);
         RolProceso rol = rolProcesoService.editar(empresaId, id, request.nombre(), request.descripcion());
+        long usos = rolProcesoService.contarUsos(empresaId, id);
         return ResponseEntity.ok(
-                new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), 0, false));
+                new RolProcesoVistaResponse(rol.getId(), rol.getNombre(), rol.getDescripcion(), usos, usos > 0));
     }
 
     @DeleteMapping("/{id}")
