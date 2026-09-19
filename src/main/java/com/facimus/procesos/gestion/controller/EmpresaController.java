@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-01: registro de una nueva empresa y su administrador inicial. */
 @RestController
-@RequestMapping("/api/empresas")
+@RequestMapping("/api/v1/empresas")
 @RequiredArgsConstructor
 public class EmpresaController {
 

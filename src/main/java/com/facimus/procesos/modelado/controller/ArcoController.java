@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-11 a HU-13: arcos (flujo entre nodos dentro de un pool). */
 @RestController
-@RequestMapping("/api/arcos")
+@RequestMapping("/api/v1/arcos")
 @RequiredArgsConstructor
 public class ArcoController {
 
