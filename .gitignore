@@ -35,4 +35,7 @@ build/
 ### VS Code ###
 .vscode/
 
+### Worktrees locales de Codex ###
+.worktrees/
+
 
