@@ -4,11 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.Mensaje;
@@ -40,7 +39,7 @@ class CorrelacionControllerTest {
         given(correlacionService.definir(eq(1L), eq(5L), anyString())).willReturn(c);
 
         mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"criterio":"orderId"}
@@ -54,7 +53,7 @@ class CorrelacionControllerTest {
     @DisplayName("PUT /api/v1/mensajes/{mensajeId}/correlacion - validacion falla (400)")
     void definir_validacion_falla() throws Exception {
         mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"criterio":""}
@@ -68,7 +67,7 @@ class CorrelacionControllerTest {
         Correlacion c = crearCorrelacion(1L, "customerId");
         given(correlacionService.obtener(1L, 5L)).willReturn(c);
 
-        mockMvc.perform(get("/api/v1/mensajes/5/correlacion").session(sesion()))
+        mockMvc.perform(get("/api/v1/mensajes/5/correlacion").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.criterio").value("customerId"));
     }
@@ -91,13 +90,4 @@ class CorrelacionControllerTest {
         return c;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

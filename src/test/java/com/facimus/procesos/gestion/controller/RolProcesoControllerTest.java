@@ -6,17 +6,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.gestion.service.RolProcesoService;
 import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,7 +42,7 @@ class RolProcesoControllerTest {
         RolProcesoVista vista = new RolProcesoVista(rol, 3, true);
         given(rolProcesoService.listarConUso(1L)).willReturn(List.of(vista));
 
-        mockMvc.perform(get("/api/v1/roles").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/roles").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Analista"))
                 .andExpect(jsonPath("$[0].procesosQueLoUsan").value(3));
@@ -63,7 +62,7 @@ class RolProcesoControllerTest {
         given(rolProcesoService.crear(eq(1L), anyString(), anyString())).willReturn(rol);
 
         mockMvc.perform(post("/api/v1/roles")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Supervisor","descripcion":"Supervisa"}
@@ -77,7 +76,7 @@ class RolProcesoControllerTest {
     @DisplayName("POST /api/v1/roles - editor no puede crear (403)")
     void crear_como_editor() throws Exception {
         mockMvc.perform(post("/api/v1/roles")
-                        .session(sesionConRol(RolAcceso.EDITOR))
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"X","descripcion":"Y"}
@@ -92,7 +91,7 @@ class RolProcesoControllerTest {
         given(rolProcesoService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(rol);
 
         mockMvc.perform(put("/api/v1/roles/1")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Analista Sr","descripcion":"Senior"}
@@ -106,7 +105,7 @@ class RolProcesoControllerTest {
     void eliminar_rol() throws Exception {
         doNothing().when(rolProcesoService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/roles/1").session(sesionAdmin()))
+        mockMvc.perform(delete("/api/v1/roles/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -114,7 +113,7 @@ class RolProcesoControllerTest {
     @DisplayName("POST /api/v1/roles - validacion falla sin nombre (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/roles")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","descripcion":"algo"}
@@ -131,17 +130,4 @@ class RolProcesoControllerTest {
         return rol;
     }
 
-    private MockHttpSession sesionAdmin() {
-        return sesionConRol(RolAcceso.ADMINISTRADOR);
-    }
-
-    private MockHttpSession sesionConRol(RolAcceso rol) {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, rol);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

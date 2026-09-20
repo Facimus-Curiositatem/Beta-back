@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +54,30 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler{
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest()
                 .body(construir(HttpStatus.BAD_REQUEST, "Validación fallida", detalle, req));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest req) {
+        return ResponseEntity.badRequest()
+                .body(construir(HttpStatus.BAD_REQUEST, "Parámetro inválido",
+                        "Uno o más parámetros no cumplen las restricciones de la solicitud.", req));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers,
+            HttpStatusCode status, WebRequest req) {
+        return ResponseEntity.badRequest()
+                .body(construir(HttpStatus.BAD_REQUEST, "Parámetro inválido",
+                        "El valor enviado no tiene el formato esperado.", req));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest req) {
+        return ResponseEntity.badRequest()
+                .body(construir(HttpStatus.BAD_REQUEST, "JSON inválido",
+                        "El cuerpo de la solicitud no contiene JSON válido.", req));
     }
 
     @ExceptionHandler(Exception.class)

@@ -6,11 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Mensaje;
@@ -42,7 +41,7 @@ class MensajeControllerTest {
         Mensaje m = crearMensaje(1L, "Orden de compra");
         given(mensajeService.listarPorProceso(1L, 10L)).willReturn(List.of(m));
 
-        mockMvc.perform(get("/api/v1/procesos/10/mensajes").session(sesion()))
+        mockMvc.perform(get("/api/v1/procesos/10/mensajes").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Orden de compra"));
     }
@@ -54,7 +53,7 @@ class MensajeControllerTest {
         given(mensajeService.crear(eq(1L), eq(10L), anyString(), anyString(), anyLong(), anyLong())).willReturn(m);
 
         mockMvc.perform(post("/api/v1/procesos/10/mensajes")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Factura","contenido":"Datos de factura","poolOrigenId":1,"poolDestinoId":2}
@@ -68,7 +67,7 @@ class MensajeControllerTest {
     @DisplayName("POST /api/v1/procesos/{procesoId}/mensajes - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/procesos/10/mensajes")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","contenido":"","poolOrigenId":null,"poolDestinoId":null}
@@ -83,7 +82,7 @@ class MensajeControllerTest {
         given(mensajeService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(m);
 
         mockMvc.perform(put("/api/v1/mensajes/1")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Orden actualizada","contenido":"Nuevo contenido"}
@@ -97,7 +96,7 @@ class MensajeControllerTest {
     void eliminar_mensaje() throws Exception {
         doNothing().when(mensajeService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/mensajes/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/mensajes/1").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -121,13 +120,4 @@ class MensajeControllerTest {
         return m;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

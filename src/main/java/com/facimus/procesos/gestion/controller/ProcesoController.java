@@ -34,6 +34,7 @@ import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.constraints.Min;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
 @RestController
@@ -51,7 +52,7 @@ public class ProcesoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
-            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "La página no puede ser negativa.") int pagina,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,

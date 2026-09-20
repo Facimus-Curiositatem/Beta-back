@@ -1,8 +1,5 @@
 package com.facimus.procesos.security;
 
-import java.util.Arrays;
-import java.util.stream.Stream;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -61,20 +58,13 @@ public class SecurityConfig {
                         // y el administrador se reserva usuarios (HU-02), roles (HU-17 a HU-19) y los borrados
                         // de procesos (HU-06), actividades (HU-10), arcos (HU-13) y gateways (HU-16).
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
-                        .requestMatchers(rutas("/usuarios/**")).hasAuthority(ADMINISTRADOR)
-                        .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
-                        .requestMatchers(rutas("/roles/**")).hasAuthority(ADMINISTRADOR)
-                        .requestMatchers(HttpMethod.DELETE, rutas("/procesos/**", "/actividades/**", "/arcos/**",
-                                "/gateways/**")).hasAuthority(ADMINISTRADOR)
-                        .requestMatchers("/api/**").hasAnyAuthority(ADMINISTRADOR, EDITOR)
+                        .requestMatchers("/api/v1/usuarios/**").hasAuthority(ADMINISTRADOR)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/**").authenticated()
+                        .requestMatchers("/api/v1/roles/**").hasAuthority(ADMINISTRADOR)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/procesos/**", "/api/v1/actividades/**",
+                                "/api/v1/arcos/**", "/api/v1/gateways/**").hasAuthority(ADMINISTRADOR)
+                        .requestMatchers("/api/v1/**").hasAnyAuthority(ADMINISTRADOR, EDITOR)
                         .anyRequest().authenticated());
-    }
-
-    // ponytail: cada recurso con y sin /v1 mientras Persona 2 migra las rutas; al terminar queda solo /api/v1.
-    private static String[] rutas(String... recursos) {
-        return Arrays.stream(recursos)
-                .flatMap(recurso -> Stream.of("/api" + recurso, "/api/v1" + recurso))
-                .toArray(String[]::new);
     }
 
     @Bean
