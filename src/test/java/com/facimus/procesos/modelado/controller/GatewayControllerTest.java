@@ -85,8 +85,10 @@ class GatewayControllerTest {
     @DisplayName("DELETE /api/v1/gateways/{id} - eliminar gateway (204)")
     void eliminar_gateway() throws Exception {
         doNothing().when(gatewayService).eliminar(1L, 1L);
+        MockHttpSession administrador = sesion();
+        administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/v1/gateways/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/gateways/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 

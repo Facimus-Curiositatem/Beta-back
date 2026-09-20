@@ -97,8 +97,10 @@ class ArcoControllerTest {
     @DisplayName("DELETE /api/v1/arcos/{id} - eliminar arco (204)")
     void eliminar_arco() throws Exception {
         doNothing().when(arcoService).eliminar(1L, 1L);
+        MockHttpSession administrador = sesion();
+        administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/v1/arcos/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/arcos/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 

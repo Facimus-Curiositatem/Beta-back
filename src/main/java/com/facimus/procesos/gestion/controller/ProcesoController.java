@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.facimus.procesos.common.api.PageResponse;
-import org.springframework.security.access.AccessDeniedException;
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
@@ -31,9 +31,8 @@ import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import com.facimus.procesos.security.ApiPrincipal;
 
-
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
@@ -53,8 +52,8 @@ public class ProcesoController {
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
             @RequestParam(defaultValue = "0") int pagina,
-            HttpSession session) {
-        Long empresaId = SesionActiva.empresaId(session);
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
@@ -62,10 +61,10 @@ public class ProcesoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+    public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
         return ResponseEntity.created(URI.create("/api/v1/procesos/" + proceso.getId()))
@@ -73,8 +72,9 @@ public class ProcesoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id, HttpSession session) {
-        Long empresaId = SesionActiva.empresaId(session);
+    public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
         Proceso proceso = procesoService.obtener(empresaId, id);
         List<HistorialCambioResponse> historial = historialCambioService.listarPorProceso(empresaId, id).stream()
                 .map(HistorialCambioResponse::of)
@@ -84,10 +84,9 @@ public class ProcesoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ProcesoResponse> editar(@PathVariable Long id,
-            @Validated @RequestBody EditarProcesoRequest request, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+            @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.editar(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria(), request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
@@ -95,10 +94,10 @@ public class ProcesoController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<ProcesoResponse> cambiarEstado(@PathVariable Long id,
-            @Validated @RequestBody CambiarEstadoProcesoRequest request, HttpSession session) {
-        exigirEditor(session);
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+            @Validated @RequestBody CambiarEstadoProcesoRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         Proceso proceso;
         if (request.estado() == EstadoProceso.PUBLICADO) {
             proceso = procesoService.publicar(empresaId, id, usuarioId);
@@ -111,19 +110,10 @@ public class ProcesoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id, HttpSession session) {
-        if (!SesionActiva.esAdministrador(session)) {
-            throw new AccessDeniedException("Solo un administrador puede eliminar procesos.");
-        }
-        Long empresaId = SesionActiva.empresaId(session);
-        Long usuarioId = SesionActiva.usuarioId(session);
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Long usuarioId = principal.usuarioId();
         procesoService.eliminarLogico(empresaId, id, usuarioId);
         return ResponseEntity.noContent().build();
-    }
-
-    private void exigirEditor(HttpSession session) {
-        if (!SesionActiva.puedeEditar(session)) {
-            throw new AccessDeniedException("No tienes permisos para modificar procesos.");
-        }
     }
 }

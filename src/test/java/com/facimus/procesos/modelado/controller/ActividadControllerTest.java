@@ -94,8 +94,10 @@ class ActividadControllerTest {
     @DisplayName("DELETE /api/v1/actividades/{id} - eliminar actividad (204)")
     void eliminar_actividad() throws Exception {
         doNothing().when(actividadService).eliminar(1L, 1L);
+        MockHttpSession administrador = sesion();
+        administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/v1/actividades/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/actividades/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 
