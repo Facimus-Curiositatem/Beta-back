@@ -6,11 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.modelado.model.Lane;
@@ -42,7 +41,7 @@ class LaneControllerTest {
         Lane lane = crearLane(1L, "Recepcion");
         given(laneService.listarPorPool(1L, 5L)).willReturn(List.of(lane));
 
-        mockMvc.perform(get("/api/v1/pools/5/lanes").session(sesion()))
+        mockMvc.perform(get("/api/v1/pools/5/lanes").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Recepcion"));
     }
@@ -54,7 +53,7 @@ class LaneControllerTest {
         given(laneService.crear(eq(1L), eq(5L), anyString(), anyLong())).willReturn(lane);
 
         mockMvc.perform(post("/api/v1/pools/5/lanes")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Analisis","rolProcesoId":1}
@@ -68,7 +67,7 @@ class LaneControllerTest {
     @DisplayName("POST /api/v1/pools/{poolId}/lanes - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/pools/5/lanes")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","rolProcesoId":null}
@@ -83,7 +82,7 @@ class LaneControllerTest {
         given(laneService.editar(eq(1L), eq(1L), anyString(), anyLong())).willReturn(lane);
 
         mockMvc.perform(put("/api/v1/lanes/1")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Recepcion v2","rolProcesoId":1}
@@ -97,7 +96,7 @@ class LaneControllerTest {
     void eliminar_lane() throws Exception {
         doNothing().when(laneService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/lanes/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/lanes/1").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -118,13 +117,4 @@ class LaneControllerTest {
         return lane;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

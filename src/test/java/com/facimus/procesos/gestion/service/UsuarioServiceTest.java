@@ -128,6 +128,17 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void actualizar_rol_y_estado() {
+        when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+
+        Usuario actualizado = usuarioService.actualizar(1L, 10L, RolAcceso.ADMINISTRADOR, false);
+
+        assertEquals(RolAcceso.ADMINISTRADOR, actualizado.getRolAcceso());
+        assertFalse(actualizado.isActivo());
+    }
+
+    @Test
     @DisplayName("Obtener usuario inexistente lanza RecursoNoEncontrado")
     void obtener_inexistente() {
         when(usuarioRepository.findByIdAndEmpresaId(99L, 1L)).thenReturn(Optional.empty());

@@ -70,7 +70,7 @@ class RolProcesoServiceTest {
     @Test
     @DisplayName("HU-19: eliminar rol en uso lanza excepcion (regla 13)")
     void eliminar_rol_en_uso() {
-        when(rolProcesoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(rol));
+        when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
         Proceso proceso = new Proceso();
         proceso.setNombre("Compras");
         Pool pool = new Pool();
@@ -88,7 +88,7 @@ class RolProcesoServiceTest {
     @Test
     @DisplayName("HU-19: eliminar rol sin uso desactiva correctamente")
     void eliminar_rol_sin_uso() {
-        when(rolProcesoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(rol));
+        when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
         when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(Collections.emptyList());
         when(rolProcesoRepository.save(any(RolProceso.class))).thenAnswer(inv -> inv.getArgument(0));
 

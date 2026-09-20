@@ -106,11 +106,11 @@ class ProcesoServiceTest {
     @Test
     @DisplayName("HU-05: publicar cambia estado a PUBLICADO")
     void publicar_exitoso() {
-        when(procesoRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 1L)).thenReturn(Optional.of(proceso));
         when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Proceso result = procesoService.publicar(1L, 100L, 10L);
+        Proceso result = procesoService.cambiarEstado(1L, 100L, 10L, EstadoProceso.PUBLICADO);
 
         assertEquals(EstadoProceso.PUBLICADO, result.getEstado());
         verify(historialCambioService).registrar(eq(result), eq(usuario), contains("publicado"));
@@ -119,7 +119,7 @@ class ProcesoServiceTest {
     @Test
     @DisplayName("HU-06: eliminar logico pone activo=false sin DELETE fisico")
     void eliminarLogico_exitoso() {
-        when(procesoRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 1L)).thenReturn(Optional.of(proceso));
         when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -134,9 +134,18 @@ class ProcesoServiceTest {
     @Test
     @DisplayName("Obtener proceso de otra empresa lanza RecursoNoEncontrado")
     void obtener_otra_empresa() {
-        when(procesoRepository.findByIdAndEmpresaId(100L, 2L)).thenReturn(Optional.empty());
+        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 2L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> procesoService.obtener(2L, 100L));
+    }
+
+    @Test
+    void proceso_publicado_no_vuelve_a_borrador() {
+        proceso.setEstado(EstadoProceso.PUBLICADO);
+        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 1L)).thenReturn(Optional.of(proceso));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> procesoService.cambiarEstado(1L, 100L, 10L, EstadoProceso.BORRADOR));
     }
 }

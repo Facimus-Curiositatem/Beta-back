@@ -6,16 +6,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.UsuarioService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -43,7 +42,7 @@ class UsuarioControllerTest {
         Usuario u = crearUsuario(1L, "Ana", "ana@acme.com", RolAcceso.EDITOR);
         given(usuarioService.listarPorEmpresa(1L)).willReturn(List.of(u));
 
-        mockMvc.perform(get("/api/v1/usuarios").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/usuarios").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Ana"));
     }
@@ -58,7 +57,7 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("GET /api/v1/usuarios - solo lectura retorna 403")
     void listar_solo_lectura() throws Exception {
-        mockMvc.perform(get("/api/v1/usuarios").session(sesionConRol(RolAcceso.SOLO_LECTURA)))
+        mockMvc.perform(get("/api/v1/usuarios").with(principal(RolAcceso.SOLO_LECTURA)))
                 .andExpect(status().isForbidden());
     }
 
@@ -70,7 +69,7 @@ class UsuarioControllerTest {
                 .willReturn(u);
 
         mockMvc.perform(post("/api/v1/usuarios")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -89,7 +88,7 @@ class UsuarioControllerTest {
     @DisplayName("POST /api/v1/usuarios - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/usuarios")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","email":"invalido","password":"12","rolAcceso":null}
@@ -103,7 +102,7 @@ class UsuarioControllerTest {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.EDITOR);
         given(usuarioService.obtener(1L, 5L)).willReturn(u);
 
-        mockMvc.perform(get("/api/v1/usuarios/5").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5));
     }
@@ -112,10 +111,10 @@ class UsuarioControllerTest {
     @DisplayName("PATCH /api/v1/usuarios/{id} - cambiar rol (200)")
     void cambiar_rol() throws Exception {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
-        given(usuarioService.cambiarRolAcceso(1L, 5L, RolAcceso.ADMINISTRADOR)).willReturn(u);
+        given(usuarioService.actualizar(1L, 5L, RolAcceso.ADMINISTRADOR, null)).willReturn(u);
 
         mockMvc.perform(patch("/api/v1/usuarios/5")
-                        .session(sesionAdmin())
+                        .with(principal(RolAcceso.ADMINISTRADOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"rolAcceso":"ADMINISTRADOR"}
@@ -125,11 +124,28 @@ class UsuarioControllerTest {
     }
 
     @Test
+    void actualizar_estado_y_rechazar_patch_vacio() throws Exception {
+        Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
+        u.setActivo(false);
+        given(usuarioService.actualizar(1L, 5L, RolAcceso.ADMINISTRADOR, false)).willReturn(u);
+
+        mockMvc.perform(patch("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rolAcceso\":\"ADMINISTRADOR\",\"activo\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activo").value(false));
+
+        mockMvc.perform(patch("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("DELETE /api/v1/usuarios/{id} - desactivar usuario (204)")
     void desactivar_usuario() throws Exception {
         doNothing().when(usuarioService).desactivar(1L, 5L);
 
-        mockMvc.perform(delete("/api/v1/usuarios/5").session(sesionAdmin()))
+        mockMvc.perform(delete("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -143,17 +159,4 @@ class UsuarioControllerTest {
         return u;
     }
 
-    private MockHttpSession sesionAdmin() {
-        return sesionConRol(RolAcceso.ADMINISTRADOR);
-    }
-
-    private MockHttpSession sesionConRol(RolAcceso rol) {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, rol);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

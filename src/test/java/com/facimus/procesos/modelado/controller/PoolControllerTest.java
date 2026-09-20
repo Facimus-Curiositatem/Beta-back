@@ -6,11 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Pool;
@@ -42,7 +41,7 @@ class PoolControllerTest {
         Pool pool = crearPool(1L, "Cliente");
         given(poolService.listarPorProceso(1L, 10L)).willReturn(List.of(pool));
 
-        mockMvc.perform(get("/api/v1/procesos/10/pools").session(sesion()))
+        mockMvc.perform(get("/api/v1/procesos/10/pools").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Cliente"));
     }
@@ -61,7 +60,7 @@ class PoolControllerTest {
         given(poolService.crear(eq(1L), eq(10L), anyString(), any(), anyBoolean())).willReturn(pool);
 
         mockMvc.perform(post("/api/v1/procesos/10/pools")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Proveedor","tipoParticipante":"PROVEEDOR","cajaNegra":false}
@@ -75,7 +74,7 @@ class PoolControllerTest {
     @DisplayName("POST /api/v1/procesos/{procesoId}/pools - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/procesos/10/pools")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","tipoParticipante":null,"cajaNegra":false}
@@ -90,7 +89,7 @@ class PoolControllerTest {
         given(poolService.editar(eq(1L), eq(1L), anyString(), any())).willReturn(pool);
 
         mockMvc.perform(put("/api/v1/pools/1")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Cliente VIP","tipoParticipante":"CLIENTE"}
@@ -104,7 +103,7 @@ class PoolControllerTest {
     void eliminar_pool() throws Exception {
         doNothing().when(poolService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/pools/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/pools/1").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -122,13 +121,4 @@ class PoolControllerTest {
         return pool;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

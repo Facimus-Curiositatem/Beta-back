@@ -77,11 +77,12 @@ public class RolProcesoService {
     }
 
     public long contarUsos(Long empresaId, Long rolId) {
+        obtener(empresaId, rolId);
         return laneRepository.findAllByRolProcesoIdAndEmpresaId(rolId, empresaId).size();
     }
 
     public RolProceso obtener(Long empresaId, Long rolId) {
-        return rolProcesoRepository.findByIdAndEmpresaId(rolId, empresaId)
+        return rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(rolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
     }
 

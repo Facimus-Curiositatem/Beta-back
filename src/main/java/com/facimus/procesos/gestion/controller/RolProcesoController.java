@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
 import com.facimus.procesos.gestion.model.RolProceso;
@@ -54,12 +53,10 @@ public class RolProcesoController {
     public ResponseEntity<RolProcesoVistaResponse> obtener(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        RolProcesoVistaResponse rol = rolProcesoService.listarConUso(empresaId).stream()
-                .filter(v -> v.rol().getId().equals(id))
-                .map(RolProcesoVistaResponse::of)
-                .findFirst()
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
-        return ResponseEntity.ok(rol);
+        RolProceso rol = rolProcesoService.obtener(empresaId, id);
+        long usos = rolProcesoService.contarUsos(empresaId, id);
+        return ResponseEntity.ok(new RolProcesoVistaResponse(
+                rol.getId(), rol.getNombre(), rol.getDescripcion(), usos, usos > 0));
     }
 
     @PutMapping("/{id}")

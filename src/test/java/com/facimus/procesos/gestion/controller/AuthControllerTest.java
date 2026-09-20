@@ -6,18 +6,17 @@ import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.facimus.procesos.common.ReglaNegocioException;
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.controller.dto.LoginRequest;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
@@ -97,12 +96,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/logout - usuario autenticado recibe 204")
     void AuthController_logout_autenticado_devuelve204() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 10L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
-
-        mockMvc.perform(post("/api/v1/auth/logout").session(session))
+        mockMvc.perform(post("/api/v1/auth/logout").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 

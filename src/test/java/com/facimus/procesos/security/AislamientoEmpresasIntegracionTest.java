@@ -31,8 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.facimus.procesos.common.RecursoNoEncontradoException;
-import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
 import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
+import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.LoginRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
@@ -211,7 +211,7 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.DELETE, "/api/v1/usuarios/{id}", adminB, null, "Usuario no encontrado"),
                 Arguments.of(HttpMethod.GET, "/api/v1/procesos/{id}", procesoB, null, "Proceso no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/procesos/{id}", procesoB,
-                        new EditarProcesoRequest("Intruso", "Desde la empresa A", "Otra", EstadoProceso.PUBLICADO),
+                        new EditarProcesoRequest("Intruso", "Desde la empresa A", "Otra"),
                         "Proceso no encontrado"),
                 Arguments.of(HttpMethod.PATCH, "/api/v1/procesos/{id}", procesoB,
                         new CambiarEstadoProcesoRequest(EstadoProceso.PUBLICADO), "Proceso no encontrado"),
