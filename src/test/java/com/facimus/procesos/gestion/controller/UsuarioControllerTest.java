@@ -26,6 +26,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(UsuarioController.class)
 class UsuarioControllerTest {
@@ -37,38 +38,38 @@ class UsuarioControllerTest {
     private UsuarioService usuarioService;
 
     @Test
-    @DisplayName("GET /api/usuarios - listar como admin (200)")
+    @DisplayName("GET /api/v1/usuarios - listar como admin (200)")
     void listar_como_admin() throws Exception {
         Usuario u = crearUsuario(1L, "Ana", "ana@acme.com", RolAcceso.EDITOR);
         given(usuarioService.listarPorEmpresa(1L)).willReturn(List.of(u));
 
-        mockMvc.perform(get("/api/usuarios").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/usuarios").session(sesionAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Ana"));
     }
 
     @Test
-    @DisplayName("GET /api/usuarios - sin sesion retorna 401")
+    @DisplayName("GET /api/v1/usuarios - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/usuarios"))
+        mockMvc.perform(get("/api/v1/usuarios"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("GET /api/usuarios - solo lectura retorna 403")
+    @DisplayName("GET /api/v1/usuarios - solo lectura retorna 403")
     void listar_solo_lectura() throws Exception {
-        mockMvc.perform(get("/api/usuarios").session(sesionConRol(RolAcceso.SOLO_LECTURA)))
+        mockMvc.perform(get("/api/v1/usuarios").session(sesionConRol(RolAcceso.SOLO_LECTURA)))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("POST /api/usuarios - crear colaborador como admin (201)")
+    @DisplayName("POST /api/v1/usuarios - crear colaborador como admin (201)")
     void crear_colaborador() throws Exception {
         Usuario u = crearUsuario(2L, "Pedro", "pedro@acme.com", RolAcceso.EDITOR);
         given(usuarioService.crearColaborador(eq(1L), anyString(), anyString(), anyString(), any()))
                 .willReturn(u);
 
-        mockMvc.perform(post("/api/usuarios")
+        mockMvc.perform(post("/api/v1/usuarios")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -80,13 +81,14 @@ class UsuarioControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/usuarios/2"))
                 .andExpect(jsonPath("$.nombre").value("Pedro"));
     }
 
     @Test
-    @DisplayName("POST /api/usuarios - validacion falla (400)")
+    @DisplayName("POST /api/v1/usuarios - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/usuarios")
+        mockMvc.perform(post("/api/v1/usuarios")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -96,23 +98,23 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/usuarios/{id} - obtener usuario (200)")
+    @DisplayName("GET /api/v1/usuarios/{id} - obtener usuario (200)")
     void obtener_usuario() throws Exception {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.EDITOR);
         given(usuarioService.obtener(1L, 5L)).willReturn(u);
 
-        mockMvc.perform(get("/api/usuarios/5").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/usuarios/5").session(sesionAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5));
     }
 
     @Test
-    @DisplayName("PUT /api/usuarios/{id}/rol - cambiar rol (200)")
+    @DisplayName("PATCH /api/v1/usuarios/{id} - cambiar rol (200)")
     void cambiar_rol() throws Exception {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
         given(usuarioService.cambiarRolAcceso(1L, 5L, RolAcceso.ADMINISTRADOR)).willReturn(u);
 
-        mockMvc.perform(put("/api/usuarios/5/rol")
+        mockMvc.perform(patch("/api/v1/usuarios/5")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -123,11 +125,11 @@ class UsuarioControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/usuarios/{id} - desactivar usuario (204)")
+    @DisplayName("DELETE /api/v1/usuarios/{id} - desactivar usuario (204)")
     void desactivar_usuario() throws Exception {
         doNothing().when(usuarioService).desactivar(1L, 5L);
 
-        mockMvc.perform(delete("/api/usuarios/5").session(sesionAdmin()))
+        mockMvc.perform(delete("/api/v1/usuarios/5").session(sesionAdmin()))
                 .andExpect(status().isNoContent());
     }
 

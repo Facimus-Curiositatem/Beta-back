@@ -2,7 +2,7 @@ package com.facimus.procesos.modelado.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-25 a HU-27: mensajes (comunicacion entre pools). */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class MensajeController {
 
@@ -48,7 +48,8 @@ public class MensajeController {
         Long empresaId = principal.empresaId();
         Mensaje mensaje = mensajeService.crear(empresaId, procesoId, request.nombre(), request.contenido(),
                 request.poolOrigenId(), request.poolDestinoId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(MensajeResponse.of(mensaje));
+        return ResponseEntity.created(URI.create("/api/v1/mensajes/" + mensaje.getId()))
+        .body(MensajeResponse.of(mensaje));
     }
 
     @PutMapping("/mensajes/{id}")

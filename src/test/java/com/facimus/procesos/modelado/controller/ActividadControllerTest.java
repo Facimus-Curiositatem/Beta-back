@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ActividadController.class)
 class ActividadControllerTest {
@@ -33,26 +34,27 @@ class ActividadControllerTest {
     private ActividadService actividadService;
 
     @Test
-    @DisplayName("POST /api/lanes/{laneId}/actividades - crear actividad (201)")
+    @DisplayName("POST /api/v1/lanes/{laneId}/actividades - crear actividad (201)")
     void crear_actividad() throws Exception {
         Actividad a = crearActividad(1L, "Revisar solicitud");
         given(actividadService.crear(eq(1L), eq(3L), anyString(), anyString(), anyInt(), anyInt())).willReturn(a);
 
-        mockMvc.perform(post("/api/lanes/3/actividades")
+        mockMvc.perform(post("/api/v1/lanes/3/actividades")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Revisar solicitud","descripcion":"Verifica datos","posicionX":100,"posicionY":200}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/actividades/1"))
                 .andExpect(jsonPath("$.nombre").value("Revisar solicitud"))
                 .andExpect(jsonPath("$.posicionX").value(100));
     }
 
     @Test
-    @DisplayName("POST /api/lanes/{laneId}/actividades - sin sesion retorna 401")
+    @DisplayName("POST /api/v1/lanes/{laneId}/actividades - sin sesion retorna 401")
     void crear_sin_sesion() throws Exception {
-        mockMvc.perform(post("/api/lanes/3/actividades")
+        mockMvc.perform(post("/api/v1/lanes/3/actividades")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"X","descripcion":"Y","posicionX":0,"posicionY":0}
@@ -61,9 +63,9 @@ class ActividadControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/lanes/{laneId}/actividades - validacion falla (400)")
+    @DisplayName("POST /api/v1/lanes/{laneId}/actividades - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/lanes/3/actividades")
+        mockMvc.perform(post("/api/v1/lanes/3/actividades")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -73,12 +75,12 @@ class ActividadControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/actividades/{id} - editar actividad (200)")
+    @DisplayName("PUT /api/v1/actividades/{id} - editar actividad (200)")
     void editar_actividad() throws Exception {
         Actividad a = crearActividad(1L, "Revisar v2");
         given(actividadService.editar(eq(1L), eq(1L), anyString(), anyString(), anyInt(), anyInt())).willReturn(a);
 
-        mockMvc.perform(put("/api/actividades/1")
+        mockMvc.perform(put("/api/v1/actividades/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -89,13 +91,13 @@ class ActividadControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/actividades/{id} - eliminar actividad (204)")
+    @DisplayName("DELETE /api/v1/actividades/{id} - eliminar actividad (204)")
     void eliminar_actividad() throws Exception {
         doNothing().when(actividadService).eliminar(1L, 1L);
         MockHttpSession administrador = sesion();
         administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/actividades/1").session(administrador))
+        mockMvc.perform(delete("/api/v1/actividades/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 

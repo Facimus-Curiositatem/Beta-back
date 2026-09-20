@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(RolProcesoController.class)
 class RolProcesoControllerTest {
@@ -36,45 +37,46 @@ class RolProcesoControllerTest {
     private RolProcesoService rolProcesoService;
 
     @Test
-    @DisplayName("GET /api/roles - listar roles (200)")
+    @DisplayName("GET /api/v1/roles - listar roles (200)")
     void listar_roles() throws Exception {
         RolProceso rol = crearRol(1L, "Analista", "Analiza procesos");
         RolProcesoVista vista = new RolProcesoVista(rol, 3, true);
         given(rolProcesoService.listarConUso(1L)).willReturn(List.of(vista));
 
-        mockMvc.perform(get("/api/roles").session(sesionAdmin()))
+        mockMvc.perform(get("/api/v1/roles").session(sesionAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Analista"))
                 .andExpect(jsonPath("$[0].procesosQueLoUsan").value(3));
     }
 
     @Test
-    @DisplayName("GET /api/roles - sin sesion retorna 401")
+    @DisplayName("GET /api/v1/roles - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
-        mockMvc.perform(get("/api/roles"))
+        mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("POST /api/roles - crear rol como admin (201)")
+    @DisplayName("POST /api/v1/roles - crear rol como admin (201)")
     void crear_rol() throws Exception {
         RolProceso rol = crearRol(2L, "Supervisor", "Supervisa");
         given(rolProcesoService.crear(eq(1L), anyString(), anyString())).willReturn(rol);
 
-        mockMvc.perform(post("/api/roles")
+        mockMvc.perform(post("/api/v1/roles")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Supervisor","descripcion":"Supervisa"}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/roles/2"))
                 .andExpect(jsonPath("$.nombre").value("Supervisor"));
     }
 
     @Test
-    @DisplayName("POST /api/roles - editor no puede crear (403)")
+    @DisplayName("POST /api/v1/roles - editor no puede crear (403)")
     void crear_como_editor() throws Exception {
-        mockMvc.perform(post("/api/roles")
+        mockMvc.perform(post("/api/v1/roles")
                         .session(sesionConRol(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -84,12 +86,12 @@ class RolProcesoControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/roles/{id} - editar rol (200)")
+    @DisplayName("PUT /api/v1/roles/{id} - editar rol (200)")
     void editar_rol() throws Exception {
         RolProceso rol = crearRol(1L, "Analista Sr", "Senior");
         given(rolProcesoService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(rol);
 
-        mockMvc.perform(put("/api/roles/1")
+        mockMvc.perform(put("/api/v1/roles/1")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -100,18 +102,18 @@ class RolProcesoControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/roles/{id} - eliminar rol (204)")
+    @DisplayName("DELETE /api/v1/roles/{id} - eliminar rol (204)")
     void eliminar_rol() throws Exception {
         doNothing().when(rolProcesoService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/roles/1").session(sesionAdmin()))
+        mockMvc.perform(delete("/api/v1/roles/1").session(sesionAdmin()))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("POST /api/roles - validacion falla sin nombre (400)")
+    @DisplayName("POST /api/v1/roles - validacion falla sin nombre (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/roles")
+        mockMvc.perform(post("/api/v1/roles")
                         .session(sesionAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

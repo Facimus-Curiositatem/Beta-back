@@ -1,6 +1,6 @@
 package com.facimus.procesos.modelado.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-14 a HU-16: gateways (puntos de decision). */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class GatewayController {
 
@@ -34,7 +34,8 @@ public class GatewayController {
         Long empresaId = principal.empresaId();
         Gateway gateway = gatewayService.crear(empresaId, laneId, request.nombre(), request.tipoGateway(),
                 request.posicionX(), request.posicionY());
-        return ResponseEntity.status(HttpStatus.CREATED).body(GatewayResponse.of(gateway));
+        return ResponseEntity.created(URI.create("/api/v1/gateways/" + gateway.getId()))
+                .body(GatewayResponse.of(gateway));
     }
 
     @PutMapping("/gateways/{id}")

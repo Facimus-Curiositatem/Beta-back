@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(GatewayController.class)
 class GatewayControllerTest {
@@ -34,26 +35,27 @@ class GatewayControllerTest {
     private GatewayService gatewayService;
 
     @Test
-    @DisplayName("POST /api/lanes/{laneId}/gateways - crear gateway (201)")
+    @DisplayName("POST /api/v1/lanes/{laneId}/gateways - crear gateway (201)")
     void crear_gateway() throws Exception {
         Gateway gw = crearGateway(1L, "Decision pago");
         given(gatewayService.crear(eq(1L), eq(3L), anyString(), any(), anyInt(), anyInt())).willReturn(gw);
 
-        mockMvc.perform(post("/api/lanes/3/gateways")
+        mockMvc.perform(post("/api/v1/lanes/3/gateways")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Decision pago","tipoGateway":"EXCLUSIVO","posicionX":300,"posicionY":150}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/gateways/1"))
                 .andExpect(jsonPath("$.nombre").value("Decision pago"))
                 .andExpect(jsonPath("$.tipoGateway").value("EXCLUSIVO"));
     }
 
     @Test
-    @DisplayName("POST /api/lanes/{laneId}/gateways - validacion falla (400)")
+    @DisplayName("POST /api/v1/lanes/{laneId}/gateways - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/lanes/3/gateways")
+        mockMvc.perform(post("/api/v1/lanes/3/gateways")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -63,13 +65,13 @@ class GatewayControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/gateways/{id} - editar gateway (200)")
+    @DisplayName("PUT /api/v1/gateways/{id} - editar gateway (200)")
     void editar_gateway() throws Exception {
         Gateway gw = crearGateway(1L, "Decision envio");
         gw.setTipoGateway(TipoGateway.PARALELO);
         given(gatewayService.editar(eq(1L), eq(1L), anyString(), any(), anyInt(), anyInt())).willReturn(gw);
 
-        mockMvc.perform(put("/api/gateways/1")
+        mockMvc.perform(put("/api/v1/gateways/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -80,13 +82,13 @@ class GatewayControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/gateways/{id} - eliminar gateway (204)")
+    @DisplayName("DELETE /api/v1/gateways/{id} - eliminar gateway (204)")
     void eliminar_gateway() throws Exception {
         doNothing().when(gatewayService).eliminar(1L, 1L);
         MockHttpSession administrador = sesion();
         administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/gateways/1").session(administrador))
+        mockMvc.perform(delete("/api/v1/gateways/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 

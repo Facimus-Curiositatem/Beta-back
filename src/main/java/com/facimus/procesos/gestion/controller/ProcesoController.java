@@ -5,12 +5,13 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,7 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import com.facimus.procesos.common.api.PageResponse;
+import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoDetalleResponse;
@@ -34,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
 @RestController
-@RequestMapping("/api/procesos")
+@RequestMapping("/api/v1/procesos")
 @RequiredArgsConstructor
 public class ProcesoController {
 
@@ -44,7 +46,7 @@ public class ProcesoController {
     private final HistorialCambioService historialCambioService;
 
     @GetMapping
-    public ResponseEntity<Page<ProcesoResponse>> listar(
+    public ResponseEntity<PageResponse<ProcesoResponse>> listar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
@@ -54,7 +56,7 @@ public class ProcesoController {
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
-        return ResponseEntity.ok(procesos);
+        return ResponseEntity.ok(PageResponse.from(procesos));
     }
 
     @PostMapping
@@ -64,7 +66,8 @@ public class ProcesoController {
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ProcesoResponse.of(proceso));
+        return ResponseEntity.created(URI.create("/api/v1/procesos/" + proceso.getId()))
+                .body(ProcesoResponse.of(proceso));
     }
 
     @GetMapping("/{id}")
@@ -88,12 +91,20 @@ public class ProcesoController {
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
-    @PostMapping("/{id}/publicar")
-    public ResponseEntity<ProcesoResponse> publicar(@PathVariable Long id,
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProcesoResponse> cambiarEstado(@PathVariable Long id,
+            @Validated @RequestBody CambiarEstadoProcesoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso = procesoService.publicar(empresaId, id, usuarioId);
+        Proceso proceso;
+        if (request.estado() == EstadoProceso.PUBLICADO) {
+            proceso = procesoService.publicar(empresaId, id, usuarioId);
+        } else {
+            Proceso actual = procesoService.obtener(empresaId, id);
+            proceso = procesoService.editar(empresaId, id, usuarioId, actual.getNombre(),
+                    actual.getDescripcion(), actual.getCategoria(), request.estado());
+        }
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 

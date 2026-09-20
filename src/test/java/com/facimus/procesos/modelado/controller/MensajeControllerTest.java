@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(MensajeController.class)
 class MensajeControllerTest {
@@ -36,36 +37,37 @@ class MensajeControllerTest {
     private MensajeService mensajeService;
 
     @Test
-    @DisplayName("GET /api/procesos/{procesoId}/mensajes - listar mensajes (200)")
+    @DisplayName("GET /api/v1/procesos/{procesoId}/mensajes - listar mensajes (200)")
     void listar_mensajes() throws Exception {
         Mensaje m = crearMensaje(1L, "Orden de compra");
         given(mensajeService.listarPorProceso(1L, 10L)).willReturn(List.of(m));
 
-        mockMvc.perform(get("/api/procesos/10/mensajes").session(sesion()))
+        mockMvc.perform(get("/api/v1/procesos/10/mensajes").session(sesion()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Orden de compra"));
     }
 
     @Test
-    @DisplayName("POST /api/procesos/{procesoId}/mensajes - crear mensaje (201)")
+    @DisplayName("POST /api/v1/procesos/{procesoId}/mensajes - crear mensaje (201)")
     void crear_mensaje() throws Exception {
         Mensaje m = crearMensaje(2L, "Factura");
         given(mensajeService.crear(eq(1L), eq(10L), anyString(), anyString(), anyLong(), anyLong())).willReturn(m);
 
-        mockMvc.perform(post("/api/procesos/10/mensajes")
+        mockMvc.perform(post("/api/v1/procesos/10/mensajes")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Factura","contenido":"Datos de factura","poolOrigenId":1,"poolDestinoId":2}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/mensajes/2"))
                 .andExpect(jsonPath("$.nombre").value("Factura"));
     }
 
     @Test
-    @DisplayName("POST /api/procesos/{procesoId}/mensajes - validacion falla (400)")
+    @DisplayName("POST /api/v1/procesos/{procesoId}/mensajes - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/procesos/10/mensajes")
+        mockMvc.perform(post("/api/v1/procesos/10/mensajes")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -75,12 +77,12 @@ class MensajeControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/mensajes/{id} - editar mensaje (200)")
+    @DisplayName("PUT /api/v1/mensajes/{id} - editar mensaje (200)")
     void editar_mensaje() throws Exception {
         Mensaje m = crearMensaje(1L, "Orden actualizada");
         given(mensajeService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(m);
 
-        mockMvc.perform(put("/api/mensajes/1")
+        mockMvc.perform(put("/api/v1/mensajes/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -91,11 +93,11 @@ class MensajeControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/mensajes/{id} - eliminar mensaje (204)")
+    @DisplayName("DELETE /api/v1/mensajes/{id} - eliminar mensaje (204)")
     void eliminar_mensaje() throws Exception {
         doNothing().when(mensajeService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/mensajes/1").session(sesion()))
+        mockMvc.perform(delete("/api/v1/mensajes/1").session(sesion()))
                 .andExpect(status().isNoContent());
     }
 

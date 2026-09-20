@@ -66,46 +66,46 @@ class AutorizacionPorRolTest {
     @ParameterizedTest(name = "{0} {1} {2} -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             # Consultar: cualquier rol (HU-07, HU-20, HU-24)
-            SOLO_LECTURA  | GET    | /api/procesos                  | 200
-            SOLO_LECTURA  | GET    | /api/roles                     | 200
+            SOLO_LECTURA  | GET    | /api/v1/procesos                      | 200
+            SOLO_LECTURA  | GET    | /api/v1/roles                         | 200
 
             # Usuarios: solo el administrador (HU-02)
-            ADMINISTRADOR | GET    | /api/usuarios                  | 200
-            ADMINISTRADOR | GET    | /api/usuarios/{id}             | 404
-            EDITOR        | GET    | /api/usuarios                  | 403
-            EDITOR        | GET    | /api/usuarios/{id}             | 403
+            ADMINISTRADOR | GET    | /api/v1/usuarios                      | 200
+            ADMINISTRADOR | GET    | /api/v1/usuarios/{id}                 | 404
+            EDITOR        | GET    | /api/v1/usuarios                      | 403
+            EDITOR        | GET    | /api/v1/usuarios/{id}                 | 403
 
             # Roles de proceso: los modifica solo el administrador (HU-17 a HU-19)
-            ADMINISTRADOR | DELETE | /api/roles/{id}                | 404
-            EDITOR        | POST   | /api/roles                     | 403
-            EDITOR        | DELETE | /api/roles/{id}                | 403
+            ADMINISTRADOR | DELETE | /api/v1/roles/{id}                    | 404
+            EDITOR        | POST   | /api/v1/roles                         | 403
+            EDITOR        | DELETE | /api/v1/roles/{id}                    | 403
 
             # Procesos: administrador y editor modifican (HU-04, HU-05), solo el administrador elimina (HU-06)
-            EDITOR        | POST   | /api/procesos/{id}/publicar    | 404
-            SOLO_LECTURA  | POST   | /api/procesos                  | 403
-            SOLO_LECTURA  | POST   | /api/procesos/{id}/publicar    | 403
-            ADMINISTRADOR | DELETE | /api/procesos/{id}             | 404
-            EDITOR        | DELETE | /api/procesos/{id}             | 403
+            EDITOR        | PATCH  | /api/v1/procesos/{id}                 | 400
+            SOLO_LECTURA  | POST   | /api/v1/procesos                      | 403
+            SOLO_LECTURA  | PATCH  | /api/v1/procesos/{id}                 | 403
+            ADMINISTRADOR | DELETE | /api/v1/procesos/{id}                 | 404
+            EDITOR        | DELETE | /api/v1/procesos/{id}                 | 403
 
             # Modelado: solo lectura ve pero no modifica (HU-21, HU-22, HU-24 a HU-28)
-            EDITOR        | DELETE | /api/pools/{id}                | 404
-            EDITOR        | DELETE | /api/lanes/{id}                | 404
-            EDITOR        | DELETE | /api/mensajes/{id}             | 404
-            SOLO_LECTURA  | DELETE | /api/pools/{id}                | 403
-            SOLO_LECTURA  | DELETE | /api/lanes/{id}                | 403
-            SOLO_LECTURA  | DELETE | /api/mensajes/{id}             | 403
-            SOLO_LECTURA  | PUT    | /api/mensajes/{id}/correlacion | 403
+            EDITOR        | DELETE | /api/v1/pools/{id}                    | 404
+            EDITOR        | DELETE | /api/v1/lanes/{id}                    | 404
+            EDITOR        | DELETE | /api/v1/mensajes/{id}                 | 404
+            SOLO_LECTURA  | DELETE | /api/v1/pools/{id}                    | 403
+            SOLO_LECTURA  | DELETE | /api/v1/lanes/{id}                    | 403
+            SOLO_LECTURA  | DELETE | /api/v1/mensajes/{id}                 | 403
+            SOLO_LECTURA  | PUT    | /api/v1/mensajes/{id}/correlacion     | 403
 
             # Actividades, arcos y gateways: solo el administrador elimina (HU-10, HU-13, HU-16)
-            ADMINISTRADOR | DELETE | /api/actividades/{id}          | 404
-            ADMINISTRADOR | DELETE | /api/arcos/{id}                | 404
-            ADMINISTRADOR | DELETE | /api/gateways/{id}             | 404
-            EDITOR        | DELETE | /api/actividades/{id}          | 403
-            EDITOR        | DELETE | /api/arcos/{id}                | 403
-            EDITOR        | DELETE | /api/gateways/{id}             | 403
+            ADMINISTRADOR | DELETE | /api/v1/actividades/{id}              | 404
+            ADMINISTRADOR | DELETE | /api/v1/arcos/{id}                    | 404
+            ADMINISTRADOR | DELETE | /api/v1/gateways/{id}                 | 404
+            EDITOR        | DELETE | /api/v1/actividades/{id}              | 403
+            EDITOR        | DELETE | /api/v1/arcos/{id}                    | 403
+            EDITOR        | DELETE | /api/v1/gateways/{id}                 | 403
 
             # Cerrar sesion: cualquier rol (HU-03)
-            SOLO_LECTURA  | POST   | /api/v1/auth/logout            | 204
+            SOLO_LECTURA  | POST   | /api/v1/auth/logout                   | 204
             """)
     void Autorizacion_peticionSegunRol_devuelveEstadoDeLaMatriz(RolAcceso rol, HttpMethod metodo, String ruta,
             int estadoEsperado) throws Exception {

@@ -16,6 +16,7 @@ import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.UsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
 import com.facimus.procesos.security.JwtService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 /** HU-03: inicio y cierre de sesion con JWT. */
 @RestController
@@ -32,6 +33,7 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    @SecurityRequirements()
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Validated @RequestBody LoginRequest request) {
         Usuario usuario;

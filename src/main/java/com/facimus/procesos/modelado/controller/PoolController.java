@@ -2,7 +2,7 @@ package com.facimus.procesos.modelado.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 /** HU-21 y HU-23: pools (participantes del proceso). */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class PoolController {
 
@@ -48,7 +48,8 @@ public class PoolController {
         Long empresaId = principal.empresaId();
         Pool pool = poolService.crear(empresaId, procesoId, request.nombre(), request.tipoParticipante(),
                 request.cajaNegra());
-        return ResponseEntity.status(HttpStatus.CREATED).body(PoolResponse.of(pool));
+        return ResponseEntity.created(URI.create("/api/v1/pools/" + pool.getId()))
+        .body(PoolResponse.of(pool));
     }
 
     @PutMapping("/pools/{id}")

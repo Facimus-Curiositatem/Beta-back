@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ArcoController.class)
 class ArcoControllerTest {
@@ -35,26 +36,27 @@ class ArcoControllerTest {
     private ArcoService arcoService;
 
     @Test
-    @DisplayName("POST /api/arcos - crear arco (201)")
+    @DisplayName("POST /api/v1/arcos - crear arco (201)")
     void crear_arco() throws Exception {
         Arco arco = crearArco(1L);
         given(arcoService.crear(eq(1L), anyLong(), anyLong(), anyString(), anyString())).willReturn(arco);
 
-        mockMvc.perform(post("/api/arcos")
+        mockMvc.perform(post("/api/v1/arcos")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"origenId":10,"destinoId":20,"etiqueta":"si","condicion":"aprobado"}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/arcos/1"))
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.etiqueta").value("si"));
     }
 
     @Test
-    @DisplayName("POST /api/arcos - sin sesion retorna 401")
+    @DisplayName("POST /api/v1/arcos - sin sesion retorna 401")
     void crear_sin_sesion() throws Exception {
-        mockMvc.perform(post("/api/arcos")
+        mockMvc.perform(post("/api/v1/arcos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"origenId":10,"destinoId":20,"etiqueta":"si","condicion":"x"}
@@ -63,9 +65,9 @@ class ArcoControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/arcos - validacion falla sin origenId (400)")
+    @DisplayName("POST /api/v1/arcos - validacion falla sin origenId (400)")
     void crear_validacion_falla() throws Exception {
-        mockMvc.perform(post("/api/arcos")
+        mockMvc.perform(post("/api/v1/arcos")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -75,13 +77,13 @@ class ArcoControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/arcos/{id} - editar arco (200)")
+    @DisplayName("PUT /api/v1/arcos/{id} - editar arco (200)")
     void editar_arco() throws Exception {
         Arco arco = crearArco(1L);
         arco.setEtiqueta("no");
         given(arcoService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(arco);
 
-        mockMvc.perform(put("/api/arcos/1")
+        mockMvc.perform(put("/api/v1/arcos/1")
                         .session(sesion())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -92,13 +94,13 @@ class ArcoControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/arcos/{id} - eliminar arco (204)")
+    @DisplayName("DELETE /api/v1/arcos/{id} - eliminar arco (204)")
     void eliminar_arco() throws Exception {
         doNothing().when(arcoService).eliminar(1L, 1L);
         MockHttpSession administrador = sesion();
         administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
 
-        mockMvc.perform(delete("/api/arcos/1").session(administrador))
+        mockMvc.perform(delete("/api/v1/arcos/1").session(administrador))
                 .andExpect(status().isNoContent());
     }
 
