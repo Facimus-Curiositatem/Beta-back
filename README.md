@@ -521,15 +521,7 @@ Respuesta:
 
 ## 16. Publicación de procesos
 
-Actualmente existe una operación similar a:
-
-```text
-POST /api/procesos/{id}/publicar
-```
-
-Debe revisarse para evitar una ruta basada directamente en un verbo.
-
-La opción preferida es:
+La publicación y los demás cambios de estado se realizan mediante:
 
 ```http
 PATCH /api/v1/procesos/{id}
@@ -541,6 +533,12 @@ con:
 {
   "estado": "PUBLICADO"
 }
+```
+
+El historial auditable se consulta de forma independiente:
+
+```http
+GET /api/v1/procesos/{id}/historial
 ```
 
 si las reglas del dominio permiten modelarlo como transición de estado.

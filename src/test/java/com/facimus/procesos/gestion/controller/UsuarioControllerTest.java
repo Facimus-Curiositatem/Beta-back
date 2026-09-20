@@ -111,7 +111,7 @@ class UsuarioControllerTest {
     @DisplayName("PATCH /api/v1/usuarios/{id} - cambiar rol (200)")
     void cambiar_rol() throws Exception {
         Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
-        given(usuarioService.cambiarRolAcceso(1L, 5L, RolAcceso.ADMINISTRADOR)).willReturn(u);
+        given(usuarioService.actualizar(1L, 5L, RolAcceso.ADMINISTRADOR, null)).willReturn(u);
 
         mockMvc.perform(patch("/api/v1/usuarios/5")
                         .with(principal(RolAcceso.ADMINISTRADOR))
@@ -121,6 +121,23 @@ class UsuarioControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rolAcceso").value("ADMINISTRADOR"));
+    }
+
+    @Test
+    void actualizar_estado_y_rechazar_patch_vacio() throws Exception {
+        Usuario u = crearUsuario(5L, "Laura", "laura@acme.com", RolAcceso.ADMINISTRADOR);
+        u.setActivo(false);
+        given(usuarioService.actualizar(1L, 5L, RolAcceso.ADMINISTRADOR, false)).willReturn(u);
+
+        mockMvc.perform(patch("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rolAcceso\":\"ADMINISTRADOR\",\"activo\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activo").value(false));
+
+        mockMvc.perform(patch("/api/v1/usuarios/5").with(principal(RolAcceso.ADMINISTRADOR))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

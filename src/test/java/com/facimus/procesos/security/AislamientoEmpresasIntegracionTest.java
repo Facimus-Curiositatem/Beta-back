@@ -211,7 +211,7 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.DELETE, "/api/v1/usuarios/{id}", adminB, null, "Usuario no encontrado"),
                 Arguments.of(HttpMethod.GET, "/api/v1/procesos/{id}", procesoB, null, "Proceso no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/procesos/{id}", procesoB,
-                        new EditarProcesoRequest("Intruso", "Desde la empresa A", "Otra", EstadoProceso.PUBLICADO),
+                        new EditarProcesoRequest("Intruso", "Desde la empresa A", "Otra"),
                         "Proceso no encontrado"),
                 Arguments.of(HttpMethod.PATCH, "/api/v1/procesos/{id}", procesoB,
                         new CambiarEstadoProcesoRequest(EstadoProceso.PUBLICADO), "Proceso no encontrado"),

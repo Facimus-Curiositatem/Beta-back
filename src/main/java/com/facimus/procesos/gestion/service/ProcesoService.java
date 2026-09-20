@@ -70,8 +70,8 @@ public class ProcesoService {
     }
 
     @Transactional
-    public Proceso editar(Long empresaId, Long procesoId, Long usuarioId, String nombre, String descripcion,
-            String categoria, EstadoProceso estado) {
+    public Proceso editarDatos(Long empresaId, Long procesoId, Long usuarioId, String nombre, String descripcion,
+            String categoria) {
         Proceso proceso = obtener(empresaId, procesoId);
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
@@ -84,7 +84,6 @@ public class ProcesoService {
         proceso.setNombre(nombre);
         proceso.setDescripcion(descripcion);
         proceso.setCategoria(categoria);
-        proceso.setEstado(estado);
         proceso.setFechaModificacion(LocalDateTime.now());
         proceso = procesoRepository.save(proceso);
 
@@ -94,15 +93,27 @@ public class ProcesoService {
 
     @Transactional
     public Proceso publicar(Long empresaId, Long procesoId, Long usuarioId) {
+        return cambiarEstado(empresaId, procesoId, usuarioId, EstadoProceso.PUBLICADO);
+    }
+
+    @Transactional
+    public Proceso cambiarEstado(Long empresaId, Long procesoId, Long usuarioId, EstadoProceso nuevoEstado) {
         Proceso proceso = obtener(empresaId, procesoId);
+        if (proceso.getEstado() == nuevoEstado) {
+            return proceso;
+        }
+        if (proceso.getEstado() == EstadoProceso.PUBLICADO && nuevoEstado == EstadoProceso.BORRADOR) {
+            throw new ReglaNegocioException("Un proceso publicado no puede volver a borrador.");
+        }
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
 
-        proceso.setEstado(EstadoProceso.PUBLICADO);
+        proceso.setEstado(nuevoEstado);
         proceso.setFechaModificacion(LocalDateTime.now());
         proceso = procesoRepository.save(proceso);
 
-        historialCambioService.registrar(proceso, autor, "Proceso publicado.");
+        historialCambioService.registrar(proceso, autor,
+                nuevoEstado == EstadoProceso.PUBLICADO ? "Proceso publicado." : "Estado del proceso actualizado.");
         return proceso;
     }
 
@@ -126,7 +137,7 @@ public class ProcesoService {
     }
 
     public Proceso obtener(Long empresaId, Long procesoId) {
-        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
+        return procesoRepository.findByIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
     }
 }

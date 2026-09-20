@@ -48,8 +48,18 @@ public class UsuarioService {
 
     @Transactional
     public Usuario cambiarRolAcceso(Long empresaId, Long usuarioId, RolAcceso nuevoRol) {
+        return actualizar(empresaId, usuarioId, nuevoRol, null);
+    }
+
+    @Transactional
+    public Usuario actualizar(Long empresaId, Long usuarioId, RolAcceso rolAcceso, Boolean activo) {
         Usuario usuario = obtener(empresaId, usuarioId);
-        usuario.setRolAcceso(nuevoRol);
+        if (rolAcceso != null) {
+            usuario.setRolAcceso(rolAcceso);
+        }
+        if (activo != null) {
+            usuario.setActivo(activo);
+        }
         return usuarioRepository.save(usuario);
     }
 

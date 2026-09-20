@@ -88,8 +88,8 @@ public class ProcesoController {
             @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso = procesoService.editar(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
-                request.categoria(), request.estado());
+        Proceso proceso = procesoService.editarDatos(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
+                request.categoria());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
@@ -99,15 +99,18 @@ public class ProcesoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso;
-        if (request.estado() == EstadoProceso.PUBLICADO) {
-            proceso = procesoService.publicar(empresaId, id, usuarioId);
-        } else {
-            Proceso actual = procesoService.obtener(empresaId, id);
-            proceso = procesoService.editar(empresaId, id, usuarioId, actual.getNombre(),
-                    actual.getDescripcion(), actual.getCategoria(), request.estado());
-        }
+        Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
+    }
+
+    @GetMapping("/{id}/historial")
+    public ResponseEntity<List<HistorialCambioResponse>> historial(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        procesoService.obtener(empresaId, id);
+        return ResponseEntity.ok(historialCambioService.listarPorProceso(empresaId, id).stream()
+                .map(HistorialCambioResponse::of)
+                .toList());
     }
 
     @DeleteMapping("/{id}")

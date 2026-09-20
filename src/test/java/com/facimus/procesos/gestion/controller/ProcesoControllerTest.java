@@ -107,14 +107,14 @@ class ProcesoControllerTest {
     @DisplayName("PUT /api/v1/procesos/{id} - editar proceso (200)")
     void editar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas v2");
-        given(procesoService.editar(eq(1L), eq(1L), eq(1L), anyString(), anyString(), anyString(), any()))
+        given(procesoService.editarDatos(eq(1L), eq(1L), eq(1L), anyString(), anyString(), anyString()))
                 .willReturn(p);
 
         mockMvc.perform(put("/api/v1/procesos/1")
                         .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ventas v2","descripcion":"Desc","categoria":"Op","estado":"BORRADOR"}
+                                {"nombre":"Ventas v2","descripcion":"Desc","categoria":"Op"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Ventas v2"));
@@ -125,7 +125,7 @@ class ProcesoControllerTest {
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
-        given(procesoService.publicar(1L, 1L, 1L)).willReturn(p);
+        given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO)).willReturn(p);
         mockMvc.perform(patch("/api/v1/procesos/1")
                 .with(principal(RolAcceso.EDITOR))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -134,6 +134,16 @@ class ProcesoControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
+    }
+
+    @Test
+    void consultar_historial_separado() throws Exception {
+        given(procesoService.obtener(1L, 1L)).willReturn(crearProceso(1L, "Ventas"));
+        given(historialCambioService.listarPorProceso(1L, 1L)).willReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/procesos/1/historial").with(principal(RolAcceso.SOLO_LECTURA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     @Test
