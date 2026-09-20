@@ -86,7 +86,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler{
         return construir(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno",
                 "Ocurrió un error inesperado. Intenta nuevamente más tarde.", req);
     }
-    
+
     private ProblemDetail construir(HttpStatus status, String titulo, String detalle, WebRequest req) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detalle);
         pd.setTitle(titulo);
