@@ -74,7 +74,7 @@ class ProcesoControllerTest {
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos/2"))   
+                .andExpect(header().string("Location", "/api/v1/procesos/2"))
                 .andExpect(jsonPath("$.nombre").value("Compras"));
     }
 
