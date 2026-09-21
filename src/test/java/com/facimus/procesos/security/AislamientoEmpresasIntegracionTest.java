@@ -183,7 +183,10 @@ class AislamientoEmpresasIntegracionTest {
         return Stream.of(
                 Arguments.of("/api/v1/procesos/{id}/pools", procesoB),
                 Arguments.of("/api/v1/procesos/{id}/mensajes", procesoB),
-                Arguments.of("/api/v1/pools/{id}/lanes", poolB));
+                Arguments.of("/api/v1/pools/{id}/lanes", poolB),
+                Arguments.of("/api/v1/lanes/{id}/actividades", laneB),
+                Arguments.of("/api/v1/lanes/{id}/gateways", laneB),
+                Arguments.of("/api/v1/pools/{id}/arcos", poolB));
     }
 
     @ParameterizedTest(name = "GET {0}")
@@ -229,12 +232,15 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.PUT, "/api/v1/lanes/{id}", laneB, lane, "Lane no encontrada"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/lanes/{id}", laneB, null, "Lane no encontrada"),
                 Arguments.of(HttpMethod.POST, "/api/v1/lanes/{id}/actividades", laneB, actividad, "Lane no encontrada"),
+                Arguments.of(HttpMethod.GET, "/api/v1/actividades/{id}", actividadB, null, "Actividad no encontrada"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/actividades/{id}", actividadB, actividad,
                         "Actividad no encontrada"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/actividades/{id}", actividadB, null, "Actividad no encontrada"),
                 Arguments.of(HttpMethod.POST, "/api/v1/lanes/{id}/gateways", laneB, gateway, "Lane no encontrada"),
+                Arguments.of(HttpMethod.GET, "/api/v1/gateways/{id}", gatewayB, null, "Gateway no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/gateways/{id}", gatewayB, gateway, "Gateway no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/gateways/{id}", gatewayB, null, "Gateway no encontrado"),
+                Arguments.of(HttpMethod.GET, "/api/v1/arcos/{id}", arcoB, null, "Arco no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/arcos/{id}", arcoB, new EditarArcoRequest("Intruso", null),
                         "Arco no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/arcos/{id}", arcoB, null, "Arco no encontrado"),

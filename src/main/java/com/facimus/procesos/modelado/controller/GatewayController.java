@@ -1,10 +1,12 @@
 package com.facimus.procesos.modelado.controller;
 
 import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -36,6 +38,23 @@ public class GatewayController {
                 request.posicionX(), request.posicionY());
         return ResponseEntity.created(URI.create("/api/v1/gateways/" + gateway.getId()))
                 .body(GatewayResponse.of(gateway));
+    }
+
+    @GetMapping("/gateways/{id}")
+    public ResponseEntity<GatewayResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Gateway gateway = gatewayService.obtener(empresaId, id);
+        return ResponseEntity.ok(GatewayResponse.of(gateway));
+    }
+
+    @GetMapping("/lanes/{laneId}/gateways")
+    public ResponseEntity<List<GatewayResponse>> listar(@PathVariable Long laneId,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        List<GatewayResponse> gateways = gatewayService.listarPorLane(empresaId, laneId).stream()
+                .map(GatewayResponse::of).toList();
+        return ResponseEntity.ok(gateways);
     }
 
     @PutMapping("/gateways/{id}")

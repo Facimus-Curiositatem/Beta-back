@@ -1,5 +1,7 @@
 package com.facimus.procesos.modelado.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,5 +66,15 @@ public class ActividadService {
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
+    }
+
+    public List<Actividad> listarPorLane(Long empresaId, Long laneId) {
+        if (!laneRepository.existsByIdAndEmpresaId(laneId, empresaId)) {
+            throw new RecursoNoEncontradoException("Lane no encontrada.");
+        }
+        return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+                .filter(Actividad.class::isInstance)
+                .map(Actividad.class::cast)
+                .toList();
     }
 }
