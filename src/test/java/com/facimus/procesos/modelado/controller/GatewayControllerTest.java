@@ -4,11 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
@@ -41,7 +40,7 @@ class GatewayControllerTest {
         given(gatewayService.crear(eq(1L), eq(3L), anyString(), any(), anyInt(), anyInt())).willReturn(gw);
 
         mockMvc.perform(post("/api/v1/lanes/3/gateways")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Decision pago","tipoGateway":"EXCLUSIVO","posicionX":300,"posicionY":150}
@@ -56,7 +55,7 @@ class GatewayControllerTest {
     @DisplayName("POST /api/v1/lanes/{laneId}/gateways - validacion falla (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/lanes/3/gateways")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"","tipoGateway":null,"posicionX":0,"posicionY":0}
@@ -72,7 +71,7 @@ class GatewayControllerTest {
         given(gatewayService.editar(eq(1L), eq(1L), anyString(), any(), anyInt(), anyInt())).willReturn(gw);
 
         mockMvc.perform(put("/api/v1/gateways/1")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Decision envio","tipoGateway":"PARALELO","posicionX":300,"posicionY":150}
@@ -85,10 +84,7 @@ class GatewayControllerTest {
     @DisplayName("DELETE /api/v1/gateways/{id} - eliminar gateway (204)")
     void eliminar_gateway() throws Exception {
         doNothing().when(gatewayService).eliminar(1L, 1L);
-        MockHttpSession administrador = sesion();
-        administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
-
-        mockMvc.perform(delete("/api/v1/gateways/1").session(administrador))
+        mockMvc.perform(delete("/api/v1/gateways/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -106,13 +102,4 @@ class GatewayControllerTest {
         return gw;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

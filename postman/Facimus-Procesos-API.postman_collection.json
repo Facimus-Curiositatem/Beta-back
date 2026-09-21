@@ -233,7 +233,7 @@
 					"response": []
 				},
 				{
-					"name": "Cambiar rol de usuario",
+					"name": "Actualizar rol o estado de usuario",
 					"request": {
 						"method": "PATCH",
 						"header": [
@@ -244,14 +244,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"rolAcceso\": \"ADMINISTRADOR\"\n}"
+							"raw": "{\n  \"rolAcceso\": \"ADMINISTRADOR\",\n  \"activo\": true\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
 						},
-						"description": "HU-02: Cambia el rol de acceso de un usuario. Solo administrador."
+						"description": "HU-02: Actualiza el rol y/o estado activo de un usuario. Solo administrador."
 					},
 					"response": []
 				},
@@ -342,7 +342,21 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "v1", "procesos", "{{procesoId}}"]
 						},
-						"description": "HU-07: Obtiene el detalle del proceso con su historial de cambios."
+						"description": "HU-07: Obtiene el detalle del proceso activo."
+					},
+					"response": []
+				},
+				{
+					"name": "Historial del proceso",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/historial",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "historial"]
+						},
+						"description": "Consulta la trazabilidad del proceso, validando tenant y proceso activo."
 					},
 					"response": []
 				},
@@ -358,7 +372,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombre\": \"Proceso de Ventas v2\",\n  \"descripcion\": \"Flujo actualizado\",\n  \"categoria\": \"Comercial\",\n  \"estado\": \"BORRADOR\"\n}"
+							"raw": "{\n  \"nombre\": \"Proceso de Ventas v2\",\n  \"descripcion\": \"Flujo actualizado\",\n  \"categoria\": \"Comercial\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",

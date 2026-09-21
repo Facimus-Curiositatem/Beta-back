@@ -41,7 +41,8 @@ public class ArcoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ArcoResponse> editar(@PathVariable Long id,
-            @Validated @RequestBody EditarArcoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
+            @Validated @RequestBody EditarArcoRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Arco arco = arcoService.editar(empresaId, id, request.etiqueta(), request.condicion());
         return ResponseEntity.ok(ArcoResponse.of(arco));

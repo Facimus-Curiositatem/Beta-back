@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
+import com.facimus.procesos.gestion.controller.dto.ActualizarUsuarioRequest;
 import com.facimus.procesos.gestion.controller.dto.CrearUsuarioRequest;
 import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
 import com.facimus.procesos.gestion.model.Usuario;
@@ -61,10 +61,10 @@ public class UsuarioController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> cambiarRol(@PathVariable Long id,
-            @Validated @RequestBody CambiarRolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
+    public ResponseEntity<UsuarioResponse> actualizar(@PathVariable Long id,
+            @Validated @RequestBody ActualizarUsuarioRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Usuario usuario = usuarioService.cambiarRolAcceso(empresaId, id, request.rolAcceso());
+        Usuario usuario = usuarioService.actualizar(empresaId, id, request.rolAcceso(), request.activo());
         return ResponseEntity.ok(UsuarioResponse.of(usuario));
     }
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.facimus.procesos.common.api.PageResponse;
 import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
@@ -33,6 +34,7 @@ import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.constraints.Min;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
 @RestController
@@ -50,7 +52,7 @@ public class ProcesoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
-            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "La página no puede ser negativa.") int pagina,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
@@ -86,8 +88,8 @@ public class ProcesoController {
             @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso = procesoService.editar(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
-                request.categoria(), request.estado());
+        Proceso proceso = procesoService.editarDatos(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
+                request.categoria());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
@@ -97,15 +99,18 @@ public class ProcesoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso;
-        if (request.estado() == EstadoProceso.PUBLICADO) {
-            proceso = procesoService.publicar(empresaId, id, usuarioId);
-        } else {
-            Proceso actual = procesoService.obtener(empresaId, id);
-            proceso = procesoService.editar(empresaId, id, usuarioId, actual.getNombre(),
-                    actual.getDescripcion(), actual.getCategoria(), request.estado());
-        }
+        Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
+    }
+
+    @GetMapping("/{id}/historial")
+    public ResponseEntity<List<HistorialCambioResponse>> historial(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        procesoService.obtener(empresaId, id);
+        return ResponseEntity.ok(historialCambioService.listarPorProceso(empresaId, id).stream()
+                .map(HistorialCambioResponse::of)
+                .toList());
     }
 
     @DeleteMapping("/{id}")

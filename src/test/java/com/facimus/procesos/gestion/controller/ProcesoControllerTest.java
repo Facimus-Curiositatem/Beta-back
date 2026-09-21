@@ -9,16 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 
@@ -29,6 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(ProcesoController.class)
 class ProcesoControllerTest {
@@ -49,7 +49,7 @@ class ProcesoControllerTest {
         Page<Proceso> page = new PageImpl<>(List.of(p));
         given(procesoService.buscar(eq(1L), any(), any(), any(), any())).willReturn(page);
 
-        mockMvc.perform(get("/api/v1/procesos").session(sesionEditor()))
+        mockMvc.perform(get("/api/v1/procesos").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nombre").value("Ventas"));
     }
@@ -68,13 +68,13 @@ class ProcesoControllerTest {
         given(procesoService.crear(eq(1L), eq(1L), anyString(), anyString(), anyString())).willReturn(p);
 
         mockMvc.perform(post("/api/v1/procesos")
-                        .session(sesionEditor())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos/2"))   
+                .andExpect(header().string("Location", "/api/v1/procesos/2"))
                 .andExpect(jsonPath("$.nombre").value("Compras"));
     }
 
@@ -82,7 +82,7 @@ class ProcesoControllerTest {
     @DisplayName("POST /api/v1/procesos - solo lectura retorna 403")
     void crear_proceso_solo_lectura() throws Exception {
         mockMvc.perform(post("/api/v1/procesos")
-                        .session(sesionConRol(RolAcceso.SOLO_LECTURA))
+                        .with(principal(RolAcceso.SOLO_LECTURA))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"X","descripcion":"Y","categoria":"Z"}
@@ -97,7 +97,7 @@ class ProcesoControllerTest {
         given(procesoService.obtener(1L, 1L)).willReturn(p);
         given(historialCambioService.listarPorProceso(1L, 1L)).willReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/procesos/1").session(sesionEditor()))
+        mockMvc.perform(get("/api/v1/procesos/1").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.proceso.nombre").value("Ventas"))
                 .andExpect(jsonPath("$.historial").isArray());
@@ -107,14 +107,14 @@ class ProcesoControllerTest {
     @DisplayName("PUT /api/v1/procesos/{id} - editar proceso (200)")
     void editar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas v2");
-        given(procesoService.editar(eq(1L), eq(1L), eq(1L), anyString(), anyString(), anyString(), any()))
+        given(procesoService.editarDatos(eq(1L), eq(1L), eq(1L), anyString(), anyString(), anyString()))
                 .willReturn(p);
 
         mockMvc.perform(put("/api/v1/procesos/1")
-                        .session(sesionEditor())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ventas v2","descripcion":"Desc","categoria":"Op","estado":"BORRADOR"}
+                                {"nombre":"Ventas v2","descripcion":"Desc","categoria":"Op"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Ventas v2"));
@@ -125,9 +125,9 @@ class ProcesoControllerTest {
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
-        given(procesoService.publicar(1L, 1L, 1L)).willReturn(p);
+        given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO)).willReturn(p);
         mockMvc.perform(patch("/api/v1/procesos/1")
-                .session(sesionEditor())
+                .with(principal(RolAcceso.EDITOR))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"estado":"PUBLICADO"}
@@ -137,19 +137,62 @@ class ProcesoControllerTest {
     }
 
     @Test
+    void consultar_historial_separado() throws Exception {
+        given(procesoService.obtener(1L, 1L)).willReturn(crearProceso(1L, "Ventas"));
+        given(historialCambioService.listarPorProceso(1L, 1L)).willReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/procesos/1/historial").with(principal(RolAcceso.SOLO_LECTURA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
     @DisplayName("DELETE /api/v1/procesos/{id} - eliminar como admin (204)")
     void eliminar_proceso() throws Exception {
         doNothing().when(procesoService).eliminarLogico(1L, 1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/procesos/1").session(sesionConRol(RolAcceso.ADMINISTRADOR)))
+        mockMvc.perform(delete("/api/v1/procesos/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/procesos/{id} - editor no puede eliminar (403)")
     void eliminar_como_editor() throws Exception {
-        mockMvc.perform(delete("/api/v1/procesos/1").session(sesionEditor()))
+        mockMvc.perform(delete("/api/v1/procesos/1").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/procesos - pagina negativa retorna ProblemDetail 400")
+    void listar_pagina_negativa() throws Exception {
+        mockMvc.perform(get("/api/v1/procesos?pagina=-1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/procesos - estado desconocido retorna ProblemDetail 400")
+    void listar_estado_desconocido() throws Exception {
+        mockMvc.perform(get("/api/v1/procesos?estado=DESCONOCIDO").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/procesos - JSON malformado retorna ProblemDetail 400")
+    void crear_json_malformado() throws Exception {
+        mockMvc.perform(post("/api/v1/procesos")
+                        .with(principal(RolAcceso.EDITOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").isNotEmpty());
     }
 
     private Proceso crearProceso(Long id, String nombre) {
@@ -165,17 +208,4 @@ class ProcesoControllerTest {
         return p;
     }
 
-    private MockHttpSession sesionEditor() {
-        return sesionConRol(RolAcceso.EDITOR);
-    }
-
-    private MockHttpSession sesionConRol(RolAcceso rol) {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, rol);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }

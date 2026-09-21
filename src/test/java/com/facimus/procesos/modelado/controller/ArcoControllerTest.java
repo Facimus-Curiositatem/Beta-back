@@ -4,11 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.facimus.procesos.config.SesionActiva;
+import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Arco;
@@ -42,7 +41,7 @@ class ArcoControllerTest {
         given(arcoService.crear(eq(1L), anyLong(), anyLong(), anyString(), anyString())).willReturn(arco);
 
         mockMvc.perform(post("/api/v1/arcos")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"origenId":10,"destinoId":20,"etiqueta":"si","condicion":"aprobado"}
@@ -68,7 +67,7 @@ class ArcoControllerTest {
     @DisplayName("POST /api/v1/arcos - validacion falla sin origenId (400)")
     void crear_validacion_falla() throws Exception {
         mockMvc.perform(post("/api/v1/arcos")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"origenId":null,"destinoId":null,"etiqueta":"","condicion":""}
@@ -84,7 +83,7 @@ class ArcoControllerTest {
         given(arcoService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(arco);
 
         mockMvc.perform(put("/api/v1/arcos/1")
-                        .session(sesion())
+                        .with(principal(RolAcceso.EDITOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"etiqueta":"no","condicion":"rechazado"}
@@ -97,10 +96,7 @@ class ArcoControllerTest {
     @DisplayName("DELETE /api/v1/arcos/{id} - eliminar arco (204)")
     void eliminar_arco() throws Exception {
         doNothing().when(arcoService).eliminar(1L, 1L);
-        MockHttpSession administrador = sesion();
-        administrador.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.ADMINISTRADOR);
-
-        mockMvc.perform(delete("/api/v1/arcos/1").session(administrador))
+        mockMvc.perform(delete("/api/v1/arcos/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 
@@ -129,13 +125,4 @@ class ArcoControllerTest {
         return arco;
     }
 
-    private MockHttpSession sesion() {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SesionActiva.EMPRESA_ID, 1L);
-        session.setAttribute(SesionActiva.USUARIO_ID, 1L);
-        session.setAttribute(SesionActiva.ROL_ACCESO, RolAcceso.EDITOR);
-        session.setAttribute(SesionActiva.NOMBRE_USUARIO, "Test");
-        session.setAttribute(SesionActiva.NOMBRE_EMPRESA, "Acme");
-        return session;
-    }
 }
