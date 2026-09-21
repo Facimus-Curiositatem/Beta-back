@@ -1,5 +1,7 @@
 package com.facimus.procesos.modelado.controller;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +73,42 @@ class ActividadControllerTest {
                                 {"nombre":"","descripcion":"","posicionX":0,"posicionY":0}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/actividades/{id} - detalle actividad (200)")
+    void detalle_actividad() throws Exception {
+        Actividad a = crearActividad(1L, "Revisar solicitud");
+        given(actividadService.obtener(1L, 1L)).willReturn(a);
+
+        mockMvc.perform(get("/api/v1/actividades/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Revisar solicitud"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/actividades/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/actividades/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/lanes/{laneId}/actividades - listar actividades (200)")
+    void listar_actividades() throws Exception {
+        Actividad a = crearActividad(1L, "Revisar solicitud");
+        given(actividadService.listarPorLane(1L, 3L)).willReturn(List.of(a));
+
+        mockMvc.perform(get("/api/v1/lanes/3/actividades").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Revisar solicitud"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/lanes/{laneId}/actividades - sin sesion retorna 401")
+    void listar_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/lanes/3/actividades"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
