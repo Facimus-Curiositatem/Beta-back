@@ -1,5 +1,7 @@
 package com.facimus.procesos.modelado.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -13,6 +15,7 @@ import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
+import com.facimus.procesos.modelado.repository.PoolRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +26,7 @@ public class ArcoService {
 
     private final ArcoRepository arcoRepository;
     private final NodoFlujoRepository nodoFlujoRepository;
+    private final PoolRepository poolRepository;
 
     @Transactional
     public Arco crear(Long empresaId, Long origenId, Long destinoId, String etiqueta, String condicion) {
@@ -75,5 +79,12 @@ public class ArcoService {
     public Arco obtener(Long empresaId, Long arcoId) {
         return arcoRepository.findByIdAndEmpresaId(arcoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Arco no encontrado."));
+    }
+
+    public List<Arco> listarPorPool(Long empresaId, Long poolId) {
+        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
+            throw new RecursoNoEncontradoException("Pool no encontrado.");
+        }
+        return arcoRepository.findAllByPoolIdAndEmpresaId(poolId, empresaId);
     }
 }

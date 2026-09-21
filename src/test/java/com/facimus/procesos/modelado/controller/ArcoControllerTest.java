@@ -1,5 +1,7 @@
 package com.facimus.procesos.modelado.controller;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +75,42 @@ class ArcoControllerTest {
                                 {"origenId":null,"destinoId":null,"etiqueta":"","condicion":""}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/arcos/{id} - detalle arco (200)")
+    void detalle_arco() throws Exception {
+        Arco arco = crearArco(1L);
+        given(arcoService.obtener(1L, 1L)).willReturn(arco);
+
+        mockMvc.perform(get("/api/v1/arcos/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.etiqueta").value("si"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/arcos/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/arcos/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/pools/{poolId}/arcos - listar arcos (200)")
+    void listar_arcos() throws Exception {
+        Arco arco = crearArco(1L);
+        given(arcoService.listarPorPool(1L, 5L)).willReturn(List.of(arco));
+
+        mockMvc.perform(get("/api/v1/pools/5/arcos").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].etiqueta").value("si"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/pools/{poolId}/arcos - sin sesion retorna 401")
+    void listar_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/pools/5/arcos"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
