@@ -1,5 +1,7 @@
 package com.facimus.procesos.modelado.controller;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +63,42 @@ class GatewayControllerTest {
                                 {"nombre":"","tipoGateway":null,"posicionX":0,"posicionY":0}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/gateways/{id} - detalle gateway (200)")
+    void detalle_gateway() throws Exception {
+        Gateway gw = crearGateway(1L, "Decision pago");
+        given(gatewayService.obtener(1L, 1L)).willReturn(gw);
+
+        mockMvc.perform(get("/api/v1/gateways/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Decision pago"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/gateways/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/gateways/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/lanes/{laneId}/gateways - listar gateways (200)")
+    void listar_gateways() throws Exception {
+        Gateway gw = crearGateway(1L, "Decision pago");
+        given(gatewayService.listarPorLane(1L, 3L)).willReturn(List.of(gw));
+
+        mockMvc.perform(get("/api/v1/lanes/3/gateways").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Decision pago"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/lanes/{laneId}/gateways - sin sesion retorna 401")
+    void listar_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/lanes/3/gateways"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
