@@ -32,7 +32,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
-import com.facimus.procesos.gestion.controller.dto.CambiarRolRequest;
+import com.facimus.procesos.gestion.controller.dto.ActualizarUsuarioRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.LoginRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
@@ -210,7 +210,7 @@ class AislamientoEmpresasIntegracionTest {
         return Stream.of(
                 Arguments.of(HttpMethod.GET, "/api/v1/usuarios/{id}", adminB, null, "Usuario no encontrado"),
                 Arguments.of(HttpMethod.PATCH, "/api/v1/usuarios/{id}", adminB,
-                        new CambiarRolRequest(RolAcceso.SOLO_LECTURA), "Usuario no encontrado"),
+                        new ActualizarUsuarioRequest(RolAcceso.SOLO_LECTURA, null), "Usuario no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/usuarios/{id}", adminB, null, "Usuario no encontrado"),
                 Arguments.of(HttpMethod.GET, "/api/v1/procesos/{id}", procesoB, null, "Proceso no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/procesos/{id}", procesoB,
@@ -225,10 +225,12 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.DELETE, "/api/v1/roles/{id}", rolB, null, "Rol de proceso no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/procesos/{id}/pools", procesoB,
                         new PoolRequest("Intruso", TipoParticipante.CLIENTE, false), "Proceso no encontrado"),
+                Arguments.of(HttpMethod.GET, "/api/v1/pools/{id}", poolB, null, "Pool no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/pools/{id}", poolB,
                         new EditarPoolRequest("Intruso", TipoParticipante.CLIENTE), "Pool no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/pools/{id}", poolB, null, "Pool no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/pools/{id}/lanes", poolB, lane, "Pool no encontrado"),
+                Arguments.of(HttpMethod.GET, "/api/v1/lanes/{id}", laneB, null, "Lane no encontrada"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/lanes/{id}", laneB, lane, "Lane no encontrada"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/lanes/{id}", laneB, null, "Lane no encontrada"),
                 Arguments.of(HttpMethod.POST, "/api/v1/lanes/{id}/actividades", laneB, actividad, "Lane no encontrada"),
@@ -246,6 +248,7 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.DELETE, "/api/v1/arcos/{id}", arcoB, null, "Arco no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/procesos/{id}/mensajes", procesoB,
                         new MensajeRequest("Intruso", "Desde la empresa A", poolA, poolB), "Proceso no encontrado"),
+                Arguments.of(HttpMethod.GET, "/api/v1/mensajes/{id}", mensajeB, null, "Mensaje no encontrado"),
                 Arguments.of(HttpMethod.PUT, "/api/v1/mensajes/{id}", mensajeB,
                         new EditarMensajeRequest("Intruso", "Desde la empresa A"), "Mensaje no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/mensajes/{id}", mensajeB, null, "Mensaje no encontrado"),

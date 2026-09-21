@@ -87,10 +87,13 @@ class AutorizacionPorRolTest {
             ADMINISTRADOR | DELETE | /api/v1/procesos/{id}          | 404
             EDITOR        | DELETE | /api/v1/procesos/{id}          | 403
 
-            # Modelado: solo lectura ve pero no modifica (HU-21, HU-22, HU-24 a HU-28)
-            EDITOR        | DELETE | /api/v1/pools/{id}             | 404
-            EDITOR        | DELETE | /api/v1/lanes/{id}             | 404
-            EDITOR        | DELETE | /api/v1/mensajes/{id}          | 404
+            # Modelado: solo el administrador elimina pools, lanes y mensajes (HU-21, HU-22, HU-25)
+            ADMINISTRADOR | DELETE | /api/v1/pools/{id}             | 404
+            ADMINISTRADOR | DELETE | /api/v1/lanes/{id}             | 404
+            ADMINISTRADOR | DELETE | /api/v1/mensajes/{id}          | 404
+            EDITOR        | DELETE | /api/v1/pools/{id}             | 403
+            EDITOR        | DELETE | /api/v1/lanes/{id}             | 403
+            EDITOR        | DELETE | /api/v1/mensajes/{id}          | 403
             SOLO_LECTURA  | DELETE | /api/v1/pools/{id}             | 403
             SOLO_LECTURA  | DELETE | /api/v1/lanes/{id}             | 403
             SOLO_LECTURA  | DELETE | /api/v1/mensajes/{id}          | 403

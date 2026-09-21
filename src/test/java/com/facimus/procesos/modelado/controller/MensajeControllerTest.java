@@ -47,6 +47,24 @@ class MensajeControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/mensajes/{id} - detalle mensaje (200)")
+    void detalle_mensaje() throws Exception {
+        Mensaje m = crearMensaje(1L, "Orden de compra");
+        given(mensajeService.obtener(1L, 1L)).willReturn(m);
+
+        mockMvc.perform(get("/api/v1/mensajes/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Orden de compra"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/mensajes/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/mensajes/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/procesos/{procesoId}/mensajes - crear mensaje (201)")
     void crear_mensaje() throws Exception {
         Mensaje m = crearMensaje(2L, "Factura");
@@ -96,7 +114,7 @@ class MensajeControllerTest {
     void eliminar_mensaje() throws Exception {
         doNothing().when(mensajeService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/mensajes/1").with(principal(RolAcceso.EDITOR)))
+        mockMvc.perform(delete("/api/v1/mensajes/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 

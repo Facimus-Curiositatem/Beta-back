@@ -56,6 +56,26 @@ class RolProcesoControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/roles/{id} - detalle rol (200)")
+    void detalle_rol() throws Exception {
+        RolProceso rol = crearRol(1L, "Analista", "Analiza procesos");
+        given(rolProcesoService.obtener(1L, 1L)).willReturn(rol);
+        given(rolProcesoService.contarUsos(1L, 1L)).willReturn(3L);
+
+        mockMvc.perform(get("/api/v1/roles/1").with(principal(RolAcceso.ADMINISTRADOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Analista"))
+                .andExpect(jsonPath("$.procesosQueLoUsan").value(3));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/roles/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/roles/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/roles - crear rol como admin (201)")
     void crear_rol() throws Exception {
         RolProceso rol = crearRol(2L, "Supervisor", "Supervisa");

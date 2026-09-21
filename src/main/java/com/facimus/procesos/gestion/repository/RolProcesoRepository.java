@@ -10,7 +10,5 @@ public interface RolProcesoRepository extends RepositorioTenant<RolProceso> {
 
     List<RolProceso> findAllByEmpresaIdAndActivoTrue(Long empresaId);
 
-    boolean existsByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(Long empresaId, String nombre);
-
     Optional<RolProceso> findByIdAndEmpresaIdAndActivoTrue(Long id, Long empresaId);
 }

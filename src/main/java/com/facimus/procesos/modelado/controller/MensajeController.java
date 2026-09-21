@@ -42,6 +42,14 @@ public class MensajeController {
         return ResponseEntity.ok(mensajes);
     }
 
+    @GetMapping("/mensajes/{id}")
+    public ResponseEntity<MensajeResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Mensaje mensaje = mensajeService.obtener(empresaId, id);
+        return ResponseEntity.ok(MensajeResponse.of(mensaje));
+    }
+
     @PostMapping("/procesos/{procesoId}/mensajes")
     public ResponseEntity<MensajeResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody MensajeRequest request, @AuthenticationPrincipal ApiPrincipal principal) {

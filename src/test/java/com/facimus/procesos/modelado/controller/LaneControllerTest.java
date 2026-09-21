@@ -47,6 +47,24 @@ class LaneControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/lanes/{id} - detalle lane (200)")
+    void detalle_lane() throws Exception {
+        Lane lane = crearLane(1L, "Recepcion");
+        given(laneService.obtener(1L, 1L)).willReturn(lane);
+
+        mockMvc.perform(get("/api/v1/lanes/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Recepcion"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/lanes/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/lanes/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/pools/{poolId}/lanes - crear lane (201)")
     void crear_lane() throws Exception {
         Lane lane = crearLane(2L, "Analisis");
@@ -96,7 +114,7 @@ class LaneControllerTest {
     void eliminar_lane() throws Exception {
         doNothing().when(laneService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/lanes/1").with(principal(RolAcceso.EDITOR)))
+        mockMvc.perform(delete("/api/v1/lanes/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 

@@ -70,7 +70,7 @@ public class RolProcesoService {
     public List<RolProcesoVista> listarConUso(Long empresaId) {
         return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
                 .map(rol -> {
-                    long usos = laneRepository.findAllByRolProcesoIdAndEmpresaId(rol.getId(), empresaId).size();
+                    long usos = laneRepository.countByRolProcesoIdAndEmpresaId(rol.getId(), empresaId);
                     return new RolProcesoVista(rol, usos, usos > 0);
                 })
                 .toList();
@@ -78,7 +78,7 @@ public class RolProcesoService {
 
     public long contarUsos(Long empresaId, Long rolId) {
         obtener(empresaId, rolId);
-        return laneRepository.findAllByRolProcesoIdAndEmpresaId(rolId, empresaId).size();
+        return laneRepository.countByRolProcesoIdAndEmpresaId(rolId, empresaId);
     }
 
     public RolProceso obtener(Long empresaId, Long rolId) {

@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Facimus Procesos - API REST",
-		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/v1/empresas)\n2. Iniciar sesion (POST /api/v1/auth/login)\n3. Usar los demas endpoints con la cookie de sesion activa",
+		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/v1/empresas)\n2. Iniciar sesion (POST /api/v1/auth/login) — el token JWT se guarda automaticamente\n3. Usar los demas endpoints (el header Authorization: Bearer se envia automaticamente)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -59,8 +59,23 @@
 			"key": "mensajeId",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
 	"item": [
 		{
 			"name": "Autenticacion",
@@ -86,6 +101,9 @@
 						}
 					],
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -118,8 +136,9 @@
 									"    var json = pm.response.json();",
 									"    pm.collectionVariables.set('empresaId', json.empresaId);",
 									"    pm.collectionVariables.set('usuarioId', json.usuarioId);",
+									"    pm.collectionVariables.set('token', json.accessToken);",
 									"    pm.test('Login exitoso', function () {",
-									"        pm.expect(json.nombre).to.not.be.empty;",
+									"        pm.expect(json.accessToken).to.not.be.empty;",
 									"    });",
 									"}"
 								]
@@ -127,6 +146,9 @@
 						}
 					],
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -143,7 +165,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "v1", "auth", "login"]
 						},
-						"description": "HU-03: Inicia sesion. La cookie JSESSIONID se guarda automaticamente."
+						"description": "HU-03: Inicia sesion. El token JWT se guarda automaticamente en la variable {{token}}."
 					},
 					"response": []
 				},
@@ -157,7 +179,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "v1", "auth", "logout"]
 						},
-						"description": "HU-03: Cierra la sesion activa e invalida la cookie."
+						"description": "HU-03: Cierra la sesion activa."
 					},
 					"response": []
 				}
@@ -549,6 +571,20 @@
 					"response": []
 				},
 				{
+					"name": "Obtener pool",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "pools", "{{poolId}}"]
+						},
+						"description": "Obtiene un pool por su ID."
+					},
+					"response": []
+				},
+				{
 					"name": "Crear pool",
 					"event": [
 						{
@@ -643,6 +679,20 @@
 					"response": []
 				},
 				{
+					"name": "Obtener lane",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "lanes", "{{laneId}}"]
+						},
+						"description": "Obtiene una lane por su ID."
+					},
+					"response": []
+				},
+				{
 					"name": "Crear lane",
 					"event": [
 						{
@@ -722,6 +772,34 @@
 			"name": "Actividades",
 			"description": "Tareas del proceso BPMN. Se crean dentro de una lane.",
 			"item": [
+				{
+					"name": "Obtener actividad",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "actividades", "{{actividadId}}"]
+						},
+						"description": "Obtiene una actividad por su ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar actividades de la lane",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/actividades",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "lanes", "{{laneId}}", "actividades"]
+						},
+						"description": "HU-24: Lista las actividades de una lane."
+					},
+					"response": []
+				},
 				{
 					"name": "Crear actividad",
 					"event": [
@@ -803,6 +881,34 @@
 			"description": "Puntos de decision o ramificacion del flujo BPMN.",
 			"item": [
 				{
+					"name": "Obtener gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
+						},
+						"description": "Obtiene un gateway por su ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar gateways de la lane",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/gateways",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "lanes", "{{laneId}}", "gateways"]
+						},
+						"description": "Lista los gateways de una lane."
+					},
+					"response": []
+				},
+				{
 					"name": "Crear gateway",
 					"event": [
 						{
@@ -882,6 +988,34 @@
 			"name": "Arcos",
 			"description": "Conexiones de flujo entre nodos (actividades y gateways) dentro de un pool.",
 			"item": [
+				{
+					"name": "Obtener arco",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "arcos", "{{arcoId}}"]
+						},
+						"description": "Obtiene un arco por su ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar arcos del pool",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/arcos",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "pools", "{{poolId}}", "arcos"]
+						},
+						"description": "Lista los arcos de un pool."
+					},
+					"response": []
+				},
 				{
 					"name": "Crear arco",
 					"event": [
@@ -973,6 +1107,20 @@
 							"path": ["api", "v1", "procesos", "{{procesoId}}", "mensajes"]
 						},
 						"description": "HU-27: Lista todos los mensajes de un proceso."
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener mensaje",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
+						},
+						"description": "Obtiene un mensaje por su ID."
 					},
 					"response": []
 				},

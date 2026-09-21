@@ -42,6 +42,14 @@ public class PoolController {
         return ResponseEntity.ok(pools);
     }
 
+    @GetMapping("/pools/{id}")
+    public ResponseEntity<PoolResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Pool pool = poolService.obtener(empresaId, id);
+        return ResponseEntity.ok(PoolResponse.of(pool));
+    }
+
     @PostMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<PoolResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody PoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {

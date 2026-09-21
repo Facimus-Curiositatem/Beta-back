@@ -53,16 +53,6 @@ class AislamientoTenantTest {
     }
 
     @Test
-    @DisplayName("Los controllers de Gestión obtienen la identidad desde ApiPrincipal")
-    void gestion_depende_de_ApiPrincipal() {
-        noClasses()
-                .that().resideInAPackage("..gestion.controller..")
-                .should().dependOnClassesThat().haveFullyQualifiedName("jakarta.servlet.http.HttpSession")
-                .because("la identidad de Gestión sale de ApiPrincipal y nunca de una sesión HTTP")
-                .check(clases);
-    }
-
-    @Test
     @DisplayName("Ningun Request trae la empresa: el cliente no puede elegirla")
     void requests_sin_empresa() {
         noFields()

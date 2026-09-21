@@ -38,4 +38,10 @@ build/
 ### Worktrees locales de Codex ###
 .worktrees/
 
+### JMeter ###
+jmeter.log
+*.jtl
+reporte-login/
+statistics.json
+
 

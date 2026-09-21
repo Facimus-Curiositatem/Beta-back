@@ -54,6 +54,24 @@ class PoolControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/pools/{id} - detalle pool (200)")
+    void detalle_pool() throws Exception {
+        Pool pool = crearPool(1L, "Cliente");
+        given(poolService.obtener(1L, 1L)).willReturn(pool);
+
+        mockMvc.perform(get("/api/v1/pools/1").with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Cliente"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/pools/{id} - sin sesion retorna 401")
+    void detalle_sin_sesion() throws Exception {
+        mockMvc.perform(get("/api/v1/pools/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/procesos/{procesoId}/pools - crear pool (201)")
     void crear_pool() throws Exception {
         Pool pool = crearPool(2L, "Proveedor");
@@ -103,7 +121,7 @@ class PoolControllerTest {
     void eliminar_pool() throws Exception {
         doNothing().when(poolService).eliminar(1L, 1L);
 
-        mockMvc.perform(delete("/api/v1/pools/1").with(principal(RolAcceso.EDITOR)))
+        mockMvc.perform(delete("/api/v1/pools/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
     }
 

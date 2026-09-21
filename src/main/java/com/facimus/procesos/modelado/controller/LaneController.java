@@ -41,6 +41,14 @@ public class LaneController {
         return ResponseEntity.ok(lanes);
     }
 
+    @GetMapping("/lanes/{id}")
+    public ResponseEntity<LaneResponse> detalle(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        Lane lane = laneService.obtener(empresaId, id);
+        return ResponseEntity.ok(LaneResponse.of(lane));
+    }
+
     @PostMapping("/pools/{poolId}/lanes")
     public ResponseEntity<LaneResponse> crear(@PathVariable Long poolId,
             @Validated @RequestBody LaneRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
