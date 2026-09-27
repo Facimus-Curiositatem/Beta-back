@@ -118,7 +118,7 @@ class ArcoControllerTest {
     void editar_arco() throws Exception {
         Arco arco = crearArco(1L);
         arco.setEtiqueta("no");
-        given(arcoService.editar(eq(1L), eq(1L), anyString(), anyString())).willReturn(arco);
+        given(arcoService.editar(eq(1L), eq(1L), anyString(), anyString(), any(), any())).willReturn(arco);
 
         mockMvc.perform(put("/api/v1/arcos/1")
                         .with(principal(RolAcceso.EDITOR))

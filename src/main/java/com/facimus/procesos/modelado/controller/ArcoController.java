@@ -63,7 +63,8 @@ public class ArcoController {
             @Validated @RequestBody EditarArcoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Arco arco = arcoService.editar(empresaId, id, request.etiqueta(), request.condicion());
+        Arco arco = arcoService.editar(empresaId, id, request.etiqueta(), request.condicion(),
+                request.origenId(), request.destinoId());
         return ResponseEntity.ok(ArcoResponse.of(arco));
     }
 
