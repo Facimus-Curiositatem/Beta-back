@@ -55,6 +55,16 @@ public class ActividadService {
             if (!procesoActual.equals(procesoNuevo)) {
                 throw new ReglaNegocioException("El lane destino debe pertenecer al mismo proceso.");
             }
+            Long poolActual = actividad.getLane().getPool().getId();
+            Long poolNuevo = nuevoLane.getPool().getId();
+            if (!poolActual.equals(poolNuevo)) {
+                boolean tieneArcos = !arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId).isEmpty()
+                        || !arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId).isEmpty();
+                if (tieneArcos) {
+                    throw new ReglaNegocioException(
+                            "No se puede mover la actividad a otro pool porque tiene arcos conectados.");
+                }
+            }
             actividad.setLane(nuevoLane);
         }
         Long procesoId = actividad.getLane().getPool().getProceso().getId();
