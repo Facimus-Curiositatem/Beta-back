@@ -60,6 +60,15 @@ public class GatewayService {
                         arcoRepository.save(arco);
                     });
         }
+        if ((tipoGateway == TipoGateway.EXCLUSIVO || tipoGateway == TipoGateway.INCLUSIVO)
+                && gateway.getTipoGateway() == TipoGateway.PARALELO) {
+            boolean arcosSinCondicion = arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId).stream()
+                    .anyMatch(arco -> !org.springframework.util.StringUtils.hasText(arco.getCondicion()));
+            if (arcosSinCondicion) {
+                throw new ReglaNegocioException(
+                        "No se puede cambiar a " + tipoGateway + " porque existen arcos salientes sin condicion.");
+            }
+        }
         gateway.setNombre(nombre);
         gateway.setTipoGateway(tipoGateway);
         gateway.setPosicionX(posX);
