@@ -69,6 +69,10 @@ public class LaneService {
             throw new RecursoNoEncontradoException("Pool no encontrado.");
         }
         List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
+        java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
+        if (idsUnicos.size() != laneIds.size()) {
+            throw new ReglaNegocioException("La lista de IDs contiene duplicados.");
+        }
         if (lanes.size() != laneIds.size()) {
             throw new ReglaNegocioException("La lista de IDs debe contener exactamente todas las lanes del pool.");
         }
