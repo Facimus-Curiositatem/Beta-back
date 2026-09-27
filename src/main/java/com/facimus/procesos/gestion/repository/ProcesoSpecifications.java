@@ -13,11 +13,15 @@ public final class ProcesoSpecifications {
     }
 
     public static Specification<Proceso> conFiltros(Long empresaId, String nombre, EstadoProceso estado,
-            String categoria) {
+            String categoria, Boolean activo) {
         return (root, query, cb) -> {
-            var predicado = cb.and(
-                    cb.equal(root.get("empresa").get("id"), empresaId),
-                    cb.isTrue(root.get("activo")));
+            var predicado = cb.equal(root.get("empresa").get("id"), empresaId);
+
+            if (activo != null) {
+                predicado = cb.and(predicado, cb.equal(root.get("activo"), activo));
+            } else {
+                predicado = cb.and(predicado, cb.isTrue(root.get("activo")));
+            }
 
             if (StringUtils.hasText(nombre)) {
                 predicado = cb.and(predicado, cb.like(cb.lower(root.get("nombre")), "%" + nombre.toLowerCase() + "%"));

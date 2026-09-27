@@ -47,7 +47,7 @@ class ProcesoControllerTest {
     void listar_procesos() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         Page<Proceso> page = new PageImpl<>(List.of(p));
-        given(procesoService.buscar(eq(1L), any(), any(), any(), any())).willReturn(page);
+        given(procesoService.buscar(eq(1L), any(), any(), any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/api/v1/procesos").with(principal(RolAcceso.EDITOR)))
                 .andExpect(status().isOk())
