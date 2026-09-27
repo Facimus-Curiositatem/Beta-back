@@ -39,4 +39,11 @@ public class CorrelacionService {
         return correlacionRepository.findByMensajeIdAndEmpresaId(mensajeId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Este mensaje no tiene correlacion definida."));
     }
+
+    @Transactional
+    public void eliminar(Long empresaId, Long mensajeId) {
+        Correlacion correlacion = correlacionRepository.findByMensajeIdAndEmpresaId(mensajeId, empresaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Este mensaje no tiene correlacion definida."));
+        correlacionRepository.delete(correlacion);
+    }
 }
