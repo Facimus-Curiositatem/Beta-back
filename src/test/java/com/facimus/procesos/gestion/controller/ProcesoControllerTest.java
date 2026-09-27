@@ -55,6 +55,19 @@ class ProcesoControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/procesos?activo=false - filtro de inactivos acepta parametro (200)")
+    void listar_procesos_inactivos() throws Exception {
+        Proceso p = crearProceso(1L, "Eliminado");
+        p.setActivo(false);
+        Page<Proceso> page = new PageImpl<>(List.of(p));
+        given(procesoService.buscar(eq(1L), any(), any(), any(), eq(false), any())).willReturn(page);
+
+        mockMvc.perform(get("/api/v1/procesos?activo=false").with(principal(RolAcceso.ADMINISTRADOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("Eliminado"));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/procesos - sin sesion retorna 401")
     void listar_sin_sesion() throws Exception {
         mockMvc.perform(get("/api/v1/procesos"))
