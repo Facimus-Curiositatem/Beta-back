@@ -6,5 +6,6 @@ public record ActividadRequest(
         @NotBlank(message = "El nombre es obligatorio.") String nombre,
         String descripcion,
         int posicionX,
-        int posicionY) {
+        int posicionY,
+        Long laneId) {
 }

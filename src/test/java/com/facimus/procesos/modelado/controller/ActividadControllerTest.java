@@ -115,7 +115,7 @@ class ActividadControllerTest {
     @DisplayName("PUT /api/v1/actividades/{id} - editar actividad (200)")
     void editar_actividad() throws Exception {
         Actividad a = crearActividad(1L, "Revisar v2");
-        given(actividadService.editar(eq(1L), eq(1L), anyString(), anyString(), anyInt(), anyInt())).willReturn(a);
+        given(actividadService.editar(eq(1L), eq(1L), anyString(), anyString(), anyInt(), anyInt(), any())).willReturn(a);
 
         mockMvc.perform(put("/api/v1/actividades/1")
                         .with(principal(RolAcceso.EDITOR))

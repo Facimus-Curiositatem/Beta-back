@@ -204,7 +204,7 @@ class AislamientoEmpresasIntegracionTest {
 
     // README §11: cada recurso de la empresa B pedido por su id con el token de la empresa A.
     Stream<Arguments> recursosDeLaEmpresaBPorId() {
-        ActividadRequest actividad = new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0);
+        ActividadRequest actividad = new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0, null);
         GatewayRequest gateway = new GatewayRequest("Intruso", TipoGateway.PARALELO, 0, 0);
         LaneRequest lane = new LaneRequest("Intrusa", rolA);
         return Stream.of(
