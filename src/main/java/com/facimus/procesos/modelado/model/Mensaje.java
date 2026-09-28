@@ -64,6 +64,14 @@ public class Mensaje extends EntidadEmpresa {
     private String destinoExterno;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "politica_fallo_notificacion")
+    private PoliticaFalloNotificacion politicaFalloNotificacion;
+
+    @ManyToOne
+    @JoinColumn(name = "actividad_error_id")
+    private Actividad actividadError;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "politica_sin_caso")
     private PoliticaMensajeSinCaso politicaSinCaso = PoliticaMensajeSinCaso.DESCARTAR;
 
