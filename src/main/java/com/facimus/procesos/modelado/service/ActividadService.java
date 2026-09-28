@@ -44,8 +44,35 @@ public class ActividadService {
     }
 
     @Transactional
-    public Actividad editar(Long empresaId, Long actividadId, String nombre, String descripcion, int posX, int posY) {
+    public Actividad editar(Long empresaId, Long actividadId, String nombre, String descripcion, int posX, int posY,
+            Long laneId) {
         Actividad actividad = obtener(empresaId, actividadId);
+        if (laneId != null && !laneId.equals(actividad.getLane().getId())) {
+            Lane nuevoLane = laneRepository.findByIdAndEmpresaId(laneId, empresaId)
+                    .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
+            Long procesoActual = actividad.getLane().getPool().getProceso().getId();
+            Long procesoNuevo = nuevoLane.getPool().getProceso().getId();
+            if (!procesoActual.equals(procesoNuevo)) {
+                throw new ReglaNegocioException("El lane destino debe pertenecer al mismo proceso.");
+            }
+            Long poolActual = actividad.getLane().getPool().getId();
+            Long poolNuevo = nuevoLane.getPool().getId();
+            if (!poolActual.equals(poolNuevo)) {
+                boolean tieneArcos = !arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId).isEmpty()
+                        || !arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId).isEmpty();
+                if (tieneArcos) {
+                    throw new ReglaNegocioException(
+                            "No se puede mover la actividad a otro pool porque tiene arcos conectados.");
+                }
+            }
+            actividad.setLane(nuevoLane);
+        }
+        Long procesoId = actividad.getLane().getPool().getProceso().getId();
+        if (!actividad.getNombre().equalsIgnoreCase(nombre)
+                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                        nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
         actividad.setNombre(nombre);
         actividad.setDescripcion(descripcion);
         actividad.setPosicionX(posX);

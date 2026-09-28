@@ -46,11 +46,11 @@ public class ArcoService {
         if (arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(origenId, destinoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un arco entre estos dos nodos.");
         }
-        if (destino instanceof Gateway gatewayDestino
-                && (gatewayDestino.getTipoGateway() == TipoGateway.EXCLUSIVO
-                        || gatewayDestino.getTipoGateway() == TipoGateway.INCLUSIVO)
+        if (origen instanceof Gateway gatewayOrigen
+                && (gatewayOrigen.getTipoGateway() == TipoGateway.EXCLUSIVO
+                        || gatewayOrigen.getTipoGateway() == TipoGateway.INCLUSIVO)
                 && !StringUtils.hasText(condicion)) {
-            throw new ReglaNegocioException("Un arco hacia un gateway exclusivo o inclusivo requiere condicion.");
+            throw new ReglaNegocioException("Un arco desde un gateway exclusivo o inclusivo requiere condicion.");
         }
 
         Arco arco = new Arco();
@@ -64,8 +64,49 @@ public class ArcoService {
     }
 
     @Transactional
-    public Arco editar(Long empresaId, Long arcoId, String etiqueta, String condicion) {
+    public Arco editar(Long empresaId, Long arcoId, String etiqueta, String condicion,
+            Long origenId, Long destinoId) {
         Arco arco = obtener(empresaId, arcoId);
+        NodoFlujo origen = arco.getOrigen();
+        NodoFlujo destino = arco.getDestino();
+
+        if (origenId != null || destinoId != null) {
+            Long nuevoOrigenId = origenId != null ? origenId : origen.getId();
+            Long nuevoDestinoId = destinoId != null ? destinoId : destino.getId();
+
+            if (nuevoOrigenId.equals(nuevoDestinoId)) {
+                throw new ReglaNegocioException("Un arco no puede tener el mismo nodo como origen y destino.");
+            }
+            if (origenId != null) {
+                origen = nodoFlujoRepository.findByIdAndEmpresaId(origenId, empresaId)
+                        .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de origen no encontrado."));
+            }
+            if (destinoId != null) {
+                destino = nodoFlujoRepository.findByIdAndEmpresaId(destinoId, empresaId)
+                        .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de destino no encontrado."));
+            }
+            Pool poolOrigen = origen.getLane().getPool();
+            Pool poolDestino = destino.getLane().getPool();
+            if (!poolOrigen.getId().equals(poolDestino.getId())) {
+                throw new ReglaNegocioException("El origen y el destino de un arco deben pertenecer al mismo pool.");
+            }
+            if (!nuevoOrigenId.equals(arco.getOrigen().getId()) || !nuevoDestinoId.equals(arco.getDestino().getId())) {
+                if (arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(nuevoOrigenId, nuevoDestinoId, empresaId)) {
+                    throw new ReglaNegocioException("Ya existe un arco entre estos dos nodos.");
+                }
+            }
+            arco.setOrigen(origen);
+            arco.setDestino(destino);
+            arco.setPool(poolOrigen);
+        }
+
+        if (origen instanceof Gateway gatewayOrigen
+                && (gatewayOrigen.getTipoGateway() == TipoGateway.EXCLUSIVO
+                        || gatewayOrigen.getTipoGateway() == TipoGateway.INCLUSIVO)
+                && !StringUtils.hasText(condicion)) {
+            throw new ReglaNegocioException("Un arco desde un gateway exclusivo o inclusivo requiere condicion.");
+        }
+
         arco.setEtiqueta(etiqueta);
         arco.setCondicion(condicion);
         return arcoRepository.save(arco);

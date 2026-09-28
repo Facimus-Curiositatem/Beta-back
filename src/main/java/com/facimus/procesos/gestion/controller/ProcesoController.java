@@ -52,10 +52,11 @@ public class ProcesoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
             @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) Boolean activo,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "La página no puede ser negativa.") int pagina,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria,
+        Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria, activo,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
                 .map(ProcesoResponse::of);
         return ResponseEntity.ok(PageResponse.from(procesos));

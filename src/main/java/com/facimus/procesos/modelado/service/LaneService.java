@@ -63,6 +63,34 @@ public class LaneService {
         laneRepository.delete(lane);
     }
 
+    @Transactional
+    public List<Lane> reordenar(Long empresaId, Long poolId, List<Long> laneIds) {
+        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
+            throw new RecursoNoEncontradoException("Pool no encontrado.");
+        }
+        List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
+        java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
+        if (idsUnicos.size() != laneIds.size()) {
+            throw new ReglaNegocioException("La lista de IDs contiene duplicados.");
+        }
+        if (lanes.size() != laneIds.size()) {
+            throw new ReglaNegocioException("La lista de IDs debe contener exactamente todas las lanes del pool.");
+        }
+        java.util.Map<Long, Lane> laneMap = new java.util.HashMap<>();
+        lanes.forEach(l -> laneMap.put(l.getId(), l));
+        for (Long id : laneIds) {
+            if (!laneMap.containsKey(id)) {
+                throw new ReglaNegocioException("El lane con ID " + id + " no pertenece a este pool.");
+            }
+        }
+        for (int i = 0; i < laneIds.size(); i++) {
+            Lane lane = laneMap.get(laneIds.get(i));
+            lane.setOrden(i);
+            laneRepository.save(lane);
+        }
+        return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
+    }
+
     public List<Lane> listarPorPool(Long empresaId, Long poolId) {
         if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
             throw new RecursoNoEncontradoException("Pool no encontrado.");

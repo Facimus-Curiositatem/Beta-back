@@ -47,6 +47,28 @@ public class GatewayService {
     @Transactional
     public Gateway editar(Long empresaId, Long gatewayId, String nombre, TipoGateway tipoGateway, int posX, int posY) {
         Gateway gateway = obtener(empresaId, gatewayId);
+        Long procesoId = gateway.getLane().getPool().getProceso().getId();
+        if (!gateway.getNombre().equalsIgnoreCase(nombre)
+                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                        nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
+        if (tipoGateway == TipoGateway.PARALELO && gateway.getTipoGateway() != TipoGateway.PARALELO) {
+            arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId)
+                    .forEach(arco -> {
+                        arco.setCondicion(null);
+                        arcoRepository.save(arco);
+                    });
+        }
+        if ((tipoGateway == TipoGateway.EXCLUSIVO || tipoGateway == TipoGateway.INCLUSIVO)
+                && gateway.getTipoGateway() == TipoGateway.PARALELO) {
+            boolean arcosSinCondicion = arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId).stream()
+                    .anyMatch(arco -> !org.springframework.util.StringUtils.hasText(arco.getCondicion()));
+            if (arcosSinCondicion) {
+                throw new ReglaNegocioException(
+                        "No se puede cambiar a " + tipoGateway + " porque existen arcos salientes sin condicion.");
+            }
+        }
         gateway.setNombre(nombre);
         gateway.setTipoGateway(tipoGateway);
         gateway.setPosicionX(posX);

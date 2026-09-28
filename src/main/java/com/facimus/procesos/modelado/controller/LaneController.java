@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.modelado.controller.dto.LaneRequest;
 import com.facimus.procesos.modelado.controller.dto.LaneResponse;
+import com.facimus.procesos.modelado.controller.dto.ReordenarLanesRequest;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.service.LaneService;
 import com.facimus.procesos.security.ApiPrincipal;
@@ -64,6 +66,16 @@ public class LaneController {
         Long empresaId = principal.empresaId();
         Lane lane = laneService.editar(empresaId, id, request.nombre(), request.rolProcesoId());
         return ResponseEntity.ok(LaneResponse.of(lane));
+    }
+
+    @PatchMapping("/pools/{poolId}/lanes/orden")
+    public ResponseEntity<List<LaneResponse>> reordenar(@PathVariable Long poolId,
+            @Validated @RequestBody ReordenarLanesRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        List<LaneResponse> lanes = laneService.reordenar(empresaId, poolId, request.laneIds()).stream()
+                .map(LaneResponse::of).toList();
+        return ResponseEntity.ok(lanes);
     }
 
     @DeleteMapping("/lanes/{id}")

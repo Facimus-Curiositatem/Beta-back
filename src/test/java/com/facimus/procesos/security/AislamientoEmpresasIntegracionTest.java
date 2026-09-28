@@ -204,7 +204,7 @@ class AislamientoEmpresasIntegracionTest {
 
     // README §11: cada recurso de la empresa B pedido por su id con el token de la empresa A.
     Stream<Arguments> recursosDeLaEmpresaBPorId() {
-        ActividadRequest actividad = new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0);
+        ActividadRequest actividad = new ActividadRequest("Intrusa", "Desde la empresa A", 0, 0, null);
         GatewayRequest gateway = new GatewayRequest("Intruso", TipoGateway.PARALELO, 0, 0);
         LaneRequest lane = new LaneRequest("Intrusa", rolA);
         return Stream.of(
@@ -243,7 +243,7 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.PUT, "/api/v1/gateways/{id}", gatewayB, gateway, "Gateway no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/gateways/{id}", gatewayB, null, "Gateway no encontrado"),
                 Arguments.of(HttpMethod.GET, "/api/v1/arcos/{id}", arcoB, null, "Arco no encontrado"),
-                Arguments.of(HttpMethod.PUT, "/api/v1/arcos/{id}", arcoB, new EditarArcoRequest("Intruso", null),
+                Arguments.of(HttpMethod.PUT, "/api/v1/arcos/{id}", arcoB, new EditarArcoRequest("Intruso", null, null, null),
                         "Arco no encontrado"),
                 Arguments.of(HttpMethod.DELETE, "/api/v1/arcos/{id}", arcoB, null, "Arco no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/procesos/{id}/mensajes", procesoB,

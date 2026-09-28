@@ -3,6 +3,7 @@ package com.facimus.procesos.modelado.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -40,5 +41,13 @@ public class CorrelacionController {
         Long empresaId = principal.empresaId();
         Correlacion correlacion = correlacionService.obtener(empresaId, mensajeId);
         return ResponseEntity.ok(CorrelacionResponse.of(correlacion));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> eliminar(@PathVariable Long mensajeId,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Long empresaId = principal.empresaId();
+        correlacionService.eliminar(empresaId, mensajeId);
+        return ResponseEntity.noContent().build();
     }
 }

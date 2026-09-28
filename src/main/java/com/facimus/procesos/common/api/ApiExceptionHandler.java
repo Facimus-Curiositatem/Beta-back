@@ -36,6 +36,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler{
         return construir(HttpStatus.CONFLICT, "Regla de negocio violada", ex.getMessage(), req);
     }
 
+    // Defensa en profundidad: captura excepciones de autenticacion lanzadas dentro de controladores
+    // (p.ej. AuthenticationManager.authenticate() en login). Spring Security intercepta las del filter chain.
     @ExceptionHandler(AuthenticationException.class)
     public ProblemDetail manejarNoAutenticado(AuthenticationException ex, WebRequest req) {
         return construir(HttpStatus.UNAUTHORIZED, "No autenticado", "Credenciales inválidas o token ausente", req);

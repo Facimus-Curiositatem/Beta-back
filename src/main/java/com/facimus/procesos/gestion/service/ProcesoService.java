@@ -131,9 +131,9 @@ public class ProcesoService {
     }
 
     public Page<Proceso> buscar(Long empresaId, String nombre, EstadoProceso estado, String categoria,
-            Pageable pageable) {
-        return procesoRepository.findAll(ProcesoSpecifications.conFiltros(empresaId, nombre, estado, categoria),
-                pageable);
+            Boolean activo, Pageable pageable) {
+        return procesoRepository.findAll(
+                ProcesoSpecifications.conFiltros(empresaId, nombre, estado, categoria, activo), pageable);
     }
 
     public Proceso obtener(Long empresaId, Long procesoId) {

@@ -62,7 +62,7 @@ public class ActividadController {
             @Validated @RequestBody ActividadRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Actividad actividad = actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
-                request.posicionX(), request.posicionY());
+                request.posicionX(), request.posicionY(), request.laneId());
         return ResponseEntity.ok(ActividadResponse.of(actividad));
     }
 
