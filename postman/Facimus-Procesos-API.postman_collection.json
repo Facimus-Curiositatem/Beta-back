@@ -36,6 +36,11 @@
 			"type": "string"
 		},
 		{
+			"key": "poolOrigenId",
+			"value": "",
+			"type": "string"
+		},
+		{
 			"key": "laneId",
 			"value": "",
 			"type": "string"
@@ -132,8 +137,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/empresas",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "empresas"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"empresas"
+							]
 						},
 						"description": "HU-01: Registra una nueva empresa con su administrador inicial. Endpoint publico."
 					},
@@ -149,8 +160,7 @@
 								"exec": [
 									"if (pm.response.code === 200) {",
 									"    var json = pm.response.json();",
-									"    pm.collectionVariables.set('empresaId', json.empresaId);",
-									"    pm.collectionVariables.set('usuarioId', json.usuarioId);",
+									"    pm.collectionVariables.set('usuarioId', json.usuario.id);",
 									"    pm.collectionVariables.set('token', json.accessToken);",
 									"    pm.test('Login exitoso', function () {",
 									"        pm.expect(json.accessToken).to.not.be.empty;",
@@ -177,8 +187,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
 						},
 						"description": "HU-03: Inicia sesion. El token JWT se guarda automaticamente en la variable {{token}}."
 					},
@@ -191,8 +208,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "logout"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
 						},
 						"description": "HU-03: Cierra la sesion activa."
 					},
@@ -211,8 +235,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios"
+							]
 						},
 						"description": "HU-02: Lista todos los usuarios de la empresa. Solo administrador."
 					},
@@ -248,8 +278,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios"
+							]
 						},
 						"description": "HU-02: Crea un colaborador. Solo administrador. Roles: ADMINISTRADOR, EDITOR, SOLO_LECTURA."
 					},
@@ -262,8 +298,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios",
+								"{{usuarioId}}"
+							]
 						},
 						"description": "Obtiene los datos de un usuario por su ID."
 					},
@@ -285,8 +328,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios",
+								"{{usuarioId}}"
+							]
 						},
 						"description": "HU-02: Actualiza el rol y/o estado activo de un usuario. Solo administrador."
 					},
@@ -299,8 +349,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "{{usuarioId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios",
+								"{{usuarioId}}"
+							]
 						},
 						"description": "HU-02: Desactiva (eliminacion logica) un usuario. Solo administrador."
 					},
@@ -342,8 +399,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/invitaciones",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "invitaciones"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios",
+								"invitaciones"
+							]
 						},
 						"description": "HU-02: Invita a un colaborador por email. Solo ADMINISTRADOR. El token se devuelve en la respuesta porque el proyecto aun no integra SMTP."
 					},
@@ -368,8 +432,17 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/usuarios/invitaciones/{{invitacionToken}}/aceptar",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "usuarios", "invitaciones", "{{invitacionToken}}", "aceptar"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"usuarios",
+								"invitaciones",
+								"{{invitacionToken}}",
+								"aceptar"
+							]
 						},
 						"description": "HU-02: Acepta la invitacion y crea la cuenta del usuario. Publico, requiere el token de la invitacion."
 					},
@@ -388,13 +461,34 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos?pagina=0",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos"
+							],
 							"query": [
-								{ "key": "pagina", "value": "0" },
-								{ "key": "nombre", "value": "", "disabled": true },
-								{ "key": "estado", "value": "BORRADOR", "disabled": true },
-								{ "key": "categoria", "value": "", "disabled": true }
+								{
+									"key": "pagina",
+									"value": "0"
+								},
+								{
+									"key": "nombre",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "estado",
+									"value": "BORRADOR",
+									"disabled": true
+								},
+								{
+									"key": "categoria",
+									"value": "",
+									"disabled": true
+								}
 							]
 						},
 						"description": "HU-07: Lista procesos con filtros opcionales (nombre, estado, categoria) y paginacion."
@@ -431,8 +525,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos"
+							]
 						},
 						"description": "HU-04: Crea un nuevo proceso en estado BORRADOR. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -445,8 +545,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}"
+							]
 						},
 						"description": "HU-07: Obtiene el detalle del proceso activo."
 					},
@@ -459,8 +566,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/historial",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "historial"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"historial"
+							]
 						},
 						"description": "Consulta la trazabilidad del proceso, validando tenant y proceso activo."
 					},
@@ -473,8 +588,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/diagrama",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "diagrama"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"diagrama"
+							]
 						},
 						"description": "Obtiene el diagrama BPMN completo del proceso: pools, lanes, actividades, gateways, eventos, arcos y mensajes."
 					},
@@ -496,8 +619,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}"
+							]
 						},
 						"description": "HU-05: Edita un proceso existente. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -519,8 +649,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}"
+							]
 						},
 						"description": "HU-05: Publica el proceso mediante PATCH con estado=PUBLICADO. Requiere EDITOR o ADMINISTRADOR."
 					},
@@ -533,8 +670,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}"
+							]
 						},
 						"description": "HU-06: Eliminacion logica del proceso. Solo ADMINISTRADOR."
 					},
@@ -562,8 +706,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"compartidos"
+							]
 						},
 						"description": "HU-23: Comparte un proceso con otra empresa en modo solo lectura. Solo ADMINISTRADOR. Requiere el ID de otra empresa registrada en la variable empresaInvitadaId."
 					},
@@ -576,8 +728,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"compartidos"
+							]
 						},
 						"description": "HU-23: Lista las empresas con las que se comparte un proceso propio."
 					},
@@ -590,8 +750,17 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos/{{empresaInvitadaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos", "{{empresaInvitadaId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"compartidos",
+								"{{empresaInvitadaId}}"
+							]
 						},
 						"description": "HU-23: Revoca el acceso compartido de una empresa. Solo ADMINISTRADOR."
 					},
@@ -604,8 +773,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos-compartidos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos-compartidos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos-compartidos"
+							]
 						},
 						"description": "HU-23: Lista los procesos compartidos recibidos de otras empresas."
 					},
@@ -618,8 +793,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos-compartidos/{{procesoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos-compartidos", "{{procesoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos-compartidos",
+								"{{procesoId}}"
+							]
 						},
 						"description": "HU-23: Detalle de solo lectura de un proceso compartido recibido."
 					},
@@ -638,8 +820,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles"
+							]
 						},
 						"description": "HU-20: Lista todos los roles con informacion de uso."
 					},
@@ -652,11 +840,24 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles/consulta?nombre=Analista&pagina=0",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles", "consulta"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles",
+								"consulta"
+							],
 							"query": [
-								{ "key": "nombre", "value": "Analista" },
-								{ "key": "pagina", "value": "0" }
+								{
+									"key": "nombre",
+									"value": "Analista"
+								},
+								{
+									"key": "pagina",
+									"value": "0"
+								}
 							]
 						},
 						"description": "Busca roles de proceso por nombre (parcial, opcional) junto con los procesos donde se usan, paginado."
@@ -693,8 +894,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles"
+							]
 						},
 						"description": "HU-17: Crea un nuevo rol de proceso. Solo ADMINISTRADOR."
 					},
@@ -707,8 +914,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles", "{{rolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles",
+								"{{rolId}}"
+							]
 						},
 						"description": "Obtiene un rol de proceso por su ID."
 					},
@@ -730,8 +944,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles", "{{rolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles",
+								"{{rolId}}"
+							]
 						},
 						"description": "HU-18: Edita un rol existente. Solo ADMINISTRADOR."
 					},
@@ -744,8 +965,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/roles/{{rolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "roles", "{{rolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"roles",
+								"{{rolId}}"
+							]
 						},
 						"description": "HU-19: Elimina un rol de proceso. Solo ADMINISTRADOR. Falla si el rol esta en uso."
 					},
@@ -764,8 +992,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/permisos-estructura",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "permisos-estructura"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"permisos-estructura"
+							]
 						},
 						"description": "HU-24: Lista los permisos de estructura configurados para cada rol de acceso."
 					},
@@ -787,8 +1021,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/permisos-estructura/EDITOR",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "permisos-estructura", "EDITOR"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"permisos-estructura",
+								"EDITOR"
+							]
 						},
 						"description": "HU-24: Actualiza los permisos de estructura de un rol de acceso (ADMINISTRADOR, EDITOR o SOLO_LECTURA). Solo ADMINISTRADOR."
 					},
@@ -807,12 +1048,36 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/pools",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "pools"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"pools"
+							]
 						},
 						"description": "HU-23: Lista todos los pools de un proceso."
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var pools = pm.response.json();",
+									"    if (pools.length > 0) {",
+									"        pm.collectionVariables.set('poolOrigenId', pools[0].id);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
 				},
 				{
 					"name": "Obtener pool",
@@ -821,8 +1086,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}"
+							]
 						},
 						"description": "Obtiene un pool por su ID."
 					},
@@ -858,8 +1130,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/pools",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "pools"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"pools"
+							]
 						},
 						"description": "HU-21: Crea un pool. Tipos: EMPRESA, CLIENTE, PROVEEDOR, SISTEMA_EXTERNO."
 					},
@@ -881,8 +1161,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}"
+							]
 						},
 						"description": "Edita el nombre y tipo de participante de un pool."
 					},
@@ -895,8 +1182,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}"
+							]
 						},
 						"description": "Elimina un pool y sus lanes asociados."
 					},
@@ -915,8 +1209,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}", "lanes"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}",
+								"lanes"
+							]
 						},
 						"description": "HU-24: Lista las lanes de un pool."
 					},
@@ -929,8 +1231,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}"
+							]
 						},
 						"description": "Obtiene una lane por su ID."
 					},
@@ -966,8 +1275,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}", "lanes"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}",
+								"lanes"
+							]
 						},
 						"description": "HU-22: Crea una lane dentro de un pool, asociada a un rol de proceso."
 					},
@@ -989,8 +1306,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}"
+							]
 						},
 						"description": "Edita el nombre y rol de una lane."
 					},
@@ -1012,8 +1336,17 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes/orden",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}", "lanes", "orden"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}",
+								"lanes",
+								"orden"
+							]
 						},
 						"description": "Reordena las lanes de un pool segun la lista de IDs enviada."
 					},
@@ -1026,8 +1359,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}"
+							]
 						},
 						"description": "Elimina una lane."
 					},
@@ -1069,8 +1409,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/eventos-mensaje",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "eventos-mensaje"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"eventos-mensaje"
+							]
 						},
 						"description": "Crea un evento de mensaje dentro de una lane."
 					},
@@ -1083,8 +1431,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"eventos-mensaje",
+								"{{eventoMensajeId}}"
+							]
 						},
 						"description": "Obtiene el detalle de un evento de mensaje."
 					},
@@ -1097,8 +1452,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/eventos-mensaje",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "eventos-mensaje"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"eventos-mensaje"
+							]
 						},
 						"description": "Lista los eventos de mensaje de una lane."
 					},
@@ -1120,8 +1483,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"eventos-mensaje",
+								"{{eventoMensajeId}}"
+							]
 						},
 						"description": "Edita un evento de mensaje existente."
 					},
@@ -1134,8 +1504,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"eventos-mensaje",
+								"{{eventoMensajeId}}"
+							]
 						},
 						"description": "Elimina un evento de mensaje."
 					},
@@ -1154,8 +1531,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "actividades", "{{actividadId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"actividades",
+								"{{actividadId}}"
+							]
 						},
 						"description": "Obtiene una actividad por su ID."
 					},
@@ -1168,8 +1552,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/actividades",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "actividades"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"actividades"
+							]
 						},
 						"description": "HU-24: Lista las actividades de una lane."
 					},
@@ -1205,8 +1597,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/actividades",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "actividades"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"actividades"
+							]
 						},
 						"description": "HU-08: Crea una actividad dentro de una lane."
 					},
@@ -1228,8 +1628,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "actividades", "{{actividadId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"actividades",
+								"{{actividadId}}"
+							]
 						},
 						"description": "HU-09: Edita una actividad existente."
 					},
@@ -1242,8 +1649,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}/impacto-eliminacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "actividades", "{{actividadId}}", "impacto-eliminacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"actividades",
+								"{{actividadId}}",
+								"impacto-eliminacion"
+							]
 						},
 						"description": "Evalua el impacto de eliminar la actividad (arcos y elementos afectados) antes de confirmarlo."
 					},
@@ -1256,8 +1671,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "actividades", "{{actividadId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"actividades",
+								"{{actividadId}}"
+							]
 						},
 						"description": "HU-10: Elimina una actividad."
 					},
@@ -1276,8 +1698,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"gateways",
+								"{{gatewayId}}"
+							]
 						},
 						"description": "Obtiene un gateway por su ID."
 					},
@@ -1290,8 +1719,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/gateways",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "gateways"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"gateways"
+							]
 						},
 						"description": "Lista los gateways de una lane."
 					},
@@ -1327,8 +1764,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/gateways",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "lanes", "{{laneId}}", "gateways"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"lanes",
+								"{{laneId}}",
+								"gateways"
+							]
 						},
 						"description": "HU-14: Crea un gateway. Tipos: EXCLUSIVO, PARALELO, INCLUSIVO."
 					},
@@ -1350,8 +1795,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"gateways",
+								"{{gatewayId}}"
+							]
 						},
 						"description": "HU-15: Edita un gateway existente."
 					},
@@ -1364,8 +1816,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}/impacto-eliminacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "gateways", "{{gatewayId}}", "impacto-eliminacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"gateways",
+								"{{gatewayId}}",
+								"impacto-eliminacion"
+							]
 						},
 						"description": "Evalua el impacto de eliminar el gateway antes de confirmarlo."
 					},
@@ -1378,8 +1838,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "gateways", "{{gatewayId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"gateways",
+								"{{gatewayId}}"
+							]
 						},
 						"description": "HU-16: Elimina un gateway."
 					},
@@ -1398,8 +1865,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "arcos", "{{arcoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"arcos",
+								"{{arcoId}}"
+							]
 						},
 						"description": "Obtiene un arco por su ID."
 					},
@@ -1412,8 +1886,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/arcos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "pools", "{{poolId}}", "arcos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pools",
+								"{{poolId}}",
+								"arcos"
+							]
 						},
 						"description": "Lista los arcos de un pool."
 					},
@@ -1449,8 +1931,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/arcos",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "arcos"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"arcos"
+							]
 						},
 						"description": "HU-11: Crea un arco (flujo) entre dos nodos del mismo pool."
 					},
@@ -1472,8 +1960,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "arcos", "{{arcoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"arcos",
+								"{{arcoId}}"
+							]
 						},
 						"description": "HU-12: Edita la etiqueta y condicion de un arco."
 					},
@@ -1486,8 +1981,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}/impacto-eliminacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "arcos", "{{arcoId}}", "impacto-eliminacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"arcos",
+								"{{arcoId}}",
+								"impacto-eliminacion"
+							]
 						},
 						"description": "Evalua el impacto de eliminar el arco antes de confirmarlo."
 					},
@@ -1500,8 +2003,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "arcos", "{{arcoId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"arcos",
+								"{{arcoId}}"
+							]
 						},
 						"description": "HU-13: Elimina un arco."
 					},
@@ -1520,8 +2030,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "mensajes"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"mensajes"
+							]
 						},
 						"description": "HU-27: Lista todos los mensajes de un proceso."
 					},
@@ -1534,8 +2052,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}"
+							]
 						},
 						"description": "Obtiene un mensaje por su ID."
 					},
@@ -1567,12 +2092,20 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombre\": \"Orden de compra\",\n  \"contenido\": \"Datos del pedido\",\n  \"poolOrigenId\": {{poolId}},\n  \"poolDestinoId\": {{poolId}}\n}"
+							"raw": "{\n  \"nombre\": \"Orden de compra\",\n  \"contenido\": \"Datos del pedido\",\n  \"poolOrigenId\": {{poolOrigenId}},\n  \"poolDestinoId\": {{poolId}}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "procesos", "{{procesoId}}", "mensajes"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"procesos",
+								"{{procesoId}}",
+								"mensajes"
+							]
 						},
 						"description": "HU-25: Crea un mensaje entre dos pools."
 					},
@@ -1594,8 +2127,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}"
+							]
 						},
 						"description": "HU-26: Edita un mensaje existente."
 					},
@@ -1608,8 +2148,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}"
+							]
 						},
 						"description": "Elimina un mensaje."
 					},
@@ -1637,8 +2184,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}",
+								"correlacion"
+							]
 						},
 						"description": "HU-28: Define o actualiza el criterio de correlacion de un mensaje."
 					},
@@ -1651,8 +2206,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}",
+								"correlacion"
+							]
 						},
 						"description": "HU-28: Obtiene la correlacion de un mensaje."
 					},
@@ -1665,8 +2228,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensajes",
+								"{{mensajeId}}",
+								"correlacion"
+							]
 						},
 						"description": "HU-28: Elimina el criterio de correlacion definido para un mensaje."
 					},
