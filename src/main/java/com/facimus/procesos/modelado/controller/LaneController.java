@@ -20,6 +20,8 @@ import com.facimus.procesos.modelado.controller.dto.LaneRequest;
 import com.facimus.procesos.modelado.controller.dto.LaneResponse;
 import com.facimus.procesos.modelado.controller.dto.ReordenarLanesRequest;
 import com.facimus.procesos.modelado.model.Lane;
+import com.facimus.procesos.gestion.service.OperacionEstructura;
+import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.modelado.service.LaneService;
 import com.facimus.procesos.security.ApiPrincipal;
 
@@ -32,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class LaneController {
 
     private final LaneService laneService;
+    private final PermisoEstructuraService permisoEstructuraService;
 
     @GetMapping("/pools/{poolId}/lanes")
     public ResponseEntity<List<LaneResponse>> listar(@PathVariable Long poolId,
@@ -55,6 +58,7 @@ public class LaneController {
     public ResponseEntity<LaneResponse> crear(@PathVariable Long poolId,
             @Validated @RequestBody LaneRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
+        permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.CREAR_LANE);
         Lane lane = laneService.crear(empresaId, poolId, request.nombre(), request.rolProcesoId());
         return ResponseEntity.created(URI.create("/api/v1/lanes/" + lane.getId()))
         .body(LaneResponse.of(lane));
@@ -64,6 +68,7 @@ public class LaneController {
     public ResponseEntity<LaneResponse> editar(@PathVariable Long id,
             @Validated @RequestBody LaneRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
+        permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_LANE);
         Lane lane = laneService.editar(empresaId, id, request.nombre(), request.rolProcesoId());
         return ResponseEntity.ok(LaneResponse.of(lane));
     }
@@ -73,6 +78,7 @@ public class LaneController {
             @Validated @RequestBody ReordenarLanesRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
+        permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_LANE);
         List<LaneResponse> lanes = laneService.reordenar(empresaId, poolId, request.laneIds()).stream()
                 .map(LaneResponse::of).toList();
         return ResponseEntity.ok(lanes);
@@ -81,6 +87,7 @@ public class LaneController {
     @DeleteMapping("/lanes/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
+        permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.ELIMINAR_LANE);
         laneService.eliminar(empresaId, id);
         return ResponseEntity.noContent().build();
     }
