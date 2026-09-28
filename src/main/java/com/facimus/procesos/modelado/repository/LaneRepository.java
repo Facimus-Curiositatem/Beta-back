@@ -9,6 +9,8 @@ public interface LaneRepository extends RepositorioTenant<Lane> {
 
     List<Lane> findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(Long poolId, Long empresaId);
 
+    List<Lane> findAllByPool_ProcesoIdAndEmpresaId(Long procesoId, Long empresaId);
+
     long countByRolProcesoIdAndEmpresaId(Long rolProcesoId, Long empresaId);
 
     boolean existsByRolProcesoIdAndEmpresaId(Long rolProcesoId, Long empresaId);
