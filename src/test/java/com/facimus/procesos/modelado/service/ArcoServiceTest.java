@@ -35,6 +35,8 @@ class ArcoServiceTest {
     private NodoFlujoRepository nodoFlujoRepository;
     @Mock
     private PoolRepository poolRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private ArcoService arcoService;
