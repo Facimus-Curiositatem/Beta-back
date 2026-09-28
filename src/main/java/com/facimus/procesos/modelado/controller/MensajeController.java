@@ -61,9 +61,14 @@ public class MensajeController {
     @PutMapping("/mensajes/{id}")
     public ResponseEntity<MensajeResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarMensajeRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
-        Mensaje mensaje = mensajeService.editar(principal.empresaId(), id, request.nombre(), request.contenido(),
-                request.eventoCatchId(), request.claveCorrelacion(), request.tipoDestinoExterno(),
-                request.destinoExterno(), request.politicaSinCaso());
+        boolean edicionLegacy = request.eventoCatchId() == null && request.claveCorrelacion() == null
+                && request.tipoDestinoExterno() == null && request.destinoExterno() == null
+                && request.politicaSinCaso() == null;
+        Mensaje mensaje = edicionLegacy
+                ? mensajeService.editar(principal.empresaId(), id, request.nombre(), request.contenido())
+                : mensajeService.editar(principal.empresaId(), id, request.nombre(), request.contenido(),
+                        request.eventoCatchId(), request.claveCorrelacion(), request.tipoDestinoExterno(),
+                        request.destinoExterno(), request.politicaSinCaso());
         return ResponseEntity.ok(MensajeResponse.of(mensaje));
     }
 
