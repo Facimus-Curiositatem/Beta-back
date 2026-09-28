@@ -82,7 +82,8 @@ public class ProcesoCompartidoService {
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
         ProcesoCompartido compartido = procesoCompartidoRepository
-                .findByProcesoIdAndEmpresaIdAndEmpresaInvitadaId(procesoId, empresaId, empresaInvitadaId)
+                .findByProcesoIdAndEmpresaIdAndEmpresaInvitadaIdAndActivoTrue(
+                        procesoId, empresaId, empresaInvitadaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("La empresa indicada no tiene acceso compartido."));
         compartido.setActivo(false);
         procesoCompartidoRepository.save(compartido);
@@ -130,7 +131,8 @@ public class ProcesoCompartidoService {
                         eventos.add(evento);
                     }
                 }));
-        List<Mensaje> mensajes = mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaPropietariaId);
+        List<Mensaje> mensajes = mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(
+                procesoId, empresaPropietariaId);
 
         return new ProcesoCompartidoDetalle(compartido.getProceso(), compartido, pools, lanes,
                 actividades, gateways, eventos, arcos, mensajes);
