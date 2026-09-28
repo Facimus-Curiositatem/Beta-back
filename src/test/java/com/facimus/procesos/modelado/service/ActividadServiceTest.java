@@ -155,4 +155,31 @@ class ActividadServiceTest {
 
         assertTrue(ex.getMessage().contains("arcos conectados"));
     }
+
+    @Test
+    @DisplayName("Editar con laneId igual al actual no intenta mover")
+    void editar_lane_igual_al_actual() {
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 5, 10, 1000L);
+
+        assertEquals(lane1, resultado.getLane());
+        assertEquals(5, resultado.getPosicionX());
+        verify(laneRepository, never()).findByIdAndEmpresaId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Mover a otro pool con arcos como destino lanza excepcion")
+    void mover_a_otro_pool_con_arcos_destino() {
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(laneRepository.findByIdAndEmpresaId(3000L, 1L)).thenReturn(Optional.of(lane3));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(Collections.emptyList());
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(new Arco()));
+
+        ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
+                () -> actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 3000L));
+
+        assertTrue(ex.getMessage().contains("arcos conectados"));
+    }
 }

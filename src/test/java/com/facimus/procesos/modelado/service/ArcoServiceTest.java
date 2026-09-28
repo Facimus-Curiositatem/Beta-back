@@ -149,4 +149,143 @@ class ArcoServiceTest {
         assertThrows(ReglaNegocioException.class,
                 () -> arcoService.editar(1L, 1L, "si", null, 20L, null));
     }
+
+    @Test
+    @DisplayName("Editar arco sin cambiar nodos actualiza solo etiqueta y condicion")
+    void editar_sin_cambiar_nodos() {
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Arco resultado = arcoService.editar(1L, 1L, "nueva etiqueta", null, null, null);
+
+        assertEquals("nueva etiqueta", resultado.getEtiqueta());
+        assertNull(resultado.getCondicion());
+        assertEquals(nodoA, resultado.getOrigen());
+        assertEquals(nodoB, resultado.getDestino());
+    }
+
+    @Test
+    @DisplayName("Editar arco cambiando solo destino funciona")
+    void editar_cambiar_solo_destino() {
+        Actividad nodoC = new Actividad();
+        nodoC.setId(40L);
+        nodoC.setLane(lane);
+
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(10L, 40L, 1L)).thenReturn(false);
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Arco resultado = arcoService.editar(1L, 1L, "si", null, null, 40L);
+
+        assertEquals(nodoA, resultado.getOrigen());
+        assertEquals(nodoC, resultado.getDestino());
+    }
+
+    @Test
+    @DisplayName("Editar arco cambiando ambos nodos funciona")
+    void editar_cambiar_ambos_nodos() {
+        Actividad nodoC = new Actividad();
+        nodoC.setId(40L);
+        nodoC.setLane(lane);
+        Actividad nodoD = new Actividad();
+        nodoD.setId(50L);
+        nodoD.setLane(lane);
+
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(50L, 1L)).thenReturn(Optional.of(nodoD));
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(40L, 50L, 1L)).thenReturn(false);
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Arco resultado = arcoService.editar(1L, 1L, "si", null, 40L, 50L);
+
+        assertEquals(nodoC, resultado.getOrigen());
+        assertEquals(nodoD, resultado.getDestino());
+    }
+
+    @Test
+    @DisplayName("Editar arco a pools diferentes lanza excepcion")
+    void editar_pool_diferente() {
+        Pool pool2 = new Pool();
+        pool2.setId(200L);
+        Lane lane2 = new Lane();
+        lane2.setId(2000L);
+        lane2.setPool(pool2);
+
+        Actividad nodoC = new Actividad();
+        nodoC.setId(40L);
+        nodoC.setLane(lane2);
+
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> arcoService.editar(1L, 1L, "si", null, null, 40L));
+    }
+
+    @Test
+    @DisplayName("Editar arco duplicado lanza excepcion")
+    void editar_arco_duplicado() {
+        Actividad nodoC = new Actividad();
+        nodoC.setId(40L);
+        nodoC.setLane(lane);
+
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(10L, 40L, 1L)).thenReturn(true);
+
+        assertThrows(ReglaNegocioException.class,
+                () -> arcoService.editar(1L, 1L, "si", null, null, 40L));
+    }
+
+    @Test
+    @DisplayName("Editar arco con origen gateway exclusivo sin condicion lanza excepcion")
+    void editar_gateway_origen_sin_condicion() {
+        arco.setOrigen(gatewayExclusivo);
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> arcoService.editar(1L, 1L, "si", null, null, null));
+    }
+
+    @Test
+    @DisplayName("Editar arco con origen gateway inclusivo con condicion funciona")
+    void editar_gateway_inclusivo_origen_con_condicion() {
+        Gateway gatewayInclusivo = new Gateway();
+        gatewayInclusivo.setId(35L);
+        gatewayInclusivo.setTipoGateway(TipoGateway.INCLUSIVO);
+        gatewayInclusivo.setLane(lane);
+        gatewayInclusivo.setEmpresa(empresa);
+
+        arco.setOrigen(gatewayInclusivo);
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Arco resultado = arcoService.editar(1L, 1L, "si", "monto > 50", null, null);
+
+        assertEquals("monto > 50", resultado.getCondicion());
+    }
+
+    @Test
+    @DisplayName("Editar arco con origenId igual al actual no verifica duplicados")
+    void editar_mismo_origen_no_verifica_duplicado() {
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(nodoA));
+        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Arco resultado = arcoService.editar(1L, 1L, "nueva", null, 10L, null);
+
+        assertEquals("nueva", resultado.getEtiqueta());
+        verify(arcoRepository, never()).existsByOrigenIdAndDestinoIdAndEmpresaId(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Editar arco poniendo destino = origen via destinoId lanza excepcion")
+    void editar_destino_igual_origen() {
+        when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> arcoService.editar(1L, 1L, "si", null, null, 10L));
+    }
 }

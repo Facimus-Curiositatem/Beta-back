@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.facimus.procesos.common.ReglaNegocioException;
+import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.repository.RolProcesoRepository;
 import com.facimus.procesos.modelado.model.Lane;
@@ -116,5 +117,14 @@ class LaneServiceTest {
         assertEquals(1, lane1.getOrden());
         assertEquals(2, lane2.getOrden());
         assertEquals(0, lane3.getOrden());
+    }
+
+    @Test
+    @DisplayName("Reordenar lanes con pool inexistente lanza excepcion")
+    void reordenar_pool_inexistente() {
+        when(poolRepository.existsByIdAndEmpresaId(999L, 1L)).thenReturn(false);
+
+        assertThrows(RecursoNoEncontradoException.class,
+                () -> laneService.reordenar(1L, 999L, List.of(1L, 2L)));
     }
 }
