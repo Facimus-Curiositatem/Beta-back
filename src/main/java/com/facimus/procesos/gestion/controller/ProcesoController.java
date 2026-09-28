@@ -25,12 +25,21 @@ import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoDetalleResponse;
+import com.facimus.procesos.gestion.controller.dto.ProcesoDiagramaResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.ProcesoResponse;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
+import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
+import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
+import com.facimus.procesos.modelado.controller.dto.EventoMensajeResponse;
+import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
+import com.facimus.procesos.modelado.controller.dto.LaneResponse;
+import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
+import com.facimus.procesos.modelado.controller.dto.PoolResponse;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
@@ -46,6 +55,7 @@ public class ProcesoController {
 
     private final ProcesoService procesoService;
     private final HistorialCambioService historialCambioService;
+    private final ProcesoDiagramaService procesoDiagramaService;
 
     @GetMapping
     public ResponseEntity<PageResponse<ProcesoResponse>> listar(
@@ -102,6 +112,21 @@ public class ProcesoController {
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
+    }
+
+    @GetMapping("/{id}/diagrama")
+    public ResponseEntity<ProcesoDiagramaResponse> diagrama(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        var diagrama = procesoDiagramaService.obtener(principal.empresaId(), id);
+        return ResponseEntity.ok(new ProcesoDiagramaResponse(
+                ProcesoResponse.of(diagrama.proceso()),
+                diagrama.pools().stream().map(PoolResponse::of).toList(),
+                diagrama.lanes().stream().map(LaneResponse::of).toList(),
+                diagrama.actividades().stream().map(ActividadResponse::of).toList(),
+                diagrama.gateways().stream().map(GatewayResponse::of).toList(),
+                diagrama.eventos().stream().map(EventoMensajeResponse::of).toList(),
+                diagrama.arcos().stream().map(ArcoResponse::of).toList(),
+                diagrama.mensajes().stream().map(MensajeResponse::of).toList()));
     }
 
     @GetMapping("/{id}/historial")

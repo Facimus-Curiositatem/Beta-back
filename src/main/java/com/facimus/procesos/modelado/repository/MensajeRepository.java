@@ -12,4 +12,6 @@ public interface MensajeRepository extends RepositorioTenant<Mensaje> {
     List<Mensaje> findAllByPoolDestinoIdAndEmpresaId(Long poolDestinoId, Long empresaId);
 
     List<Mensaje> findAllByProcesoIdAndEmpresaId(Long procesoId, Long empresaId);
+
+    List<Mensaje> findAllByProcesoIdAndEmpresaIdAndActivoTrue(Long procesoId, Long empresaId);
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.modelado.controller.dto.ArcoRequest;
 import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
+import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.controller.dto.EditarArcoRequest;
 import com.facimus.procesos.modelado.model.Arco;
 import com.facimus.procesos.modelado.service.ArcoService;
@@ -66,6 +67,13 @@ public class ArcoController {
         Arco arco = arcoService.editar(empresaId, id, request.etiqueta(), request.condicion(),
                 request.origenId(), request.destinoId());
         return ResponseEntity.ok(ArcoResponse.of(arco));
+    }
+
+    @GetMapping("/arcos/{id}/impacto-eliminacion")
+    public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
+                arcoService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
     @DeleteMapping("/arcos/{id}")

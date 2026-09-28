@@ -17,7 +17,6 @@ import com.facimus.procesos.modelado.repository.PoolRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/** HU-22 y HU-24: lanes (divisiones internas de un pool, asociadas a un rol de proceso). */
 @Service
 @RequiredArgsConstructor
 public class LaneService {
@@ -26,11 +25,15 @@ public class LaneService {
     private final PoolRepository poolRepository;
     private final RolProcesoRepository rolProcesoRepository;
     private final NodoFlujoRepository nodoFlujoRepository;
+    private final AuditoriaModeladoService auditoriaModeladoService;
 
     @Transactional
     public Lane crear(Long empresaId, Long poolId, String nombre, Long rolProcesoId) {
         Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+        if (pool.isCajaNegra()) {
+            throw new ReglaNegocioException("Un pool de caja negra no puede contener lanes.");
+        }
         RolProceso rolProceso = rolProcesoRepository.findByIdAndEmpresaId(rolProcesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
         int orden = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId).size();
@@ -41,7 +44,9 @@ public class LaneService {
         lane.setNombre(nombre);
         lane.setRolProceso(rolProceso);
         lane.setOrden(orden);
-        return laneRepository.save(lane);
+        lane = laneRepository.save(lane);
+        auditoriaModeladoService.registrar(pool.getProceso(), "Lane creada: " + lane.getNombre() + ".");
+        return lane;
     }
 
     @Transactional
@@ -51,16 +56,22 @@ public class LaneService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
         lane.setNombre(nombre);
         lane.setRolProceso(rolProceso);
-        return laneRepository.save(lane);
+        lane = laneRepository.save(lane);
+        auditoriaModeladoService.registrar(lane.getPool().getProceso(), "Lane editada: " + lane.getNombre() + ".");
+        return lane;
     }
 
     @Transactional
     public void eliminar(Long empresaId, Long laneId) {
         Lane lane = obtener(empresaId, laneId);
-        if (!nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).isEmpty()) {
-            throw new ReglaNegocioException("La lane \"" + lane.getNombre() + "\" contiene actividades; no se puede eliminar.");
+        if (nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream().anyMatch(nodo -> nodo.isActivo())) {
+            throw new ReglaNegocioException("La lane \"" + lane.getNombre()
+                    + "\" contiene elementos activos; primero deben reasignarse.");
         }
+        var proceso = lane.getPool().getProceso();
+        String nombre = lane.getNombre();
         laneRepository.delete(lane);
+        auditoriaModeladoService.registrar(proceso, "Lane eliminada: " + nombre + ".");
     }
 
     @Transactional
@@ -68,6 +79,7 @@ public class LaneService {
         if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
             throw new RecursoNoEncontradoException("Pool no encontrado.");
         }
+        Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId).orElse(null);
         List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
         java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
         if (idsUnicos.size() != laneIds.size()) {
@@ -87,6 +99,9 @@ public class LaneService {
             Lane lane = laneMap.get(laneIds.get(i));
             lane.setOrden(i);
             laneRepository.save(lane);
+        }
+        if (pool != null) {
+            auditoriaModeladoService.registrar(pool.getProceso(), "Lanes reordenadas en el pool " + pool.getNombre() + ".");
         }
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }

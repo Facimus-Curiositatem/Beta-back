@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.modelado.controller.dto.ActividadRequest;
 import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
+import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.service.ActividadService;
 import com.facimus.procesos.security.ApiPrincipal;
@@ -34,42 +35,50 @@ public class ActividadController {
     public ResponseEntity<ActividadResponse> crear(@PathVariable Long laneId,
             @Validated @RequestBody ActividadRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Actividad actividad = actividadService.crear(empresaId, laneId, request.nombre(), request.descripcion(),
-                request.posicionX(), request.posicionY());
+        Actividad actividad = request.tipoActividad() == null
+                ? actividadService.crear(empresaId, laneId, request.nombre(), request.descripcion(),
+                        request.posicionX(), request.posicionY())
+                : actividadService.crear(empresaId, laneId, request.nombre(), request.descripcion(),
+                        request.posicionX(), request.posicionY(), request.tipoActividad());
         return ResponseEntity.created(URI.create("/api/v1/actividades/" + actividad.getId()))
-        .body(ActividadResponse.of(actividad));
+                .body(ActividadResponse.of(actividad));
     }
 
     @GetMapping("/actividades/{id}")
     public ResponseEntity<ActividadResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        Long empresaId = principal.empresaId();
-        Actividad actividad = actividadService.obtener(empresaId, id);
-        return ResponseEntity.ok(ActividadResponse.of(actividad));
+        return ResponseEntity.ok(ActividadResponse.of(actividadService.obtener(principal.empresaId(), id)));
     }
 
     @GetMapping("/lanes/{laneId}/actividades")
     public ResponseEntity<List<ActividadResponse>> listar(@PathVariable Long laneId,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        Long empresaId = principal.empresaId();
-        List<ActividadResponse> actividades = actividadService.listarPorLane(empresaId, laneId).stream()
-                .map(ActividadResponse::of).toList();
-        return ResponseEntity.ok(actividades);
+        return ResponseEntity.ok(actividadService.listarPorLane(principal.empresaId(), laneId).stream()
+                .map(ActividadResponse::of).toList());
     }
 
     @PutMapping("/actividades/{id}")
     public ResponseEntity<ActividadResponse> editar(@PathVariable Long id,
             @Validated @RequestBody ActividadRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Actividad actividad = actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
-                request.posicionX(), request.posicionY(), request.laneId());
+        Actividad actividad = request.tipoActividad() == null
+                ? actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
+                        request.posicionX(), request.posicionY(), request.laneId())
+                : actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
+                        request.posicionX(), request.posicionY(), request.laneId(), request.tipoActividad());
         return ResponseEntity.ok(ActividadResponse.of(actividad));
+    }
+
+    @GetMapping("/actividades/{id}/impacto-eliminacion")
+    public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
+                actividadService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
     @DeleteMapping("/actividades/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
-        Long empresaId = principal.empresaId();
-        actividadService.eliminar(empresaId, id);
+        actividadService.eliminar(principal.empresaId(), id);
         return ResponseEntity.noContent().build();
     }
 }

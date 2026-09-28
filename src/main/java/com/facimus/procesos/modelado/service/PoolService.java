@@ -17,7 +17,6 @@ import com.facimus.procesos.modelado.repository.PoolRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/** HU-21 y HU-23: pools (participantes del proceso). */
 @Service
 @RequiredArgsConstructor
 public class PoolService {
@@ -26,6 +25,7 @@ public class PoolService {
     private final ProcesoRepository procesoRepository;
     private final LaneRepository laneRepository;
     private final NodoFlujoRepository nodoFlujoRepository;
+    private final AuditoriaModeladoService auditoriaModeladoService;
 
     @Transactional
     public Pool crear(Long empresaId, Long procesoId, String nombre, TipoParticipante tipoParticipante,
@@ -41,28 +41,49 @@ public class PoolService {
         pool.setTipoParticipante(tipoParticipante);
         pool.setCajaNegra(cajaNegra);
         pool.setOrden(orden);
-        return poolRepository.save(pool);
+        pool = poolRepository.save(pool);
+        auditoriaModeladoService.registrar(proceso, "Pool creado: " + pool.getNombre() + ".");
+        return pool;
     }
 
     @Transactional
     public Pool editar(Long empresaId, Long poolId, String nombre, TipoParticipante tipoParticipante) {
         Pool pool = obtener(empresaId, poolId);
+        return editar(empresaId, poolId, nombre, tipoParticipante, pool.isCajaNegra());
+    }
+
+    @Transactional
+    public Pool editar(Long empresaId, Long poolId, String nombre, TipoParticipante tipoParticipante,
+            boolean cajaNegra) {
+        Pool pool = obtener(empresaId, poolId);
+        if (cajaNegra && !pool.isCajaNegra()
+                && !laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId).isEmpty()) {
+            throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
+        }
         pool.setNombre(nombre);
         pool.setTipoParticipante(tipoParticipante);
-        return poolRepository.save(pool);
+        pool.setCajaNegra(cajaNegra);
+        pool = poolRepository.save(pool);
+        auditoriaModeladoService.registrar(pool.getProceso(), "Pool editado: " + pool.getNombre() + ".");
+        return pool;
     }
 
     @Transactional
     public void eliminar(Long empresaId, Long poolId) {
         Pool pool = obtener(empresaId, poolId);
-        boolean tieneActividades = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId)
+        boolean tieneNodos = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId)
                 .stream()
-                .anyMatch(lane -> !nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).isEmpty());
-        if (tieneActividades) {
-            throw new ReglaNegocioException("El pool \"" + pool.getNombre() + "\" tiene lanes con actividades; no se puede eliminar.");
+                .anyMatch(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
+                        .anyMatch(nodo -> nodo.isActivo()));
+        if (tieneNodos) {
+            throw new ReglaNegocioException("El pool \"" + pool.getNombre()
+                    + "\" tiene lanes con actividades o elementos activos; no se puede eliminar.");
         }
+        var proceso = pool.getProceso();
+        String nombre = pool.getNombre();
         laneRepository.deleteAll(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId));
         poolRepository.delete(pool);
+        auditoriaModeladoService.registrar(proceso, "Pool eliminado: " + nombre + ".");
     }
 
     public List<Pool> listarPorProceso(Long empresaId, Long procesoId) {

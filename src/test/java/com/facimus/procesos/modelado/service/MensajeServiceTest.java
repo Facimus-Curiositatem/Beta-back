@@ -20,11 +20,20 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
+import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Correlacion;
+import com.facimus.procesos.modelado.model.EventoMensaje;
+import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
+import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.modelado.model.TipoDestinoExterno;
+import com.facimus.procesos.modelado.model.TipoEventoMensaje;
+import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
+import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 import com.facimus.procesos.modelado.repository.PoolRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +47,10 @@ class MensajeServiceTest {
     private ProcesoRepository procesoRepository;
     @Mock
     private CorrelacionRepository correlacionRepository;
+    @Mock
+    private NodoFlujoRepository nodoFlujoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private MensajeService mensajeService;
@@ -60,10 +73,12 @@ class MensajeServiceTest {
         poolOrigen = new Pool();
         poolOrigen.setId(100L);
         poolOrigen.setEmpresa(empresa);
+        poolOrigen.setProceso(proceso);
 
         poolDestino = new Pool();
         poolDestino.setId(200L);
         poolDestino.setEmpresa(empresa);
+        poolDestino.setProceso(proceso);
 
         mensaje = new Mensaje();
         mensaje.setId(1L);
@@ -73,6 +88,218 @@ class MensajeServiceTest {
         mensaje.setProceso(proceso);
         mensaje.setPoolOrigen(poolOrigen);
         mensaje.setPoolDestino(poolDestino);
+        mensaje.setActivo(true);
+    }
+
+
+    @Test
+    void crear_extendido_interno_con_throw_y_catch_funciona() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        EventoMensaje catchEvt = evento(12L, TipoEventoMensaje.CATCH_INTERMEDIO, poolDestino, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(12L, 1L)).thenReturn(Optional.of(catchEvt));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.crear(
+                1L, 10L, "Orden", "Datos", 100L, 200L,
+                11L, 12L, "pedidoId", null, null, null, null,
+                PoliticaMensajeSinCaso.DESCARTAR);
+
+        assertSame(throwEvt, resultado.getEventoThrow());
+        assertSame(catchEvt, resultado.getEventoCatch());
+        assertEquals("pedidoId", resultado.getClaveCorrelacion());
+    }
+
+    @Test
+    void crear_extendido_sin_throw_falla() {
+        prepararCreacionBase();
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        null, null, "pedidoId", null, null, null, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void crear_throw_de_tipo_incorrecto_falla() {
+        EventoMensaje catchEvt = evento(11L, TipoEventoMensaje.CATCH_INTERMEDIO, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(catchEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", null, null, null, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void crear_throw_en_pool_incorrecto_falla() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolDestino, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", null, null, null, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void crear_throw_con_nombre_distinto_falla() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Otro", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", null, null, null, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void crear_throw_con_correlacion_distinta_falla() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "otra");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", null, null, null, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void crear_destino_externo_valido_funciona() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.crear(
+                1L, 10L, "Orden", "Datos", 100L, 200L,
+                11L, null, "pedidoId", TipoDestinoExterno.CORREO, "ops@demo.com",
+                PoliticaFalloNotificacion.CONTINUAR_FLUJO, null, PoliticaMensajeSinCaso.DESCARTAR);
+
+        assertEquals(TipoDestinoExterno.CORREO, resultado.getTipoDestinoExterno());
+        assertEquals("ops@demo.com", resultado.getDestinoExterno());
+    }
+
+    @Test
+    void destino_externo_requiere_pool_externo_caja_negra() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", TipoDestinoExterno.CORREO, "ops@demo.com",
+                        PoliticaFalloNotificacion.CONTINUAR_FLUJO, null, PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void destino_externo_requiere_direccion_documentada() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", TipoDestinoExterno.CORREO, " ",
+                        PoliticaFalloNotificacion.CONTINUAR_FLUJO, null, PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void destino_externo_requiere_politica_de_fallo() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", TipoDestinoExterno.CORREO, "ops@demo.com",
+                        null, null, PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void derivar_error_requiere_actividad() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", TipoDestinoExterno.CORREO, "ops@demo.com",
+                        PoliticaFalloNotificacion.DERIVAR_ACTIVIDAD_ERROR, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
+    }
+
+    @Test
+    void derivar_error_con_actividad_valida_funciona() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        Actividad error = new Actividad();
+        error.setId(50L);
+        error.setActivo(true);
+        Lane laneError = new Lane();
+        laneError.setPool(poolOrigen);
+        error.setLane(laneError);
+
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoRepository.findByIdAndEmpresaId(50L, 1L)).thenReturn(Optional.of(error));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.crear(
+                1L, 10L, "Orden", "Datos", 100L, 200L,
+                11L, null, "pedidoId", TipoDestinoExterno.CORREO, "ops@demo.com",
+                PoliticaFalloNotificacion.DERIVAR_ACTIVIDAD_ERROR, 50L,
+                PoliticaMensajeSinCaso.DESCARTAR);
+
+        assertSame(error, resultado.getActividadError());
+    }
+
+    @Test
+    void mensaje_duplicado_por_nombre_y_clave_falla() {
+        Mensaje existente = new Mensaje();
+        existente.setId(90L);
+        existente.setNombre("orden");
+        existente.setClaveCorrelacion("idProceso");
+        existente.setActivo(true);
+
+        prepararCreacionBase();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L))
+                .thenReturn(List.of(existente));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L));
+    }
+
+    @Test
+    void politica_de_fallo_sin_destino_externo_falla() {
+        EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
+        prepararCreacionBase();
+        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+
+        assertThrows(ReglaNegocioException.class, () ->
+                mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
+                        11L, null, "pedidoId", null, null,
+                        PoliticaFalloNotificacion.CONTINUAR_FLUJO, null,
+                        PoliticaMensajeSinCaso.DESCARTAR));
     }
 
     @Test
@@ -117,6 +344,31 @@ class MensajeServiceTest {
     }
 
     @Test
+    @DisplayName("Edicion parcial conserva configuracion externa cuando campos opcionales llegan null")
+    void editar_parcial_conserva_configuracion_externa() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        mensaje.setTipoDestinoExterno(TipoDestinoExterno.CORREO);
+        mensaje.setDestinoExterno("operaciones@demo.com");
+        mensaje.setPoliticaFalloNotificacion(PoliticaFalloNotificacion.CONTINUAR_FLUJO);
+        mensaje.setPoliticaSinCaso(PoliticaMensajeSinCaso.DESCARTAR);
+
+        when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.editar(
+                1L, 1L, "Orden", "Datos actualizados",
+                null, null, null, null, null, null, null);
+
+        assertEquals(TipoDestinoExterno.CORREO, resultado.getTipoDestinoExterno());
+        assertEquals("operaciones@demo.com", resultado.getDestinoExterno());
+        assertEquals(PoliticaFalloNotificacion.CONTINUAR_FLUJO, resultado.getPoliticaFalloNotificacion());
+        assertEquals(PoliticaMensajeSinCaso.DESCARTAR, resultado.getPoliticaSinCaso());
+    }
+
+    @Test
     @DisplayName("Eliminar mensaje sin correlacion elimina solo el mensaje")
     void eliminar_sin_correlacion() {
         when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
@@ -125,7 +377,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository, never()).delete(any());
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -139,7 +393,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository).delete(correlacion);
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -155,7 +411,7 @@ class MensajeServiceTest {
     @DisplayName("Listar mensajes de proceso existente retorna lista")
     void listar_exitoso() {
         when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(true);
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
 
         List<Mensaje> resultado = mensajeService.listarPorProceso(1L, 10L);
 
@@ -170,4 +426,23 @@ class MensajeServiceTest {
         assertThrows(RecursoNoEncontradoException.class,
                 () -> mensajeService.obtener(1L, 999L));
     }
+    private void prepararCreacionBase() {
+        when(procesoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(proceso));
+        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(poolOrigen));
+        when(poolRepository.findByIdAndEmpresaId(200L, 1L)).thenReturn(Optional.of(poolDestino));
+    }
+
+    private EventoMensaje evento(Long id, TipoEventoMensaje tipo, Pool pool, String nombre, String clave) {
+        Lane lane = new Lane();
+        lane.setPool(pool);
+        EventoMensaje evento = new EventoMensaje();
+        evento.setId(id);
+        evento.setActivo(true);
+        evento.setTipoEvento(tipo);
+        evento.setLane(lane);
+        evento.setNombre(nombre);
+        evento.setClaveCorrelacion(clave);
+        return evento;
+    }
+
 }

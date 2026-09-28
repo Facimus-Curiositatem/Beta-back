@@ -21,6 +21,7 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Arco;
+import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
@@ -36,6 +37,8 @@ class ActividadServiceTest {
     private LaneRepository laneRepository;
     @Mock
     private ArcoRepository arcoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private ActividadService actividadService;
@@ -91,6 +94,104 @@ class ActividadServiceTest {
         actividad.setEmpresa(empresa);
         actividad.setPosicionX(0);
         actividad.setPosicionY(0);
+    }
+
+
+    @Test
+    void crear_actividad_exitosamente() {
+        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                "Nueva", 10L, 1L)).thenReturn(false);
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Actividad resultado = actividadService.crear(1L, 1000L, "Nueva", "Desc", 10, 20);
+
+        assertEquals("Nueva", resultado.getNombre());
+        assertEquals(10, resultado.getPosicionX());
+        verify(auditoriaModeladoService).registrar(eq(proceso), contains("Actividad creada"));
+    }
+
+    @Test
+    void crear_en_pool_caja_negra_falla() {
+        pool1.setCajaNegra(true);
+        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> actividadService.crear(1L, 1000L, "Nueva", "Desc", 0, 0));
+    }
+
+    @Test
+    void crear_con_nombre_duplicado_falla() {
+        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                "Nueva", 10L, 1L)).thenReturn(true);
+
+        assertThrows(ReglaNegocioException.class,
+                () -> actividadService.crear(1L, 1000L, "Nueva", "Desc", 0, 0));
+    }
+
+    @Test
+    void impacto_eliminacion_detecta_desconexion() {
+        Actividad origen = new Actividad();
+        origen.setId(20L);
+        origen.setNombre("Origen");
+        Actividad destino = new Actividad();
+        destino.setId(30L);
+        destino.setNombre("Destino");
+
+        Arco entrada = new Arco();
+        entrada.setId(100L);
+        entrada.setOrigen(origen);
+        entrada.setDestino(actividad);
+        entrada.setActivo(true);
+
+        Arco salida = new Arco();
+        salida.setId(101L);
+        salida.setOrigen(actividad);
+        salida.setDestino(destino);
+        salida.setActivo(true);
+
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(20L, 1L)).thenReturn(List.of(entrada));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(30L, 1L)).thenReturn(List.of(salida));
+
+        var impacto = actividadService.evaluarImpactoEliminacion(1L, 1L);
+
+        assertTrue(impacto.rompeContinuidad());
+        assertEquals(3, impacto.advertencias().size());
+    }
+
+    @Test
+    void eliminar_hace_baja_logica_y_desactiva_arcos() {
+        Arco salida = new Arco(); salida.setActivo(true);
+        Arco entrada = new Arco(); entrada.setActivo(true);
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
+
+        actividadService.eliminar(1L, 1L);
+
+        assertFalse(actividad.isActivo());
+        assertFalse(salida.isActivo());
+        assertFalse(entrada.isActivo());
+        verify(auditoriaModeladoService).registrar(eq(proceso), contains("eliminada"));
+    }
+
+    @Test
+    void listar_por_lane_filtra_tipo_e_inactivos() {
+        Actividad activa = new Actividad(); activa.setActivo(true);
+        Actividad inactiva = new Actividad(); inactiva.setActivo(false);
+        Gateway gateway = new Gateway(); gateway.setActivo(true);
+        when(laneRepository.existsByIdAndEmpresaId(1000L, 1L)).thenReturn(true);
+        when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(1000L, 1L))
+                .thenReturn(List.of(activa, inactiva, gateway));
+
+        var resultado = actividadService.listarPorLane(1L, 1000L);
+
+        assertEquals(1, resultado.size());
+        assertSame(activa, resultado.get(0));
     }
 
     @Test

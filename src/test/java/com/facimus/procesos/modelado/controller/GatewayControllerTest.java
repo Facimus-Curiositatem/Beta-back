@@ -119,6 +119,21 @@ class GatewayControllerTest {
     }
 
     @Test
+    void impacto_eliminacion_retorna_advertencias() throws Exception {
+        given(gatewayService.evaluarImpactoEliminacion(1L, 1L))
+                .willReturn(new com.facimus.procesos.modelado.service.dto.ImpactoEliminacion(
+                        true, List.of("Rompe ramificacion")));
+
+        mockMvc.perform(get("/api/v1/gateways/1/impacto-eliminacion")
+                .with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiereConfirmacion").value(true))
+                .andExpect(jsonPath("$.rompeContinuidad").value(true))
+                .andExpect(jsonPath("$.advertencias[0]").value("Rompe ramificacion"));
+    }
+
+
+    @Test
     @DisplayName("DELETE /api/v1/gateways/{id} - eliminar gateway (204)")
     void eliminar_gateway() throws Exception {
         doNothing().when(gatewayService).eliminar(1L, 1L);

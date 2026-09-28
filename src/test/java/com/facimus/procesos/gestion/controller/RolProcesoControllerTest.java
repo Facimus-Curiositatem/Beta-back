@@ -5,6 +5,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -12,11 +13,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.gestion.service.RolProcesoService;
+import com.facimus.procesos.gestion.service.dto.RolProcesoConsulta;
 import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -34,6 +37,21 @@ class RolProcesoControllerTest {
 
     @MockitoBean
     private RolProcesoService rolProcesoService;
+
+
+    @Test
+    void consulta_paginada_retorna_procesos_de_uso() throws Exception {
+        RolProceso rol = crearRol(1L, "Analista", "Analiza");
+        given(rolProcesoService.buscarConProcesos(eq(1L), eq("ana"), any()))
+                .willReturn(new PageImpl<>(List.of(new RolProcesoConsulta(rol, List.of("Compras")))));
+
+        mockMvc.perform(get("/api/v1/roles/consulta?nombre=ana&pagina=0")
+                .with(principal(RolAcceso.ADMINISTRADOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("Analista"))
+                .andExpect(jsonPath("$.content[0].procesos[0]").value("Compras"))
+                .andExpect(jsonPath("$.content[0].enUso").value(true));
+    }
 
     @Test
     @DisplayName("GET /api/v1/roles - listar roles (200)")

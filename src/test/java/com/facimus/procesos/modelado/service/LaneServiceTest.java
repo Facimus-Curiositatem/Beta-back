@@ -36,6 +36,8 @@ class LaneServiceTest {
     private RolProcesoRepository rolProcesoRepository;
     @Mock
     private NodoFlujoRepository nodoFlujoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private LaneService laneService;

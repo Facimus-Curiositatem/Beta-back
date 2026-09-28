@@ -131,6 +131,21 @@ class ArcoControllerTest {
     }
 
     @Test
+    void impacto_eliminacion_retorna_advertencias() throws Exception {
+        given(arcoService.evaluarImpactoEliminacion(1L, 1L))
+                .willReturn(new com.facimus.procesos.modelado.service.dto.ImpactoEliminacion(
+                        true, List.of("Nodo desconectado")));
+
+        mockMvc.perform(get("/api/v1/arcos/1/impacto-eliminacion")
+                .with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiereConfirmacion").value(true))
+                .andExpect(jsonPath("$.rompeContinuidad").value(true))
+                .andExpect(jsonPath("$.advertencias[0]").value("Nodo desconectado"));
+    }
+
+
+    @Test
     @DisplayName("DELETE /api/v1/arcos/{id} - eliminar arco (204)")
     void eliminar_arco() throws Exception {
         doNothing().when(arcoService).eliminar(1L, 1L);
