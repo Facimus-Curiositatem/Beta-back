@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/usuarios/**").hasAuthority(ADMINISTRADOR)
+                        .requestMatchers("/api/v1/permisos-estructura/**").hasAuthority(ADMINISTRADOR)
                         .requestMatchers(HttpMethod.POST, "/api/v1/procesos/*/compartidos").hasAuthority(ADMINISTRADOR)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/procesos/*/compartidos/**").hasAuthority(ADMINISTRADOR)
                         .requestMatchers(HttpMethod.POST, "/api/v1/procesos/*/compartidos")
