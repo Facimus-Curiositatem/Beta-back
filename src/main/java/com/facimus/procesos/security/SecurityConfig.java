@@ -37,13 +37,11 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
-                // Sin @Bean a proposito: como bean, Spring Boot tambien lo registraria como filtro del servlet.
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioService),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-    /** Reglas compartidas con la configuracion de seguridad de los tests de controllers. */
     static HttpSecurity reglasComunes(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -54,16 +52,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/empresas").permitAll()
                         .requestMatchers("/h2-console/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                 "/error").permitAll()
-                        // Matriz de permisos de las HU: cualquier rol consulta, administrador y editor modifican,
-                        // y el administrador se reserva usuarios (HU-02), roles (HU-17 a HU-19) y los borrados
-                        // de procesos (HU-06), actividades (HU-10), arcos (HU-13) y gateways (HU-16).
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/usuarios/**").hasAuthority(ADMINISTRADOR)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/procesos/*/compartidos")
+                                .hasAuthority(ADMINISTRADOR)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/procesos/*/compartidos/*")
+                                .hasAuthority(ADMINISTRADOR)
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").authenticated()
                         .requestMatchers("/api/v1/roles/**").hasAuthority(ADMINISTRADOR)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/procesos/**", "/api/v1/actividades/**",
-                                "/api/v1/arcos/**", "/api/v1/gateways/**", "/api/v1/pools/**",
-                                "/api/v1/lanes/**", "/api/v1/mensajes/**").hasAuthority(ADMINISTRADOR)
+                                "/api/v1/eventos-mensaje/**", "/api/v1/arcos/**", "/api/v1/gateways/**",
+                                "/api/v1/pools/**", "/api/v1/lanes/**", "/api/v1/mensajes/**")
+                                .hasAuthority(ADMINISTRADOR)
                         .requestMatchers("/api/v1/**").hasAnyAuthority(ADMINISTRADOR, EDITOR)
                         .anyRequest().authenticated());
     }
