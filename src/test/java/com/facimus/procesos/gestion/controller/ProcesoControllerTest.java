@@ -16,6 +16,7 @@ import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
+import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
@@ -41,6 +42,9 @@ class ProcesoControllerTest {
 
     @MockitoBean
     private HistorialCambioService historialCambioService;
+
+    @MockitoBean
+    private ProcesoDiagramaService procesoDiagramaService;
 
     @Test
     @DisplayName("GET /api/v1/procesos - listar procesos (200)")
