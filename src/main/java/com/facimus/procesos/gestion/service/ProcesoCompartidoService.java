@@ -119,7 +119,7 @@ public class ProcesoCompartidoService {
             arcos.addAll(arcoRepository.findAllByPoolIdAndEmpresaId(pool.getId(), empresaPropietariaId).stream()
                     .filter(arco -> arco.isActivo()).toList());
         });
-        lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaPropietariaId)
+        lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaPropietariaId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .forEach(nodo -> {
                     if (nodo instanceof Actividad actividad) {
