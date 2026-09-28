@@ -176,12 +176,12 @@ public class MensajeService {
 
         Correlacion correlacionEntidad = correlacionRepository
                 .findByMensajeIdAndEmpresaId(mensajeId, empresaId)
-                .orElseGet(() -> {
-                    Correlacion nueva = new Correlacion();
-                    nueva.setEmpresa(mensaje.getEmpresa());
-                    nueva.setMensaje(mensaje);
-                    return nueva;
-                });
+                .orElse(null);
+        if (correlacionEntidad == null) {
+            correlacionEntidad = new Correlacion();
+            correlacionEntidad.setEmpresa(mensaje.getEmpresa());
+            correlacionEntidad.setMensaje(mensaje);
+        }
         correlacionEntidad.setCriterio(correlacion);
         correlacionRepository.save(correlacionEntidad);
 
