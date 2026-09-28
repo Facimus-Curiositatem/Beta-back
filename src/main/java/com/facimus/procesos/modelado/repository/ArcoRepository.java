@@ -13,6 +13,8 @@ public interface ArcoRepository extends RepositorioTenant<Arco> {
 
     List<Arco> findAllByPoolIdAndEmpresaId(Long poolId, Long empresaId);
 
+    List<Arco> findAllByPool_ProcesoIdAndEmpresaId(Long procesoId, Long empresaId);
+
     boolean existsByOrigenIdAndDestinoIdAndEmpresaId(Long origenId, Long destinoId, Long empresaId);
 
     boolean existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(Long origenId, Long destinoId, Long empresaId);
