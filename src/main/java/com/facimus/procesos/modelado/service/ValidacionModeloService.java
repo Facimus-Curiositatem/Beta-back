@@ -1,7 +1,10 @@
 package com.facimus.procesos.modelado.service;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -51,44 +54,49 @@ public class ValidacionModeloService {
     }
 
     private void validarNodosYGateways(Long empresaId, Long procesoId) {
-        poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId).forEach(pool ->
-            laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(pool.getId(), empresaId).forEach(lane ->
-                nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
-                        .filter(nodo -> nodo.isActivo()).forEach(nodo -> {
-                    var salientes = arcoRepository.findAllByOrigenIdAndEmpresaId(nodo.getId(), empresaId).stream()
-                            .filter(arco -> arco.isActivo()).toList();
-                    var entrantes = arcoRepository.findAllByDestinoIdAndEmpresaId(nodo.getId(), empresaId).stream()
-                            .filter(arco -> arco.isActivo()).toList();
+        var nodos = nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+                .filter(nodo -> nodo.isActivo())
+                .toList();
+        var arcos = arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+                .filter(arco -> arco.isActivo())
+                .toList();
 
-                    if (nodo instanceof Gateway gateway) {
-                        boolean divergente = entrantes.size() <= 1;
-                        if (divergente && salientes.size() < 2) {
-                            throw new ReglaNegocioException(
-                                    "El gateway divergente \"" + gateway.getNombre()
-                                            + "\" debe tener al menos dos salidas.");
-                        }
-                        if (gateway.getTipoGateway() == TipoGateway.EXCLUSIVO
-                                || gateway.getTipoGateway() == TipoGateway.INCLUSIVO) {
-                            boolean sinCondicion = salientes.stream()
-                                    .anyMatch(arco -> !StringUtils.hasText(arco.getCondicion()));
-                            if (sinCondicion) {
-                                throw new ReglaNegocioException(
-                                        "Todos los arcos salientes del gateway \"" + gateway.getNombre()
-                                                + "\" deben tener condicion.");
-                            }
-                        }
-                    }
+        Map<Long, List<com.facimus.procesos.modelado.model.Arco>> salientesPorNodo = arcos.stream()
+                .collect(Collectors.groupingBy(arco -> arco.getOrigen().getId()));
+        Map<Long, List<com.facimus.procesos.modelado.model.Arco>> entrantesPorNodo = arcos.stream()
+                .collect(Collectors.groupingBy(arco -> arco.getDestino().getId()));
 
-                    if (nodo instanceof EventoMensaje evento
-                            && evento.getTipoEvento() == TipoEventoMensaje.CATCH_INICIO
-                            && !entrantes.isEmpty()) {
+        nodos.forEach(nodo -> {
+            var salientes = salientesPorNodo.getOrDefault(nodo.getId(), List.of());
+            var entrantes = entrantesPorNodo.getOrDefault(nodo.getId(), List.of());
+
+            if (nodo instanceof Gateway gateway) {
+                boolean divergente = entrantes.size() <= 1;
+                if (divergente && salientes.size() < 2) {
+                    throw new ReglaNegocioException(
+                            "El gateway divergente \"" + gateway.getNombre()
+                                    + "\" debe tener al menos dos salidas.");
+                }
+                if (gateway.getTipoGateway() == TipoGateway.EXCLUSIVO
+                        || gateway.getTipoGateway() == TipoGateway.INCLUSIVO) {
+                    boolean sinCondicion = salientes.stream()
+                            .anyMatch(arco -> !StringUtils.hasText(arco.getCondicion()));
+                    if (sinCondicion) {
                         throw new ReglaNegocioException(
-                                "El Message Catch de inicio \"" + evento.getNombre()
-                                        + "\" no puede tener arcos entrantes.");
+                                "Todos los arcos salientes del gateway \"" + gateway.getNombre()
+                                        + "\" deben tener condicion.");
                     }
-                })
-            )
-        );
+                }
+            }
+
+            if (nodo instanceof EventoMensaje evento
+                    && evento.getTipoEvento() == TipoEventoMensaje.CATCH_INICIO
+                    && !entrantes.isEmpty()) {
+                throw new ReglaNegocioException(
+                        "El Message Catch de inicio \"" + evento.getNombre()
+                                + "\" no puede tener arcos entrantes.");
+            }
+        });
     }
 
     private void validarMensajes(Long empresaId, Long procesoId) {
