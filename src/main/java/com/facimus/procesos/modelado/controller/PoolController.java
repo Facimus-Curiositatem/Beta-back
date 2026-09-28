@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
+import com.facimus.procesos.gestion.service.RolProcesoService;
+import com.facimus.procesos.modelado.controller.dto.ConfigurarPermisosPoolRequest;
 import com.facimus.procesos.modelado.controller.dto.EditarPoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
@@ -30,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class PoolController {
 
     private final PoolService poolService;
+    private final RolProcesoService rolProcesoService;
 
     @GetMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<List<PoolResponse>> listar(@PathVariable Long procesoId,
@@ -42,6 +46,14 @@ public class PoolController {
     public ResponseEntity<PoolResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(PoolResponse.of(poolService.obtener(principal.empresaId(), id)));
+    }
+
+    @GetMapping("/pools/{id}/roles-disponibles")
+    public ResponseEntity<List<RolProcesoVistaResponse>> rolesDisponibles(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        poolService.obtener(principal.empresaId(), id);
+        return ResponseEntity.ok(rolProcesoService.listarConUso(principal.empresaId()).stream()
+                .map(RolProcesoVistaResponse::of).toList());
     }
 
     @PostMapping("/procesos/{procesoId}/pools")
@@ -60,6 +72,14 @@ public class PoolController {
         Pool pool = request.cajaNegra() == null
                 ? poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante())
                 : poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante(), request.cajaNegra());
+        return ResponseEntity.ok(PoolResponse.of(pool));
+    }
+
+    @PutMapping("/pools/{id}/permisos")
+    public ResponseEntity<PoolResponse> configurarPermisos(@PathVariable Long id,
+            @Validated @RequestBody ConfigurarPermisosPoolRequest request,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        Pool pool = poolService.configurarPermisos(principal.empresaId(), id, request.rolesEdicion());
         return ResponseEntity.ok(PoolResponse.of(pool));
     }
 

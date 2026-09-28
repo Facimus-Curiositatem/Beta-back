@@ -26,11 +26,13 @@ public class LaneService {
     private final RolProcesoRepository rolProcesoRepository;
     private final NodoFlujoRepository nodoFlujoRepository;
     private final AuditoriaModeladoService auditoriaModeladoService;
+    private final PermisoPoolService permisoPoolService;
 
     @Transactional
     public Lane crear(Long empresaId, Long poolId, String nombre, Long rolProcesoId) {
         Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+        permisoPoolService.validarEdicion(pool);
         if (pool.isCajaNegra()) {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener lanes.");
         }
@@ -52,6 +54,7 @@ public class LaneService {
     @Transactional
     public Lane editar(Long empresaId, Long laneId, String nombre, Long rolProcesoId) {
         Lane lane = obtener(empresaId, laneId);
+        permisoPoolService.validarEdicion(lane.getPool());
         RolProceso rolProceso = rolProcesoRepository.findByIdAndEmpresaId(rolProcesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
         lane.setNombre(nombre);
@@ -64,6 +67,7 @@ public class LaneService {
     @Transactional
     public void eliminar(Long empresaId, Long laneId) {
         Lane lane = obtener(empresaId, laneId);
+        permisoPoolService.validarEdicion(lane.getPool());
         if (!nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).isEmpty()) {
             throw new ReglaNegocioException("La lane "" + lane.getNombre()
                     + "" contiene elementos; primero deben reasignarse.");
@@ -78,6 +82,7 @@ public class LaneService {
     public List<Lane> reordenar(Long empresaId, Long poolId, List<Long> laneIds) {
         Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+        permisoPoolService.validarEdicion(pool);
         List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
         java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
         if (idsUnicos.size() != laneIds.size()) {

@@ -1,12 +1,19 @@
 package com.facimus.procesos.modelado.model;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import com.facimus.procesos.common.EntidadEmpresa;
 import com.facimus.procesos.gestion.model.Proceso;
+import com.facimus.procesos.gestion.model.RolAcceso;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -17,7 +24,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Un participante del proceso: la empresa duena, un cliente, un proveedor o un sistema externo. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -41,6 +47,13 @@ public class Pool extends EntidadEmpresa {
 
     @Column(nullable = false)
     private int orden;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "pool_roles_edicion", joinColumns = @JoinColumn(name = "pool_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rol_acceso", nullable = false)
+    private Set<RolAcceso> rolesEdicion = new LinkedHashSet<>(Set.of(
+            RolAcceso.ADMINISTRADOR, RolAcceso.EDITOR));
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "proceso_id", nullable = false)

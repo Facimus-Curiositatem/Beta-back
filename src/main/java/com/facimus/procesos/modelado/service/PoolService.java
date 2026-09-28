@@ -1,6 +1,8 @@
 package com.facimus.procesos.modelado.service;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Proceso;
+import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
@@ -26,6 +29,7 @@ public class PoolService {
     private final LaneRepository laneRepository;
     private final NodoFlujoRepository nodoFlujoRepository;
     private final AuditoriaModeladoService auditoriaModeladoService;
+    private final PermisoPoolService permisoPoolService;
 
     @Transactional
     public Pool crear(Long empresaId, Long procesoId, String nombre, TipoParticipante tipoParticipante,
@@ -41,6 +45,7 @@ public class PoolService {
         pool.setTipoParticipante(tipoParticipante);
         pool.setCajaNegra(cajaNegra);
         pool.setOrden(orden);
+        pool.setRolesEdicion(new LinkedHashSet<>(Set.of(RolAcceso.ADMINISTRADOR, RolAcceso.EDITOR)));
         pool = poolRepository.save(pool);
         auditoriaModeladoService.registrar(proceso, "Pool creado: " + pool.getNombre() + ".");
         return pool;
@@ -56,6 +61,7 @@ public class PoolService {
     public Pool editar(Long empresaId, Long poolId, String nombre, TipoParticipante tipoParticipante,
             boolean cajaNegra) {
         Pool pool = obtener(empresaId, poolId);
+        permisoPoolService.validarEdicion(pool);
         if (cajaNegra && !pool.isCajaNegra()
                 && !laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId).isEmpty()) {
             throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
@@ -69,8 +75,23 @@ public class PoolService {
     }
 
     @Transactional
+    public Pool configurarPermisos(Long empresaId, Long poolId, Set<RolAcceso> rolesEdicion) {
+        Pool pool = obtener(empresaId, poolId);
+        permisoPoolService.validarConfiguracion();
+        if (rolesEdicion.contains(RolAcceso.LECTURA) && rolesEdicion.size() == 1) {
+            throw new ReglaNegocioException("El pool debe conservar al menos un rol con capacidad de edicion.");
+        }
+        pool.setRolesEdicion(new LinkedHashSet<>(rolesEdicion));
+        pool = poolRepository.save(pool);
+        auditoriaModeladoService.registrar(pool.getProceso(), "Permisos de edicion actualizados para el pool "
+                + pool.getNombre() + ".");
+        return pool;
+    }
+
+    @Transactional
     public void eliminar(Long empresaId, Long poolId) {
         Pool pool = obtener(empresaId, poolId);
+        permisoPoolService.validarEdicion(pool);
         boolean tieneNodos = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId)
                 .stream()
                 .anyMatch(lane -> !nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).isEmpty());
