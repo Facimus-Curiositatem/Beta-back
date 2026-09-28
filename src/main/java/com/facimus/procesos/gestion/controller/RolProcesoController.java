@@ -2,6 +2,9 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,8 +16,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.facimus.procesos.common.api.PageResponse;
+import com.facimus.procesos.gestion.controller.dto.RolProcesoConsultaResponse;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
 import com.facimus.procesos.gestion.model.RolProceso;
@@ -38,6 +44,21 @@ public class RolProcesoController {
                 .map(RolProcesoVistaResponse::of)
                 .toList();
         return ResponseEntity.ok(roles);
+    }
+
+    @GetMapping("/consulta")
+    public ResponseEntity<PageResponse<RolProcesoConsultaResponse>> buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(defaultValue = "0") int pagina,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        final int tamano = 10;
+        var resultados = rolProcesoService.buscarConProcesos(principal.empresaId(), nombre).stream()
+                .map(consulta -> RolProcesoConsultaResponse.of(consulta.rol(), consulta.procesos()))
+                .toList();
+        int inicio = Math.min(pagina * tamano, resultados.size());
+        int fin = Math.min(inicio + tamano, resultados.size());
+        var page = new PageImpl<>(resultados.subList(inicio, fin), PageRequest.of(pagina, tamano), resultados.size());
+        return ResponseEntity.ok(PageResponse.from(page));
     }
 
     @PostMapping
