@@ -13,6 +13,7 @@ import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
 import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
+import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
 
@@ -83,6 +84,24 @@ public class GatewayService {
         auditoriaModeladoService.registrar(gateway.getLane().getPool().getProceso(),
                 "Gateway editado: " + gateway.getNombre() + ".");
         return gateway;
+    }
+
+    public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long gatewayId) {
+        Gateway gateway = obtener(empresaId, gatewayId);
+        List<String> advertencias = new java.util.ArrayList<>();
+
+        long entradas = arcoRepository.findAllByDestinoIdAndEmpresaId(gatewayId, empresaId)
+                .stream().filter(arco -> arco.isActivo()).count();
+        long salidas = arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId)
+                .stream().filter(arco -> arco.isActivo()).count();
+
+        if (entradas > 0 || salidas > 0) {
+            advertencias.add("Se eliminaran las conexiones asociadas al gateway " + gateway.getNombre() + ".");
+        }
+        if (salidas >= 2) {
+            advertencias.add("La eliminacion rompe una ramificacion con " + salidas + " salidas.");
+        }
+        return new ImpactoEliminacion(!advertencias.isEmpty(), advertencias);
     }
 
     @Transactional
