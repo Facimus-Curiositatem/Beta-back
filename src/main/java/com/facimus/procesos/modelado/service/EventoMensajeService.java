@@ -78,14 +78,22 @@ public class EventoMensajeService {
         EventoMensaje evento = obtener(empresaId, eventoId);
         var proceso = evento.getLane().getPool().getProceso();
         String nombre = evento.getNombre();
-        arcoRepository.deleteAll(arcoRepository.findAllByOrigenIdAndEmpresaId(eventoId, empresaId));
-        arcoRepository.deleteAll(arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId));
-        nodoFlujoRepository.delete(evento);
-        auditoriaModeladoService.registrar(proceso, "Evento de mensaje eliminado: " + nombre + ".");
+        arcoRepository.findAllByOrigenIdAndEmpresaId(eventoId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        evento.setActivo(false);
+        nodoFlujoRepository.save(evento);
+        auditoriaModeladoService.registrar(proceso, "Evento de mensaje eliminado (baja logica): " + nombre + ".");
     }
 
     public EventoMensaje obtener(Long empresaId, Long eventoId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(eventoId, empresaId)
+                .filter(nodo -> nodo.isActivo())
                 .filter(EventoMensaje.class::isInstance)
                 .map(EventoMensaje.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Evento de mensaje no encontrado."));
@@ -96,6 +104,7 @@ public class EventoMensajeService {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
         }
         return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+                .filter(nodo -> nodo.isActivo())
                 .filter(EventoMensaje.class::isInstance)
                 .map(EventoMensaje.class::cast)
                 .toList();
