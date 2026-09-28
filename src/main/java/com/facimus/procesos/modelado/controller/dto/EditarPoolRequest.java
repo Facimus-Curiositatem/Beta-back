@@ -7,5 +7,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record EditarPoolRequest(
         @NotBlank(message = "El nombre es obligatorio.") String nombre,
-        @NotNull(message = "El tipo de participante es obligatorio.") TipoParticipante tipoParticipante) {
+        @NotNull(message = "El tipo de participante es obligatorio.") TipoParticipante tipoParticipante,
+        Boolean cajaNegra) {
 }

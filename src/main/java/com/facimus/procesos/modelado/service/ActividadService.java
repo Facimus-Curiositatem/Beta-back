@@ -9,6 +9,7 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Lane;
+import com.facimus.procesos.modelado.model.TipoActividad;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
 import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
@@ -23,33 +24,53 @@ public class ActividadService {
     private final NodoFlujoRepository nodoFlujoRepository;
     private final LaneRepository laneRepository;
     private final ArcoRepository arcoRepository;
+    private final AuditoriaModeladoService auditoriaModeladoService;
 
     @Transactional
     public Actividad crear(Long empresaId, Long laneId, String nombre, String descripcion, int posX, int posY) {
+        return crear(empresaId, laneId, nombre, descripcion, posX, posY, TipoActividad.TAREA);
+    }
+
+    @Transactional
+    public Actividad crear(Long empresaId, Long laneId, String nombre, String descripcion, int posX, int posY,
+            TipoActividad tipoActividad) {
         Lane lane = laneRepository.findByIdAndEmpresaId(laneId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
-        Long procesoId = lane.getPool().getProceso().getId();
-        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(nombre, procesoId, empresaId)) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        if (lane.getPool().isCajaNegra()) {
+            throw new ReglaNegocioException("Un pool de caja negra no puede contener actividades.");
         }
+        Long procesoId = lane.getPool().getProceso().getId();
+        validarNombreUnico(empresaId, procesoId, nombre, null);
 
         Actividad actividad = new Actividad();
         actividad.setEmpresa(lane.getEmpresa());
         actividad.setLane(lane);
         actividad.setNombre(nombre);
         actividad.setDescripcion(descripcion);
+        actividad.setTipoActividad(tipoActividad != null ? tipoActividad : TipoActividad.TAREA);
         actividad.setPosicionX(posX);
         actividad.setPosicionY(posY);
-        return (Actividad) nodoFlujoRepository.save(actividad);
+        actividad = (Actividad) nodoFlujoRepository.save(actividad);
+        auditoriaModeladoService.registrar(lane.getPool().getProceso(), "Actividad creada: " + actividad.getNombre() + ".");
+        return actividad;
     }
 
     @Transactional
     public Actividad editar(Long empresaId, Long actividadId, String nombre, String descripcion, int posX, int posY,
             Long laneId) {
+        return editar(empresaId, actividadId, nombre, descripcion, posX, posY, laneId, null);
+    }
+
+    @Transactional
+    public Actividad editar(Long empresaId, Long actividadId, String nombre, String descripcion, int posX, int posY,
+            Long laneId, TipoActividad tipoActividad) {
         Actividad actividad = obtener(empresaId, actividadId);
         if (laneId != null && !laneId.equals(actividad.getLane().getId())) {
             Lane nuevoLane = laneRepository.findByIdAndEmpresaId(laneId, empresaId)
                     .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
+            if (nuevoLane.getPool().isCajaNegra()) {
+                throw new ReglaNegocioException("Un pool de caja negra no puede contener actividades.");
+            }
             Long procesoActual = actividad.getLane().getPool().getProceso().getId();
             Long procesoNuevo = nuevoLane.getPool().getProceso().getId();
             if (!procesoActual.equals(procesoNuevo)) {
@@ -68,24 +89,29 @@ public class ActividadService {
             actividad.setLane(nuevoLane);
         }
         Long procesoId = actividad.getLane().getPool().getProceso().getId();
-        if (!actividad.getNombre().equalsIgnoreCase(nombre)
-                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
-                        nombre, procesoId, empresaId)) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
-        }
+        validarNombreUnico(empresaId, procesoId, nombre, actividadId);
         actividad.setNombre(nombre);
         actividad.setDescripcion(descripcion);
+        if (tipoActividad != null) {
+            actividad.setTipoActividad(tipoActividad);
+        }
         actividad.setPosicionX(posX);
         actividad.setPosicionY(posY);
-        return (Actividad) nodoFlujoRepository.save(actividad);
+        actividad = (Actividad) nodoFlujoRepository.save(actividad);
+        auditoriaModeladoService.registrar(actividad.getLane().getPool().getProceso(),
+                "Actividad editada: " + actividad.getNombre() + ".");
+        return actividad;
     }
 
     @Transactional
     public void eliminar(Long empresaId, Long actividadId) {
         Actividad actividad = obtener(empresaId, actividadId);
+        var proceso = actividad.getLane().getPool().getProceso();
+        String nombre = actividad.getNombre();
         arcoRepository.deleteAll(arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId));
         arcoRepository.deleteAll(arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId));
         nodoFlujoRepository.delete(actividad);
+        auditoriaModeladoService.registrar(proceso, "Actividad eliminada: " + nombre + ".");
     }
 
     public Actividad obtener(Long empresaId, Long actividadId) {
@@ -103,5 +129,15 @@ public class ActividadService {
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .toList();
+    }
+
+    private void validarNombreUnico(Long empresaId, Long procesoId, String nombre, Long nodoActualId) {
+        boolean existe = nodoFlujoRepository.findAllByEmpresaId(empresaId).stream()
+                .filter(nodo -> nodo.getLane().getPool().getProceso().getId().equals(procesoId))
+                .anyMatch(nodo -> nodo.getNombre().equalsIgnoreCase(nombre)
+                        && (nodoActualId == null || !nodo.getId().equals(nodoActualId)));
+        if (existe) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
     }
 }
