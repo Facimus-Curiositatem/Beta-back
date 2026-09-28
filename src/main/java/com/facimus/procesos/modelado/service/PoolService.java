@@ -76,7 +76,7 @@ public class PoolService {
                 .anyMatch(lane -> !nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).isEmpty());
         if (tieneNodos) {
             throw new ReglaNegocioException("El pool "" + pool.getNombre()
-                    + "" tiene lanes con elementos; no se puede eliminar.");
+                    + "" tiene lanes con actividades o elementos; no se puede eliminar.");
         }
         var proceso = pool.getProceso();
         String nombre = pool.getNombre();
