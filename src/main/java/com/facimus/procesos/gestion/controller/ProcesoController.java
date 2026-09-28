@@ -25,11 +25,13 @@ import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.EditarProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoDetalleResponse;
+import com.facimus.procesos.gestion.controller.dto.ProcesoDiagramaResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoRequest;
 import com.facimus.procesos.gestion.controller.dto.ProcesoResponse;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
+import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.security.ApiPrincipal;
 
@@ -46,6 +48,7 @@ public class ProcesoController {
 
     private final ProcesoService procesoService;
     private final HistorialCambioService historialCambioService;
+    private final ProcesoDiagramaService procesoDiagramaService;
 
     @GetMapping
     public ResponseEntity<PageResponse<ProcesoResponse>> listar(
@@ -102,6 +105,12 @@ public class ProcesoController {
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
+    }
+
+    @GetMapping("/{id}/diagrama")
+    public ResponseEntity<ProcesoDiagramaResponse> diagrama(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        return ResponseEntity.ok(procesoDiagramaService.obtener(principal.empresaId(), id));
     }
 
     @GetMapping("/{id}/historial")
