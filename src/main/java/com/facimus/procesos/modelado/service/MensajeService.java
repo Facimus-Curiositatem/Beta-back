@@ -105,11 +105,13 @@ public class MensajeService {
         mensaje.setEventoThrow(eventoThrow);
         mensaje.setEventoCatch(eventoCatch);
         mensaje.setClaveCorrelacion(correlacion);
-        mensaje.setTipoDestinoExterno(tipoDestinoEfectivo);
-        mensaje.setDestinoExterno(destinoEfectivo);
-        mensaje.setPoliticaFalloNotificacion(politicaFalloEfectiva);
+        mensaje.setTipoDestinoExterno(tipoDestinoExterno);
+        mensaje.setDestinoExterno(destinoExterno);
+        mensaje.setPoliticaFalloNotificacion(politicaFalloNotificacion);
         mensaje.setActividadError(actividadError);
-        mensaje.setPoliticaSinCaso(politicaSinCasoEfectiva);
+        mensaje.setPoliticaSinCaso(politicaSinCaso != null
+                ? politicaSinCaso
+                : PoliticaMensajeSinCaso.DESCARTAR);
         mensaje = mensajeRepository.save(mensaje);
 
         Correlacion entidadCorrelacion = new Correlacion();
@@ -177,13 +179,11 @@ public class MensajeService {
         mensaje.setContenido(contenido);
         mensaje.setEventoCatch(eventoCatch);
         mensaje.setClaveCorrelacion(correlacion);
-        mensaje.setTipoDestinoExterno(tipoDestinoExterno);
-        mensaje.setDestinoExterno(destinoExterno);
-        mensaje.setPoliticaFalloNotificacion(politicaFalloNotificacion);
+        mensaje.setTipoDestinoExterno(tipoDestinoEfectivo);
+        mensaje.setDestinoExterno(destinoEfectivo);
+        mensaje.setPoliticaFalloNotificacion(politicaFalloEfectiva);
         mensaje.setActividadError(actividadError);
-        mensaje.setPoliticaSinCaso(politicaSinCaso != null
-                ? politicaSinCaso
-                : PoliticaMensajeSinCaso.DESCARTAR);
+        mensaje.setPoliticaSinCaso(politicaSinCasoEfectiva);
         mensaje = mensajeRepository.save(mensaje);
 
         Correlacion correlacionEntidad = correlacionRepository
