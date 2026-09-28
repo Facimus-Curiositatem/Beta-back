@@ -21,7 +21,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -107,6 +111,49 @@ class LaneControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Recepcion v2"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/pools/{poolId}/lanes/orden - reordenar lanes (200)")
+    void reordenar_lanes() throws Exception {
+        Lane l1 = crearLane(1L, "Primera");
+        Lane l2 = crearLane(2L, "Segunda");
+        l1.setOrden(0);
+        l2.setOrden(1);
+        given(laneService.reordenar(eq(1L), eq(5L), anyList())).willReturn(List.of(l2, l1));
+
+        mockMvc.perform(patch("/api/v1/pools/5/lanes/orden")
+                        .with(principal(RolAcceso.EDITOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"laneIds":[2,1]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Segunda"))
+                .andExpect(jsonPath("$[1].nombre").value("Primera"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/pools/{poolId}/lanes/orden - lista vacia retorna 400")
+    void reordenar_lista_vacia() throws Exception {
+        mockMvc.perform(patch("/api/v1/pools/5/lanes/orden")
+                        .with(principal(RolAcceso.EDITOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"laneIds":[]}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/pools/{poolId}/lanes/orden - sin sesion retorna 401")
+    void reordenar_sin_sesion() throws Exception {
+        mockMvc.perform(patch("/api/v1/pools/5/lanes/orden")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"laneIds":[1,2]}
+                                """))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
