@@ -18,6 +18,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -76,6 +78,22 @@ class CorrelacionControllerTest {
     @DisplayName("GET /api/v1/mensajes/{mensajeId}/correlacion - sin sesion retorna 401")
     void obtener_sin_sesion() throws Exception {
         mockMvc.perform(get("/api/v1/mensajes/5/correlacion"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/mensajes/{mensajeId}/correlacion - eliminar correlacion (204)")
+    void eliminar_correlacion() throws Exception {
+        doNothing().when(correlacionService).eliminar(1L, 5L);
+
+        mockMvc.perform(delete("/api/v1/mensajes/5/correlacion").with(principal(RolAcceso.ADMINISTRADOR)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/mensajes/{mensajeId}/correlacion - sin sesion retorna 401")
+    void eliminar_sin_sesion() throws Exception {
+        mockMvc.perform(delete("/api/v1/mensajes/5/correlacion"))
                 .andExpect(status().isUnauthorized());
     }
 
