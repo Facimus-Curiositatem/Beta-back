@@ -32,6 +32,9 @@ public class Arco extends EntidadEmpresa {
     @Column
     private String condicion;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "origen_id", nullable = false)
     private NodoFlujo origen;
