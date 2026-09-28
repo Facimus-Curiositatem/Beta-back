@@ -90,14 +90,22 @@ public class GatewayService {
         Gateway gateway = obtener(empresaId, gatewayId);
         var proceso = gateway.getLane().getPool().getProceso();
         String nombre = gateway.getNombre();
-        arcoRepository.deleteAll(arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId));
-        arcoRepository.deleteAll(arcoRepository.findAllByDestinoIdAndEmpresaId(gatewayId, empresaId));
-        nodoFlujoRepository.delete(gateway);
-        auditoriaModeladoService.registrar(proceso, "Gateway eliminado: " + nombre + ".");
+        arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        arcoRepository.findAllByDestinoIdAndEmpresaId(gatewayId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        gateway.setActivo(false);
+        nodoFlujoRepository.save(gateway);
+        auditoriaModeladoService.registrar(proceso, "Gateway eliminado (baja logica): " + nombre + ".");
     }
 
     public Gateway obtener(Long empresaId, Long gatewayId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(gatewayId, empresaId)
+                .filter(nodo -> nodo.isActivo())
                 .filter(Gateway.class::isInstance)
                 .map(Gateway.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Gateway no encontrado."));
@@ -108,6 +116,7 @@ public class GatewayService {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
         }
         return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+                .filter(nodo -> nodo.isActivo())
                 .filter(Gateway.class::isInstance)
                 .map(Gateway.class::cast)
                 .toList();
