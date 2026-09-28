@@ -19,6 +19,8 @@ import com.facimus.procesos.modelado.controller.dto.EditarPoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
 import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.gestion.service.OperacionEstructura;
+import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.modelado.service.PoolService;
 import com.facimus.procesos.security.ApiPrincipal;
 
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class PoolController {
 
     private final PoolService poolService;
+    private final PermisoEstructuraService permisoEstructuraService;
 
     @GetMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<List<PoolResponse>> listar(@PathVariable Long procesoId,
@@ -47,6 +50,7 @@ public class PoolController {
     @PostMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<PoolResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody PoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
+        permisoEstructuraService.validar(principal.empresaId(), principal.rol(), OperacionEstructura.CREAR_POOL);
         Pool pool = poolService.crear(principal.empresaId(), procesoId, request.nombre(),
                 request.tipoParticipante(), request.cajaNegra());
         return ResponseEntity.created(URI.create("/api/v1/pools/" + pool.getId()))
@@ -57,6 +61,7 @@ public class PoolController {
     public ResponseEntity<PoolResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarPoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
+        permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_POOL);
         Pool pool = request.cajaNegra() == null
                 ? poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante())
                 : poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante(), request.cajaNegra());
@@ -65,6 +70,7 @@ public class PoolController {
 
     @DeleteMapping("/pools/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
+        permisoEstructuraService.validar(principal.empresaId(), principal.rol(), OperacionEstructura.ELIMINAR_POOL);
         poolService.eliminar(principal.empresaId(), id);
         return ResponseEntity.noContent().build();
     }
