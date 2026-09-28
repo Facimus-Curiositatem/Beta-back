@@ -1,9 +1,10 @@
 package com.facimus.procesos.gestion.service;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -86,20 +87,20 @@ public class RolProcesoService {
                 .toList();
     }
 
-    public List<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre) {
-        String filtro = nombre == null ? "" : nombre.trim().toLowerCase(Locale.ROOT);
-        return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
-                .filter(rol -> filtro.isBlank() || rol.getNombre().toLowerCase(Locale.ROOT).contains(filtro))
-                .map(rol -> {
-                    List<String> procesos = laneRepository.findAllByRolProcesoIdAndEmpresaId(rol.getId(), empresaId)
-                            .stream()
-                            .map(lane -> lane.getPool().getProceso().getNombre())
-                            .distinct()
-                            .sorted()
-                            .toList();
-                    return new RolProcesoConsulta(rol, procesos);
-                })
-                .toList();
+    public Page<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre, Pageable pageable) {
+        Page<RolProceso> pagina = (nombre == null || nombre.isBlank())
+                ? rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId, pageable)
+                : rolProcesoRepository.findAllByEmpresaIdAndActivoTrueAndNombreContainingIgnoreCase(
+                        empresaId, nombre.trim(), pageable);
+        return pagina.map(rol -> {
+            List<String> procesos = laneRepository.findAllByRolProcesoIdAndEmpresaId(rol.getId(), empresaId)
+                    .stream()
+                    .map(lane -> lane.getPool().getProceso().getNombre())
+                    .distinct()
+                    .sorted()
+                    .toList();
+            return new RolProcesoConsulta(rol, procesos);
+        });
     }
 
     private void registrarCambioEnProcesos(Long empresaId, Long rolId, String descripcion) {
