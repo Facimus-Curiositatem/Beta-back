@@ -5,7 +5,7 @@ decisiones vigentes, la infraestructura de CI/CD, el despliegue en Docker y
 las guias que todo colaborador debe seguir para contribuir sin romper las
 garantias que ya estan en pie.
 
-Ultima actualizacion: 2026-09-01 (rama `entrega-1-backend`).
+Ultima actualizacion: 2026-09-28 (rama `main`).
 
 ---
 
@@ -16,16 +16,19 @@ Ultima actualizacion: 2026-09-01 (rama `entrega-1-backend`).
 | Componente | Version |
 |---|---|
 | Java | 21 (Temurin) |
-| Spring Boot | 4.1.0 |
-| Motor de templates | Thymeleaf |
+| Spring Boot | 4.1 |
+| API | REST exclusivo (JSON + JWT stateless) |
 | ORM | Hibernate (via Spring Data JPA) |
 | BD desarrollo | H2 embebida en archivo (`./data/`) |
 | BD produccion | PostgreSQL (via perfil `prod`) |
-| Cifrado de passwords | BCrypt (`spring-security-crypto`) |
+| Seguridad | Spring Security + JWT (Bearer token) |
+| Cifrado de passwords | BCrypt |
 | Tests de arquitectura | ArchUnit 1.4.0 |
 | Cobertura | JaCoCo 0.8.13 |
+| Analisis de calidad | SonarCloud |
 | CI/CD | GitHub Actions |
 | Contenedorizacion | Docker (multi-stage build) |
+| Documentacion API | springdoc-openapi (Swagger UI) |
 
 ### Entidades implementadas (13)
 
@@ -49,21 +52,27 @@ Bloque gestion: `EmpresaService`, `UsuarioService`, `ProcesoService`,
 Bloque modelado: `PoolService`, `LaneService`, `ActividadService`,
 `GatewayService`, `ArcoService`, `MensajeService`, `CorrelacionService`.
 
-Todos reciben `empresaId` del controlador y lo usan para acotar cada
-operacion al tenant correcto.
+Todos reciben `empresaId` del controlador (extraido del `ApiPrincipal`
+autenticado) y lo usan para acotar cada operacion al tenant correcto.
 
-### Controladores y vistas (Entrega 1)
+### Controladores REST (12)
 
-22 rutas Thymeleaf para el bloque gestion. El bloque modelado no tiene
-controladores en esta entrega — se expone via API REST en la Entrega 2.
-
-| Modulo | Rutas | Controlador |
+| Modulo | Controlador | Base path |
 |---|---|---|
-| Sesion | `/login`, `/logout` | `SesionController` |
-| Empresas | `/empresas/registro` | `EmpresaController` |
-| Usuarios | `/usuarios/**` | `UsuarioController` |
-| Procesos | `/procesos/**` | `ProcesoController` |
-| Roles de proceso | `/roles/**` | `RolProcesoController` |
+| Auth | `AuthController` | `/api/v1/auth` |
+| Empresas | `EmpresaController` | `/api/v1/empresas` |
+| Usuarios | `UsuarioController` | `/api/v1/usuarios` |
+| Procesos | `ProcesoController` | `/api/v1/procesos` |
+| Roles | `RolProcesoController` | `/api/v1/roles` |
+| Pools | `PoolController` | `/api/v1/procesos/{id}/pools`, `/api/v1/pools/{id}` |
+| Lanes | `LaneController` | `/api/v1/pools/{id}/lanes`, `/api/v1/lanes/{id}` |
+| Actividades | `ActividadController` | `/api/v1/lanes/{id}/actividades`, `/api/v1/actividades/{id}` |
+| Gateways | `GatewayController` | `/api/v1/lanes/{id}/gateways`, `/api/v1/gateways/{id}` |
+| Arcos | `ArcoController` | `/api/v1/arcos`, `/api/v1/pools/{id}/arcos` |
+| Mensajes | `MensajeController` | `/api/v1/procesos/{id}/mensajes`, `/api/v1/mensajes/{id}` |
+| Correlaciones | `CorrelacionController` | `/api/v1/mensajes/{id}/correlacion` |
+
+Documentacion interactiva disponible en `/swagger-ui/index.html`.
 
 ---
 
@@ -78,7 +87,8 @@ discutido con el equipo.
 ```
 com.facimus.procesos
 ├── common/       Clases transversales (EntidadEmpresa, excepciones, RepositorioTenant)
-├── config/       Configuracion de Spring (sesion, interceptor, seed)
+├── config/       Configuracion de Spring (OpenAPI, datos demo)
+├── security/     JWT, filtros, CORS, ApiPrincipal
 ├── gestion/      Entidades de gestion del sistema
 │   ├── model/
 │   ├── repository/
@@ -87,11 +97,12 @@ com.facimus.procesos
 └── modelado/     Entidades del modelado BPMN
     ├── model/
     ├── repository/
-    └── service/
+    ├── service/
+    └── controller/
 ```
 
 **Reglas verificadas por CI:**
-- Los `@Controller` viven en paquetes `controller/`.
+- Los `@RestController` viven en paquetes `controller/`.
 - Los `@Service` viven en paquetes `service/`.
 - Los `@Entity` viven en paquetes `model/`.
 - Los controllers no acceden directamente a repositorios (deben pasar por
@@ -124,24 +135,31 @@ Agregar un valor al enum o reordenarlo no corrompe datos existentes.
 `Proceso` y `RolProceso` usan `boolean activo`. Nunca se hace `DELETE`
 fisico sobre estas entidades.
 
+### 2.6 Seguridad
+
+- Autenticacion stateless via JWT (Bearer token).
+- Tres roles de acceso: `ADMINISTRADOR`, `EDITOR`, `SOLO_LECTURA`.
+- `ApiPrincipal` encapsula la identidad del usuario autenticado y el
+  `empresaId` del tenant.
+- Errores de autenticacion y autorizacion responden con `ProblemDetail`
+  (RFC 9457).
+
 ---
 
 ## 3. Suite de tests
 
 ### 3.1 Inventario
 
-| Tipo | Clase | Tests | Que valida |
+| Tipo | Clases | Tests | Que valida |
 |---|---|---|---|
-| Contexto | `ProcesosApplicationTests` | 1 | Spring Boot arranca con las 13 entidades |
-| Arquitectura | `EmpaquetadoTest` | 6 | Ubicacion de controllers, services, repos, entidades; controllers no usan repos directamente |
-| Arquitectura | `MultitenenciaTest` | 2 | Toda entity extiende EntidadEmpresa; updatable=false |
-| Arquitectura | `RepositorioTenantTest` | 1 | Todo repo extiende RepositorioTenant |
-| Arquitectura | `HerenciaJpaTest` | 3 | NodoFlujo SINGLE_TABLE; subtipos correctos; enums STRING |
-| Unitario | `EmpresaServiceTest` | 2 | Registro con admin, NIT duplicado |
-| Unitario | `UsuarioServiceTest` | 6 | CRUD, autenticacion, email duplicado, usuario inactivo |
-| Unitario | `ProcesoServiceTest` | 5 | Crear con pool, nombre duplicado, publicar, eliminar logico, tenant isolation |
-| Unitario | `RolProcesoServiceTest` | 3 | Crear, eliminar con uso, eliminar sin uso |
-| **Total** | | **30** | |
+| Contexto | 1 | 1 | Spring Boot arranca correctamente |
+| Arquitectura (ArchUnit) | 6 | 20 | Empaquetado, multi-tenencia, herencia JPA, seguridad |
+| Controllers (gestion) | 5 | 39 | Endpoints REST, validaciones, permisos |
+| Controllers (modelado) | 7 | 57 | Endpoints REST de modelado BPMN |
+| Servicios (gestion) | 4 | 19 | Logica de negocio de gestion |
+| Servicios (modelado) | 7 | 52 | Logica de negocio de modelado |
+| Seguridad e integracion | 4 | 17 | JWT, aislamiento de tenants, roles |
+| **Total** | **34** | **279** | |
 
 ### 3.2 Ejecucion local
 
@@ -150,10 +168,10 @@ fisico sobre estas entidades.
 ./mvnw test
 
 # Solo tests de arquitectura
-./mvnw test -Dtest="MultitenenciaTest,EmpaquetadoTest,HerenciaJpaTest,RepositorioTenantTest"
+./mvnw test -Dtest="com.facimus.procesos.arquitectura.**"
 
-# Solo tests unitarios de servicios
-./mvnw test -Dtest="EmpresaServiceTest,UsuarioServiceTest,ProcesoServiceTest,RolProcesoServiceTest"
+# Solo tests de un servicio especifico
+./mvnw test -Dtest="ArcoServiceTest"
 ```
 
 El reporte de cobertura JaCoCo se genera en `target/site/jacoco/index.html`
@@ -162,9 +180,10 @@ despues de correr los tests.
 ### 3.3 Agregar tests nuevos
 
 - Tests de arquitectura van en `src/test/java/com/facimus/procesos/arquitectura/`.
+- Tests de controllers usan `@WebMvcTest` con mocks de servicios.
 - Tests unitarios de servicio van en el paquete espejo del servicio bajo
-  `src/test/`. Ejemplo: servicio en `gestion.service.FooService` → test en
-  `gestion.service.FooServiceTest`.
+  `src/test/`. Ejemplo: servicio en `modelado.service.ArcoService` → test en
+  `modelado.service.ArcoServiceTest`.
 - Usar `@ExtendWith(MockitoExtension.class)` con `@Mock` e `@InjectMocks`.
   No usar `@SpringBootTest` para tests unitarios — solo para tests de
   integracion que necesiten el contexto completo.
@@ -176,34 +195,34 @@ despues de correr los tests.
 ### 4.1 Pipeline actual (`.github/workflows/ci.yml`)
 
 ```
-Push o PR a main/develop/entrega-1-backend
+Push o PR a main/develop
 │
 ├── Job 1: Build & Test (ubuntu + windows, en paralelo)
 │   ├── Compilar con Maven
-│   ├── Ejecutar los 30 tests
-│   ├── Generar reporte de tests (dorny/test-reporter)
+│   ├── Ejecutar los 279 tests
+│   ├── Generar reporte de tests
 │   ├── Subir reporte JaCoCo como artefacto
 │   └── Empaquetar JAR
 │
 ├── Job 2: Architecture Guard (despues de Job 1)
-│   ├── Ejecutar solo los 12 tests de ArchUnit
+│   ├── Ejecutar los 20 tests de ArchUnit
 │   └── Reporte separado de reglas de arquitectura
 │
-└── Job 3: Docker Build (despues de Jobs 1 y 2)
-    ├── Construir imagen Docker
-    └── Levantar contenedor y verificar que arranca
+├── Job 3: Docker Build (despues de Jobs 1 y 2)
+│   ├── Construir imagen Docker
+│   └── Levantar contenedor y verificar que arranca
+│
+└── Job 4: SonarCloud (despues de Job 1, solo en push)
+    └── Analisis de calidad y cobertura
 ```
 
 ### 4.2 Que bloquea un merge
 
-Si se activa branch protection en `main`/`develop`, un PR no se puede
-mergear si:
+Si se activa branch protection en `main`, un PR no se puede mergear si:
 - Falla cualquier test unitario o de integracion.
 - Se viola alguna regla de arquitectura (ArchUnit).
 - La imagen Docker no se construye correctamente.
-
-**Se recomienda activar branch protection** en `main` requiriendo que los
-tres jobs pasen antes de permitir el merge.
+- La cobertura de codigo nuevo cae por debajo del 80% (SonarCloud quality gate).
 
 ---
 
@@ -234,10 +253,10 @@ docker build -t facimus/procesos-back .
 
 ### 5.2 Perfiles de Spring
 
-| Perfil | BD | Uso |
-|---|---|---|
-| (default) | H2 en archivo `./data/` | Desarrollo local sin Docker |
-| `prod` | PostgreSQL externo | Contenedores Docker / VMs |
+| Perfil | BD | DatosDemoInitializer | Uso |
+|---|---|---|---|
+| (default) | H2 en archivo `./data/` | Activo | Desarrollo local |
+| `prod` | PostgreSQL externo | Inactivo (`@Profile("!prod")`) | Contenedores Docker / VMs |
 
 El perfil se activa con la variable de entorno `SPRING_PROFILES_ACTIVE=prod`.
 
@@ -246,16 +265,16 @@ El perfil se activa con la variable de entorno `SPRING_PROFILES_ACTIVE=prod`.
 | Variable | Default | Descripcion |
 |---|---|---|
 | `SPRING_PROFILES_ACTIVE` | (ninguno) | Debe ser `prod` para activar PostgreSQL |
-| `DB_HOST` | `localhost` | IP o hostname de la VM donde corre PostgreSQL |
+| `DB_HOST` | `localhost` | IP o hostname de PostgreSQL |
 | `DB_PORT` | `5432` | Puerto de PostgreSQL |
 | `DB_NAME` | `procesos` | Nombre de la base de datos |
 | `DB_USER` | `procesos` | Usuario de la base de datos |
 | `DB_PASSWORD` | (vacio) | Contrasena de la base de datos |
+| `JWT_SECRET` | (requerido) | Clave para firmar tokens JWT |
 
-### 5.4 Topologia de despliegue planificada
+### 5.4 Topologia de despliegue
 
-Tres servicios en contenedores Docker, cada uno en su propia VM de la
-universidad. Todas las VMs comparten la misma red.
+Tres servicios en contenedores Docker, cada uno en su propia VM.
 
 ```
 VM 1 — Base de datos          VM 2 — Backend              VM 3 — Frontend
@@ -282,8 +301,6 @@ docker run -d \
   postgres:17
 ```
 
-El volumen `pgdata` persiste los datos entre reinicios del contenedor.
-
 **VM 2 — Backend:**
 
 ```bash
@@ -297,10 +314,11 @@ docker run -d \
   -e DB_NAME=procesos \
   -e DB_USER=procesos \
   -e DB_PASSWORD=<password-segura> \
+  -e JWT_SECRET=<clave-segura> \
   facimus/procesos-back
 ```
 
-**VM 3 — Frontend (Entrega 2):**
+**VM 3 — Frontend:**
 
 ```bash
 docker run -d \
@@ -310,19 +328,19 @@ docker run -d \
   facimus/procesos-front
 ```
 
-El frontend Angular debera configurar el `environment.ts` con la URL del
-backend (`http://<ip-vm-2>:8080`).
-
 ### 5.6 Verificacion del despliegue
-
-Desde cualquier VM en la red:
 
 ```bash
 # Verificar que la BD responde
 pg_isready -h <ip-vm-1> -p 5432
 
 # Verificar que el backend responde
-curl http://<ip-vm-2>:8080/login
+curl -s http://<ip-vm-2>:8080/swagger-ui/index.html | head -1
+
+# Verificar login
+curl -s -X POST http://<ip-vm-2>:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@demo.com","password":"admin123"}'
 ```
 
 ---
@@ -331,13 +349,11 @@ curl http://<ip-vm-2>:8080/login
 
 ### 6.1 Flujo de trabajo Git
 
-1. Crear rama desde `develop` (o desde `main` si no existe `develop`).
-2. Nombrar la rama: `feature/<descripcion>`, `fix/<descripcion>`,
-   `hotfix/<descripcion>`.
-3. Hacer commits atomicos (un cambio logico por commit).
-4. Abrir PR contra `develop` (o `main`).
-5. Esperar que los 3 jobs del CI pasen en verde.
-6. Merge con `--no-ff` para preservar el historial de la rama.
+1. Crear rama desde `main`: `feature/<descripcion>`, `fix/<descripcion>`.
+2. Hacer commits modulares (un archivo por commit).
+3. Abrir PR contra `main`.
+4. Esperar que los 4 jobs del CI pasen en verde.
+5. Merge con `--no-ff` para preservar el historial de la rama.
 
 ### 6.2 Agregar una entidad nueva
 
@@ -352,19 +368,9 @@ curl http://<ip-vm-2>:8080/login
    `EmpaquetadoTest` fallara.
 6. Si necesita controlador, crearlo en `controller/`. Que solo dependa de
    servicios, no de repositorios directamente.
-7. Agregar tests unitarios para el servicio nuevo.
+7. Agregar tests unitarios para el servicio y controller nuevos.
 
-### 6.3 Agregar una regla de arquitectura nueva
-
-Si el equipo toma una decision de arquitectura nueva que debe cumplirse en
-todo el codigo:
-
-1. Documentarla en esta guia (seccion 2).
-2. Crear un test de ArchUnit en `src/test/.../arquitectura/` que la valide.
-3. A partir de ese commit, cualquier PR que viole la regla sera rechazado
-   por el CI automaticamente.
-
-### 6.4 Cosas que no se deben hacer
+### 6.3 Cosas que no se deben hacer
 
 - **No crear queries sin filtro `empresaId`** en ningun repositorio (excepto
   `EmpresaRepository`). Un tenant veria datos de otro.
@@ -374,31 +380,5 @@ todo el codigo:
   la capa de servicio.
 - **No hacer DELETE fisico** sobre `Proceso` ni `RolProceso`. Usar
   `setActivo(false)`.
-- **No hacer `git push --force`** a `main` o `develop`.
+- **No hacer `git push --force`** a `main`.
 - **No saltarse los hooks** con `--no-verify`.
-
----
-
-## 7. Proximos pasos
-
-### Entrega 2 — REST + Angular (fecha: 21/10/2026)
-
-- [ ] API REST para el bloque modelado (pools, lanes, nodos, arcos, mensajes,
-      correlaciones). Los servicios ya existen, falta exponer los endpoints.
-- [ ] Controladores REST compartiendo la misma capa de servicio que los
-      Thymeleaf (no duplicar logica).
-- [ ] Frontend Angular como SPA en su propio repositorio.
-- [ ] Dockerfile para el frontend (nginx sirviendo el build de Angular).
-- [ ] Publicar las imagenes Docker en un registry (GitHub Packages o Docker
-      Hub) desde el CI.
-
-### Entrega final — Seguridad y despliegue (fecha: 25/11/2026)
-
-- [ ] Migrar de `HttpSession` manual a Spring Security con
-      `@PreAuthorize`.
-- [ ] Tests de integracion con `@SpringBootTest` + H2 para los endpoints
-      REST.
-- [ ] Tests E2E del flujo completo.
-- [ ] CD automatico: el CI construye la imagen, la publica en el registry,
-      y las VMs hacen pull de la nueva version.
-- [ ] Health check endpoint (`/actuator/health`) para monitoreo.
