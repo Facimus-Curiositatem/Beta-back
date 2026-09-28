@@ -1,5 +1,6 @@
 package com.facimus.procesos.modelado.controller.dto;
 
+import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
 import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.TipoDestinoExterno;
 
@@ -12,5 +13,7 @@ public record EditarMensajeRequest(
         @NotBlank(message = "La clave de correlacion es obligatoria.") String claveCorrelacion,
         TipoDestinoExterno tipoDestinoExterno,
         String destinoExterno,
+        PoliticaFalloNotificacion politicaFalloNotificacion,
+        Long actividadManejoErrorId,
         PoliticaMensajeSinCaso politicaSinCaso) {
 }

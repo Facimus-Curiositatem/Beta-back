@@ -11,9 +11,11 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
+import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
 import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoDestinoExterno;
@@ -37,27 +39,30 @@ public class MensajeService {
     private final NodoFlujoRepository nodoFlujoRepository;
     private final AuditoriaModeladoService auditoriaModeladoService;
 
-    /** Compatibilidad con pruebas y clientes previos al modelado explicito de eventos. */
     @Transactional
     public Mensaje crear(Long empresaId, Long procesoId, String nombre, String contenido, Long poolOrigenId,
             Long poolDestinoId) {
         return crearInterno(empresaId, procesoId, nombre, contenido, poolOrigenId, poolDestinoId,
-                null, null, "idProceso", null, null, PoliticaMensajeSinCaso.DESCARTAR, false);
+                null, null, "idProceso", null, null, null, null,
+                PoliticaMensajeSinCaso.DESCARTAR, false);
     }
 
     @Transactional
     public Mensaje crear(Long empresaId, Long procesoId, String nombre, String contenido, Long poolOrigenId,
             Long poolDestinoId, Long eventoThrowId, Long eventoCatchId, String claveCorrelacion,
-            TipoDestinoExterno tipoDestinoExterno, String destinoExterno, PoliticaMensajeSinCaso politicaSinCaso) {
+            TipoDestinoExterno tipoDestinoExterno, String destinoExterno,
+            PoliticaFalloNotificacion politicaFalloNotificacion, Long actividadManejoErrorId,
+            PoliticaMensajeSinCaso politicaSinCaso) {
         return crearInterno(empresaId, procesoId, nombre, contenido, poolOrigenId, poolDestinoId,
                 eventoThrowId, eventoCatchId, claveCorrelacion, tipoDestinoExterno, destinoExterno,
-                politicaSinCaso, true);
+                politicaFalloNotificacion, actividadManejoErrorId, politicaSinCaso, true);
     }
 
     private Mensaje crearInterno(Long empresaId, Long procesoId, String nombre, String contenido, Long poolOrigenId,
             Long poolDestinoId, Long eventoThrowId, Long eventoCatchId, String claveCorrelacion,
-            TipoDestinoExterno tipoDestinoExterno, String destinoExterno, PoliticaMensajeSinCaso politicaSinCaso,
-            boolean exigirThrow) {
+            TipoDestinoExterno tipoDestinoExterno, String destinoExterno,
+            PoliticaFalloNotificacion politicaFalloNotificacion, Long actividadManejoErrorId,
+            PoliticaMensajeSinCaso politicaSinCaso, boolean exigirThrow) {
         if (poolOrigenId.equals(poolDestinoId)) {
             throw new ReglaNegocioException("Un mensaje debe conectar dos pools diferentes.");
         }
@@ -76,15 +81,18 @@ public class MensajeService {
         if (exigirThrow && eventoThrow == null) {
             throw new ReglaNegocioException("El mensaje debe estar asociado a un evento Message Throw.");
         }
+
+        String correlacion = StringUtils.hasText(claveCorrelacion) ? claveCorrelacion : "idProceso";
         if (eventoThrow != null) {
-            validarThrow(eventoThrow, poolOrigen, nombre, claveCorrelacion);
+            validarThrow(eventoThrow, poolOrigen, nombre, correlacion);
         }
         if (eventoCatch != null) {
-            validarCatch(eventoCatch, poolDestino, nombre, claveCorrelacion);
+            validarCatch(eventoCatch, poolDestino, nombre, correlacion);
         }
 
-        validarDestinoExterno(poolDestino, eventoCatch, tipoDestinoExterno, destinoExterno);
-        String correlacion = StringUtils.hasText(claveCorrelacion) ? claveCorrelacion : "idProceso";
+        Actividad actividadError = resolverActividadError(empresaId, procesoId, actividadManejoErrorId);
+        validarDestinoExterno(poolDestino, eventoCatch, tipoDestinoExterno, destinoExterno,
+                politicaFalloNotificacion, actividadError);
         validarAmbiguedad(empresaId, procesoId, nombre, correlacion, null);
 
         Mensaje mensaje = new Mensaje();
@@ -99,6 +107,8 @@ public class MensajeService {
         mensaje.setClaveCorrelacion(correlacion);
         mensaje.setTipoDestinoExterno(tipoDestinoExterno);
         mensaje.setDestinoExterno(destinoExterno);
+        mensaje.setPoliticaFalloNotificacion(politicaFalloNotificacion);
+        mensaje.setActividadManejoError(actividadError);
         mensaje.setPoliticaSinCaso(politicaSinCaso != null ? politicaSinCaso : PoliticaMensajeSinCaso.DESCARTAR);
         mensaje = mensajeRepository.save(mensaje);
 
@@ -118,12 +128,15 @@ public class MensajeService {
         return editar(empresaId, mensajeId, nombre, contenido,
                 mensaje.getEventoCatch() != null ? mensaje.getEventoCatch().getId() : null,
                 mensaje.getClaveCorrelacion(), mensaje.getTipoDestinoExterno(), mensaje.getDestinoExterno(),
+                mensaje.getPoliticaFalloNotificacion(),
+                mensaje.getActividadManejoError() != null ? mensaje.getActividadManejoError().getId() : null,
                 mensaje.getPoliticaSinCaso());
     }
 
     @Transactional
     public Mensaje editar(Long empresaId, Long mensajeId, String nombre, String contenido, Long eventoCatchId,
             String claveCorrelacion, TipoDestinoExterno tipoDestinoExterno, String destinoExterno,
+            PoliticaFalloNotificacion politicaFalloNotificacion, Long actividadManejoErrorId,
             PoliticaMensajeSinCaso politicaSinCaso) {
         Mensaje mensaje = obtener(empresaId, mensajeId);
         EventoMensaje eventoCatch = resolverEvento(empresaId, eventoCatchId, "Message Catch");
@@ -134,7 +147,9 @@ public class MensajeService {
         if (eventoCatch != null) {
             validarCatch(eventoCatch, mensaje.getPoolDestino(), nombre, correlacion);
         }
-        validarDestinoExterno(mensaje.getPoolDestino(), eventoCatch, tipoDestinoExterno, destinoExterno);
+        Actividad actividadError = resolverActividadError(empresaId, mensaje.getProceso().getId(), actividadManejoErrorId);
+        validarDestinoExterno(mensaje.getPoolDestino(), eventoCatch, tipoDestinoExterno, destinoExterno,
+                politicaFalloNotificacion, actividadError);
         validarAmbiguedad(empresaId, mensaje.getProceso().getId(), nombre, correlacion, mensajeId);
 
         mensaje.setNombre(nombre);
@@ -143,14 +158,17 @@ public class MensajeService {
         mensaje.setClaveCorrelacion(correlacion);
         mensaje.setTipoDestinoExterno(tipoDestinoExterno);
         mensaje.setDestinoExterno(destinoExterno);
+        mensaje.setPoliticaFalloNotificacion(politicaFalloNotificacion);
+        mensaje.setActividadManejoError(actividadError);
         mensaje.setPoliticaSinCaso(politicaSinCaso != null ? politicaSinCaso : PoliticaMensajeSinCaso.DESCARTAR);
         mensaje = mensajeRepository.save(mensaje);
 
+        Mensaje mensajeActual = mensaje;
         Correlacion correlacionEntidad = correlacionRepository.findByMensajeIdAndEmpresaId(mensajeId, empresaId)
                 .orElseGet(() -> {
                     Correlacion nueva = new Correlacion();
-                    nueva.setEmpresa(mensaje.getEmpresa());
-                    nueva.setMensaje(mensaje);
+                    nueva.setEmpresa(mensajeActual.getEmpresa());
+                    nueva.setMensaje(mensajeActual);
                     return nueva;
                 });
         correlacionEntidad.setCriterio(correlacion);
@@ -192,6 +210,20 @@ public class MensajeService {
                 .orElseThrow(() -> new RecursoNoEncontradoException(etiqueta + " no encontrado."));
     }
 
+    private Actividad resolverActividadError(Long empresaId, Long procesoId, Long actividadId) {
+        if (actividadId == null) {
+            return null;
+        }
+        Actividad actividad = nodoFlujoRepository.findByIdAndEmpresaId(actividadId, empresaId)
+                .filter(Actividad.class::isInstance)
+                .map(Actividad.class::cast)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Actividad de manejo de error no encontrada."));
+        if (!actividad.getLane().getPool().getProceso().getId().equals(procesoId)) {
+            throw new ReglaNegocioException("La actividad de manejo de error debe pertenecer al mismo proceso.");
+        }
+        return actividad;
+    }
+
     private void validarThrow(EventoMensaje evento, Pool poolOrigen, String nombre, String claveCorrelacion) {
         if (evento.getTipoEvento() != TipoEventoMensaje.THROW) {
             throw new ReglaNegocioException("El evento de origen debe ser de tipo THROW.");
@@ -223,7 +255,8 @@ public class MensajeService {
     }
 
     private void validarDestinoExterno(Pool poolDestino, EventoMensaje eventoCatch,
-            TipoDestinoExterno tipoDestinoExterno, String destinoExterno) {
+            TipoDestinoExterno tipoDestinoExterno, String destinoExterno,
+            PoliticaFalloNotificacion politicaFalloNotificacion, Actividad actividadError) {
         if (tipoDestinoExterno == null) {
             return;
         }
@@ -236,6 +269,12 @@ public class MensajeService {
         }
         if (eventoCatch != null) {
             throw new ReglaNegocioException("Un mensaje a un sistema externo no requiere Message Catch interno.");
+        }
+        if (politicaFalloNotificacion == null) {
+            throw new ReglaNegocioException("Debe indicarse que ocurre en el modelo si la notificacion falla.");
+        }
+        if (politicaFalloNotificacion == PoliticaFalloNotificacion.DERIVAR_ACTIVIDAD && actividadError == null) {
+            throw new ReglaNegocioException("Debe indicar la actividad de manejo de error.");
         }
     }
 
