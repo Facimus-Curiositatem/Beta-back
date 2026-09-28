@@ -47,10 +47,13 @@ public class MensajeController {
     @PostMapping("/procesos/{procesoId}/mensajes")
     public ResponseEntity<MensajeResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody MensajeRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
-        Mensaje mensaje = mensajeService.crear(principal.empresaId(), procesoId, request.nombre(), request.contenido(),
-                request.poolOrigenId(), request.poolDestinoId(), request.eventoThrowId(), request.eventoCatchId(),
-                request.claveCorrelacion(), request.tipoDestinoExterno(), request.destinoExterno(),
-                request.politicaSinCaso());
+        Mensaje mensaje = request.eventoThrowId() == null
+                ? mensajeService.crear(principal.empresaId(), procesoId, request.nombre(), request.contenido(),
+                        request.poolOrigenId(), request.poolDestinoId())
+                : mensajeService.crear(principal.empresaId(), procesoId, request.nombre(), request.contenido(),
+                        request.poolOrigenId(), request.poolDestinoId(), request.eventoThrowId(), request.eventoCatchId(),
+                        request.claveCorrelacion(), request.tipoDestinoExterno(), request.destinoExterno(),
+                        request.politicaSinCaso());
         return ResponseEntity.created(URI.create("/api/v1/mensajes/" + mensaje.getId()))
                 .body(MensajeResponse.of(mensaje));
     }
