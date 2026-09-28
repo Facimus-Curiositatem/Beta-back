@@ -65,7 +65,7 @@ public class ProcesoDiagramaService {
                     }
                 }));
 
-        List<Mensaje> mensajes = mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
+        List<Mensaje> mensajes = mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
 
         return new ProcesoDiagrama(proceso, pools, lanes, actividades, gateways, eventos, arcos, mensajes);
     }
