@@ -60,15 +60,15 @@ public class CorrelacionService {
 
     @Transactional
     public void eliminar(Long empresaId, Long mensajeId) {
-        Mensaje mensaje = mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Mensaje no encontrado."));
         Correlacion correlacion = correlacionRepository.findByMensajeIdAndEmpresaId(mensajeId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Este mensaje no tiene correlacion definida."));
         correlacionRepository.delete(correlacion);
-        mensaje.setClaveCorrelacion(null);
-        mensajeRepository.save(mensaje);
-        auditoriaModeladoService.registrar(mensaje.getProceso(),
-                "Correlacion eliminada del mensaje " + mensaje.getNombre() + ".");
+        mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId).ifPresent(mensaje -> {
+            mensaje.setClaveCorrelacion(null);
+            mensajeRepository.save(mensaje);
+            auditoriaModeladoService.registrar(mensaje.getProceso(),
+                    "Correlacion eliminada del mensaje " + mensaje.getNombre() + ".");
+        });
     }
 
     private void validarAmbiguedad(Long empresaId, Mensaje mensaje, String criterio) {
