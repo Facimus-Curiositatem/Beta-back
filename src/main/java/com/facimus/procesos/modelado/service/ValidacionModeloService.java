@@ -53,9 +53,9 @@ public class ValidacionModeloService {
     private void validarNodosYGateways(Long empresaId, Long procesoId) {
         poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId).forEach(pool ->
             laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(pool.getId(), empresaId).forEach(lane ->
-                nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).forEach(nodo -> {
-                    var salientes = arcoRepository.findAllByOrigenIdAndEmpresaId(nodo.getId(), empresaId);
-                    var entrantes = arcoRepository.findAllByDestinoIdAndEmpresaId(nodo.getId(), empresaId);
+                nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()\n                        .filter(nodo -> nodo.isActivo()).forEach(nodo -> {
+                    var salientes = arcoRepository.findAllByOrigenIdAndEmpresaId(nodo.getId(), empresaId).stream()\n                            .filter(arco -> arco.isActivo()).toList();
+                    var entrantes = arcoRepository.findAllByDestinoIdAndEmpresaId(nodo.getId(), empresaId).stream()\n                            .filter(arco -> arco.isActivo()).toList();
 
                     if (nodo instanceof Gateway gateway) {
                         boolean divergente = entrantes.size() <= 1;
