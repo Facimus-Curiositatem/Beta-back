@@ -73,9 +73,11 @@ public class PoolService {
         Pool pool = obtener(empresaId, poolId);
         boolean tieneNodos = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId)
                 .stream()
-                .anyMatch(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()\n                        .anyMatch(nodo -> nodo.isActivo()));
+                .anyMatch(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
+                        .anyMatch(nodo -> nodo.isActivo()));
         if (tieneNodos) {
-            throw new ReglaNegocioException("El pool \"" + pool.getNombre()\n                    + "\" tiene lanes con actividades o elementos activos; no se puede eliminar.");
+            throw new ReglaNegocioException("El pool \"" + pool.getNombre()
+                    + "\" tiene lanes con actividades o elementos activos; no se puede eliminar.");
         }
         var proceso = pool.getProceso();
         String nombre = pool.getNombre();
