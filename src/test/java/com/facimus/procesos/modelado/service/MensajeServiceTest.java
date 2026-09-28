@@ -38,6 +38,8 @@ class MensajeServiceTest {
     private ProcesoRepository procesoRepository;
     @Mock
     private CorrelacionRepository correlacionRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private MensajeService mensajeService;
@@ -60,10 +62,12 @@ class MensajeServiceTest {
         poolOrigen = new Pool();
         poolOrigen.setId(100L);
         poolOrigen.setEmpresa(empresa);
+        poolOrigen.setProceso(proceso);
 
         poolDestino = new Pool();
         poolDestino.setId(200L);
         poolDestino.setEmpresa(empresa);
+        poolDestino.setProceso(proceso);
 
         mensaje = new Mensaje();
         mensaje.setId(1L);
