@@ -33,7 +33,11 @@ public class EventoMensajeService {
         if (lane.getPool().isCajaNegra()) {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener eventos internos.");
         }
-        validarNombreUnico(empresaId, lane.getPool().getProceso().getId(), nombre, null);
+        Long procesoId = lane.getPool().getProceso().getId();
+        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
 
         EventoMensaje evento = new EventoMensaje();
         evento.setEmpresa(lane.getEmpresa());
@@ -55,9 +59,15 @@ public class EventoMensajeService {
     public EventoMensaje editar(Long empresaId, Long eventoId, String nombre, TipoEventoMensaje tipoEvento,
             String contenido, String claveCorrelacion, int posX, int posY, boolean origenExterno) {
         EventoMensaje evento = obtener(empresaId, eventoId);
-        validarNombreUnico(empresaId, evento.getLane().getPool().getProceso().getId(), nombre, eventoId);
+        Long procesoId = evento.getLane().getPool().getProceso().getId();
+        if (!evento.getNombre().equalsIgnoreCase(nombre)
+                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                        nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
         if (tipoEvento == TipoEventoMensaje.CATCH_INICIO
-                && !arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId).isEmpty()) {
+                && arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId).stream()
+                        .anyMatch(arco -> arco.isActivo())) {
             throw new ReglaNegocioException("Un Message Catch de inicio no puede tener arcos entrantes.");
         }
         evento.setNombre(nombre);
@@ -110,13 +120,4 @@ public class EventoMensajeService {
                 .toList();
     }
 
-    private void validarNombreUnico(Long empresaId, Long procesoId, String nombre, Long nodoActualId) {
-        boolean existe = nodoFlujoRepository.findAllByEmpresaId(empresaId).stream()
-                .filter(nodo -> nodo.getLane().getPool().getProceso().getId().equals(procesoId))
-                .anyMatch(nodo -> nodo.getNombre().equalsIgnoreCase(nombre)
-                        && (nodoActualId == null || !nodo.getId().equals(nodoActualId)));
-        if (existe) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
-        }
-    }
 }
