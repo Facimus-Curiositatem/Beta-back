@@ -1,6 +1,5 @@
 package com.facimus.procesos.gestion.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -40,31 +39,18 @@ public class ProcesoDiagramaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
 
         List<Pool> pools = poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
-        List<Lane> lanes = new ArrayList<>();
-        List<Actividad> actividades = new ArrayList<>();
-        List<Gateway> gateways = new ArrayList<>();
-        List<EventoMensaje> eventos = new ArrayList<>();
-        List<Arco> arcos = new ArrayList<>();
-
-        pools.forEach(pool -> {
-            lanes.addAll(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(pool.getId(), empresaId));
-            arcos.addAll(arcoRepository.findAllByPoolIdAndEmpresaId(pool.getId(), empresaId).stream()
-                    .filter(Arco::isActivo)
-                    .toList());
-        });
-
-        lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
+        List<Lane> lanes = laneRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId);
+        var nodos = nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
                 .filter(nodo -> nodo.isActivo())
-                .forEach(nodo -> {
-                    if (nodo instanceof Actividad actividad) {
-                        actividades.add(actividad);
-                    } else if (nodo instanceof Gateway gateway) {
-                        gateways.add(gateway);
-                    } else if (nodo instanceof EventoMensaje evento) {
-                        eventos.add(evento);
-                    }
-                }));
-
+                .toList();
+        List<Actividad> actividades = nodos.stream()
+                .filter(Actividad.class::isInstance).map(Actividad.class::cast).toList();
+        List<Gateway> gateways = nodos.stream()
+                .filter(Gateway.class::isInstance).map(Gateway.class::cast).toList();
+        List<EventoMensaje> eventos = nodos.stream()
+                .filter(EventoMensaje.class::isInstance).map(EventoMensaje.class::cast).toList();
+        List<Arco> arcos = arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+                .filter(Arco::isActivo).toList();
         List<Mensaje> mensajes = mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
 
         return new ProcesoDiagrama(proceso, pools, lanes, actividades, gateways, eventos, arcos, mensajes);
