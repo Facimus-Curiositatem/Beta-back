@@ -1,8 +1,16 @@
 package com.facimus.procesos.modelado.controller.dto;
 
+import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
+import com.facimus.procesos.modelado.model.TipoDestinoExterno;
+
 import jakarta.validation.constraints.NotBlank;
 
 public record EditarMensajeRequest(
         @NotBlank(message = "El nombre es obligatorio.") String nombre,
-        @NotBlank(message = "El contenido es obligatorio.") String contenido) {
+        @NotBlank(message = "El contenido es obligatorio.") String contenido,
+        Long eventoCatchId,
+        @NotBlank(message = "La clave de correlacion es obligatoria.") String claveCorrelacion,
+        TipoDestinoExterno tipoDestinoExterno,
+        String destinoExterno,
+        PoliticaMensajeSinCaso politicaSinCaso) {
 }

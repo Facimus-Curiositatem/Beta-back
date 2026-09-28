@@ -5,6 +5,8 @@ import com.facimus.procesos.gestion.model.Proceso;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,7 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** La comunicacion entre pools: un participante envia (throw) y otro recibe (catch). */
+/** Flujo de mensaje entre pools. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,6 +37,9 @@ public class Mensaje extends EntidadEmpresa {
     @Column(nullable = false)
     private String contenido;
 
+    @Column(name = "clave_correlacion")
+    private String claveCorrelacion;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "pool_origen_id", nullable = false)
     private Pool poolOrigen;
@@ -42,6 +47,25 @@ public class Mensaje extends EntidadEmpresa {
     @ManyToOne(optional = false)
     @JoinColumn(name = "pool_destino_id", nullable = false)
     private Pool poolDestino;
+
+    @ManyToOne
+    @JoinColumn(name = "evento_throw_id")
+    private EventoMensaje eventoThrow;
+
+    @ManyToOne
+    @JoinColumn(name = "evento_catch_id")
+    private EventoMensaje eventoCatch;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_destino_externo")
+    private TipoDestinoExterno tipoDestinoExterno;
+
+    @Column(name = "destino_externo")
+    private String destinoExterno;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "politica_sin_caso")
+    private PoliticaMensajeSinCaso politicaSinCaso = PoliticaMensajeSinCaso.DESCARTAR;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "proceso_id", nullable = false)
