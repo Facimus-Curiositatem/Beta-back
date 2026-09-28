@@ -116,7 +116,7 @@ public class EventoMensajeService {
                 .anyMatch(nodo -> nodo.getNombre().equalsIgnoreCase(nombre)
                         && (nodoActualId == null || !nodo.getId().equals(nodoActualId)));
         if (existe) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre "" + nombre + "" en este proceso.");
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
     }
 }
