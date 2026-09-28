@@ -40,7 +40,9 @@ public class ActividadService {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener actividades.");
         }
         Long procesoId = lane.getPool().getProceso().getId();
-        validarNombreUnico(empresaId, procesoId, nombre, null);
+        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
 
         Actividad actividad = new Actividad();
         actividad.setEmpresa(lane.getEmpresa());
@@ -89,7 +91,11 @@ public class ActividadService {
             actividad.setLane(nuevoLane);
         }
         Long procesoId = actividad.getLane().getPool().getProceso().getId();
-        validarNombreUnico(empresaId, procesoId, nombre, actividadId);
+        if (!actividad.getNombre().equalsIgnoreCase(nombre)
+                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                        nombre, procesoId, empresaId)) {
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
+        }
         actividad.setNombre(nombre);
         actividad.setDescripcion(descripcion);
         if (tipoActividad != null) {
@@ -131,13 +137,4 @@ public class ActividadService {
                 .toList();
     }
 
-    private void validarNombreUnico(Long empresaId, Long procesoId, String nombre, Long nodoActualId) {
-        boolean existe = nodoFlujoRepository.findAllByEmpresaId(empresaId).stream()
-                .filter(nodo -> nodo.getLane().getPool().getProceso().getId().equals(procesoId))
-                .anyMatch(nodo -> nodo.getNombre().equalsIgnoreCase(nombre)
-                        && (nodoActualId == null || !nodo.getId().equals(nodoActualId)));
-        if (existe) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
-        }
-    }
 }
