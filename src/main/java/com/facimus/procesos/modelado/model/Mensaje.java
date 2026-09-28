@@ -78,4 +78,7 @@ public class Mensaje extends EntidadEmpresa {
     @ManyToOne(optional = false)
     @JoinColumn(name = "proceso_id", nullable = false)
     private Proceso proceso;
+
+    @Column(nullable = false)
+    private boolean activo = true;
 }
