@@ -18,6 +18,7 @@ import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -151,6 +152,21 @@ class ProcesoControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
+    }
+
+
+    @Test
+    void obtener_diagrama_retorna_200() throws Exception {
+        Proceso proceso = crearProceso(1L, "Ventas");
+        given(procesoDiagramaService.obtener(1L, 1L))
+                .willReturn(new ProcesoDiagrama(proceso, List.of(), List.of(), List.of(),
+                        List.of(), List.of(), List.of(), List.of()));
+
+        mockMvc.perform(get("/api/v1/procesos/1/diagrama")
+                .with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.proceso.nombre").value("Ventas"))
+                .andExpect(jsonPath("$.pools").isArray());
     }
 
     @Test
