@@ -2,7 +2,6 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.net.URI;
@@ -52,12 +51,9 @@ public class RolProcesoController {
             @RequestParam(defaultValue = "0") int pagina,
             @AuthenticationPrincipal ApiPrincipal principal) {
         final int tamano = 10;
-        var resultados = rolProcesoService.buscarConProcesos(principal.empresaId(), nombre).stream()
-                .map(consulta -> RolProcesoConsultaResponse.of(consulta.rol(), consulta.procesos()))
-                .toList();
-        int inicio = Math.min(pagina * tamano, resultados.size());
-        int fin = Math.min(inicio + tamano, resultados.size());
-        var page = new PageImpl<>(resultados.subList(inicio, fin), PageRequest.of(pagina, tamano), resultados.size());
+        var page = rolProcesoService.buscarConProcesos(
+                principal.empresaId(), nombre, PageRequest.of(pagina, tamano))
+                .map(consulta -> RolProcesoConsultaResponse.of(consulta.rol(), consulta.procesos()));
         return ResponseEntity.ok(PageResponse.from(page));
     }
 
