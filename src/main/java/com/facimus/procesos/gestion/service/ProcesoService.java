@@ -43,9 +43,6 @@ public class ProcesoService {
         }
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
-        if (nuevoEstado == EstadoProceso.PUBLICADO) {
-            validacionModeloService.validarParaPublicacion(empresaId, procesoId);
-        }
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
 
@@ -109,6 +106,9 @@ public class ProcesoService {
         }
         if (proceso.getEstado() == EstadoProceso.PUBLICADO && nuevoEstado == EstadoProceso.BORRADOR) {
             throw new ReglaNegocioException("Un proceso publicado no puede volver a borrador.");
+        }
+        if (nuevoEstado == EstadoProceso.PUBLICADO) {
+            validacionModeloService.validarParaPublicacion(empresaId, procesoId);
         }
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
