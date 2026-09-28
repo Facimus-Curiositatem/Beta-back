@@ -168,4 +168,21 @@ class GatewayServiceTest {
         assertEquals(TipoGateway.EXCLUSIVO, resultado.getTipoGateway());
         assertEquals(5, resultado.getPosicionX());
     }
+    @Test
+    @DisplayName("Arcos inactivos no bloquean cambio de PARALELO a EXCLUSIVO")
+    void arcos_inactivos_no_bloquean_cambio_tipo() {
+        gateway.setTipoGateway(TipoGateway.PARALELO);
+        Arco arcoInactivo = new Arco();
+        arcoInactivo.setActivo(false);
+        arcoInactivo.setCondicion(null);
+
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arcoInactivo));
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 0, 0);
+
+        assertEquals(TipoGateway.EXCLUSIVO, resultado.getTipoGateway());
+    }
+
 }
