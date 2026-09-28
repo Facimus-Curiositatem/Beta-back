@@ -1,5 +1,6 @@
 package com.facimus.procesos.gestion.repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import com.facimus.procesos.common.RepositorioTenant;
@@ -9,5 +10,8 @@ public interface InvitacionUsuarioRepository extends RepositorioTenant<Invitacio
 
     Optional<InvitacionUsuario> findByTokenAndUsadaFalse(String token);
 
-    boolean existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalse(Long empresaId, String email);
+    boolean existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
+            Long empresaId, String email, LocalDateTime fecha);
+
+    long deleteAllByFechaExpiracionBeforeAndUsadaFalse(LocalDateTime fecha);
 }
