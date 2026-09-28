@@ -44,9 +44,11 @@ public class ValidacionModeloService {
     }
 
     private void validarPools(Long empresaId, Long procesoId) {
-        poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId).forEach(pool -> {
-            if (pool.isCajaNegra()
-                    && !laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(pool.getId(), empresaId).isEmpty()) {
+        var pools = poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
+        var lanesPorPool = laneRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+                .collect(Collectors.groupingBy(lane -> lane.getPool().getId()));
+        pools.forEach(pool -> {
+            if (pool.isCajaNegra() && !lanesPorPool.getOrDefault(pool.getId(), List.of()).isEmpty()) {
                 throw new ReglaNegocioException(
                         "El pool de caja negra \"" + pool.getNombre() + "\" no puede contener lanes.");
             }
