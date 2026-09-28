@@ -33,6 +33,13 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
+import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
+import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
+import com.facimus.procesos.modelado.controller.dto.EventoMensajeResponse;
+import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
+import com.facimus.procesos.modelado.controller.dto.LaneResponse;
+import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
+import com.facimus.procesos.modelado.controller.dto.PoolResponse;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
@@ -110,7 +117,16 @@ public class ProcesoController {
     @GetMapping("/{id}/diagrama")
     public ResponseEntity<ProcesoDiagramaResponse> diagrama(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(procesoDiagramaService.obtener(principal.empresaId(), id));
+        var diagrama = procesoDiagramaService.obtener(principal.empresaId(), id);
+        return ResponseEntity.ok(new ProcesoDiagramaResponse(
+                ProcesoResponse.of(diagrama.proceso()),
+                diagrama.pools().stream().map(PoolResponse::of).toList(),
+                diagrama.lanes().stream().map(LaneResponse::of).toList(),
+                diagrama.actividades().stream().map(ActividadResponse::of).toList(),
+                diagrama.gateways().stream().map(GatewayResponse::of).toList(),
+                diagrama.eventos().stream().map(EventoMensajeResponse::of).toList(),
+                diagrama.arcos().stream().map(ArcoResponse::of).toList(),
+                diagrama.mensajes().stream().map(MensajeResponse::of).toList()));
     }
 
     @GetMapping("/{id}/historial")
