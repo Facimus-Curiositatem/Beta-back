@@ -713,8 +713,7 @@
 						"script": {
 							"type": "text/javascript",
 							"exec": [
-								"pm.test('Lane creada (201)', () => pm.response.to.have.status(201));",
-								"pm.collectionVariables.set('lane3Id', pm.response.json().id);"
+								"pm.test('Pool caja negra rechaza lane (409)', () => pm.response.to.have.status(409));"
 							]
 						}
 					}],
@@ -1071,8 +1070,8 @@
 						"script": {
 							"type": "text/javascript",
 							"exec": [
-								"pm.test('Rechazado por falta de condicion (400)', () => {",
-								"  pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+								"pm.test('Rechazado (400, 409 o 422)', () => {",
+								"  pm.expect(pm.response.code).to.be.oneOf([400, 409, 422]);",
 								"});"
 							]
 						}
