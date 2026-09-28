@@ -72,6 +72,81 @@ class GatewayServiceTest {
         gateway.setPosicionY(0);
     }
 
+
+    @Test
+    void crear_gateway_exitosamente() {
+        Lane lane = gateway.getLane();
+        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane));
+        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+                "Nuevo", 10L, 1L)).thenReturn(false);
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Gateway resultado = gatewayService.crear(1L, 1000L, "Nuevo", TipoGateway.EXCLUSIVO, 5, 6);
+
+        assertEquals("Nuevo", resultado.getNombre());
+        verify(auditoriaModeladoService).registrar(any(), contains("Gateway creado"));
+    }
+
+    @Test
+    void crear_en_pool_caja_negra_falla() {
+        Lane lane = gateway.getLane();
+        lane.getPool().setCajaNegra(true);
+        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> gatewayService.crear(1L, 1000L, "Nuevo", TipoGateway.EXCLUSIVO, 0, 0));
+    }
+
+    @Test
+    void impacto_eliminacion_detecta_ramificacion() {
+        Arco entrada = new Arco(); entrada.setActivo(true);
+        Arco salida1 = new Arco(); salida1.setActivo(true);
+        Arco salida2 = new Arco(); salida2.setActivo(true);
+
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida1, salida2));
+
+        var impacto = gatewayService.evaluarImpactoEliminacion(1L, 1L);
+
+        assertTrue(impacto.rompeContinuidad());
+        assertEquals(2, impacto.advertencias().size());
+    }
+
+    @Test
+    void eliminar_desactiva_gateway_y_arcos() {
+        Arco entrada = new Arco(); entrada.setActivo(true);
+        Arco salida = new Arco(); salida.setActivo(true);
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
+
+        gatewayService.eliminar(1L, 1L);
+
+        assertFalse(gateway.isActivo());
+        assertFalse(entrada.isActivo());
+        assertFalse(salida.isActivo());
+        verify(auditoriaModeladoService).registrar(any(), contains("eliminado"));
+    }
+
+    @Test
+    void listar_por_lane_filtra_gateways_activos() {
+        Gateway activo = new Gateway(); activo.setActivo(true);
+        Gateway inactivo = new Gateway(); inactivo.setActivo(false);
+        com.facimus.procesos.modelado.model.Actividad actividad =
+                new com.facimus.procesos.modelado.model.Actividad();
+        actividad.setActivo(true);
+
+        when(laneRepository.existsByIdAndEmpresaId(1000L, 1L)).thenReturn(true);
+        when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(1000L, 1L))
+                .thenReturn(List.of(activo, inactivo, actividad));
+
+        var resultado = gatewayService.listarPorLane(1L, 1000L);
+
+        assertEquals(1, resultado.size());
+        assertSame(activo, resultado.get(0));
+    }
+
     @Test
     @DisplayName("Editar con nombre duplicado lanza excepcion")
     void editar_nombre_duplicado() {
