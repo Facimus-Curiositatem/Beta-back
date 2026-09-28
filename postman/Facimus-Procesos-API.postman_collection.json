@@ -64,6 +64,21 @@
 			"key": "token",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "invitacionToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "empresaInvitadaId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "eventoMensajeId",
+			"value": "",
+			"type": "string"
 		}
 	],
 	"auth": {
@@ -113,7 +128,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombreEmpresa\": \"Acme Corp\",\n  \"nit\": \"900123456-1\",\n  \"correoContacto\": \"contacto@acme.com\",\n  \"nombreAdmin\": \"Administrador\",\n  \"emailAdmin\": \"admin@acme.com\",\n  \"passwordAdmin\": \"secret123\"\n}"
+							"raw": "{\n  \"nombreEmpresa\": \"Acme Corp\",\n  \"nit\": \"900123456-2\",\n  \"correoContacto\": \"contacto@acme.com\",\n  \"nombreAdmin\": \"Administrador\",\n  \"emailAdmin\": \"admin@acme.com\",\n  \"passwordAdmin\": \"secret123\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/empresas",
@@ -294,6 +309,75 @@
 			]
 		},
 		{
+			"name": "Invitaciones",
+			"description": "HU-02: invitacion y alta de colaboradores por email (sin SMTP, token en la respuesta).",
+			"item": [
+				{
+					"name": "Invitar usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('invitacionToken', json.token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nuevo.colaborador@acme.com\",\n  \"rolAcceso\": \"EDITOR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/usuarios/invitaciones",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "usuarios", "invitaciones"]
+						},
+						"description": "HU-02: Invita a un colaborador por email. Solo ADMINISTRADOR. El token se devuelve en la respuesta porque el proyecto aun no integra SMTP."
+					},
+					"response": []
+				},
+				{
+					"name": "Aceptar invitacion",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Nuevo Colaborador\",\n  \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/usuarios/invitaciones/{{invitacionToken}}/aceptar",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "usuarios", "invitaciones", "{{invitacionToken}}", "aceptar"]
+						},
+						"description": "HU-02: Acepta la invitacion y crea la cuenta del usuario. Publico, requiere el token de la invitacion."
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Procesos",
 			"description": "CRUD de procesos BPMN. Requiere rol EDITOR o ADMINISTRADOR para crear/editar/publicar. Solo ADMINISTRADOR puede eliminar.",
 			"item": [
@@ -383,6 +467,20 @@
 					"response": []
 				},
 				{
+					"name": "Diagrama del proceso",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/diagrama",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "diagrama"]
+						},
+						"description": "Obtiene el diagrama BPMN completo del proceso: pools, lanes, actividades, gateways, eventos, arcos y mensajes."
+					},
+					"response": []
+				},
+				{
 					"name": "Editar proceso",
 					"request": {
 						"method": "PUT",
@@ -445,6 +543,91 @@
 			]
 		},
 		{
+			"name": "Procesos Compartidos",
+			"description": "HU-23: procesos compartidos entre empresas en modo solo lectura.",
+			"item": [
+				{
+					"name": "Compartir proceso",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"empresaInvitadaId\": {{empresaInvitadaId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos"]
+						},
+						"description": "HU-23: Comparte un proceso con otra empresa en modo solo lectura. Solo ADMINISTRADOR. Requiere el ID de otra empresa registrada en la variable empresaInvitadaId."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar compartidos de un proceso",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos"]
+						},
+						"description": "HU-23: Lista las empresas con las que se comparte un proceso propio."
+					},
+					"response": []
+				},
+				{
+					"name": "Dejar de compartir",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos/{{empresaInvitadaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos", "{{procesoId}}", "compartidos", "{{empresaInvitadaId}}"]
+						},
+						"description": "HU-23: Revoca el acceso compartido de una empresa. Solo ADMINISTRADOR."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar procesos recibidos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos-compartidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos-compartidos"]
+						},
+						"description": "HU-23: Lista los procesos compartidos recibidos de otras empresas."
+					},
+					"response": []
+				},
+				{
+					"name": "Detalle de proceso compartido",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/procesos-compartidos/{{procesoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "procesos-compartidos", "{{procesoId}}"]
+						},
+						"description": "HU-23: Detalle de solo lectura de un proceso compartido recibido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Roles de Proceso",
 			"description": "CRUD de roles de proceso (Analista, Supervisor, etc.). Se usan para nombrar Lanes. Solo ADMINISTRADOR puede crear/editar/eliminar.",
 			"item": [
@@ -459,6 +642,24 @@
 							"path": ["api", "v1", "roles"]
 						},
 						"description": "HU-20: Lista todos los roles con informacion de uso."
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar roles con procesos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/roles/consulta?nombre=Analista&pagina=0",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "roles", "consulta"],
+							"query": [
+								{ "key": "nombre", "value": "Analista" },
+								{ "key": "pagina", "value": "0" }
+							]
+						},
+						"description": "Busca roles de proceso por nombre (parcial, opcional) junto con los procesos donde se usan, paginado."
 					},
 					"response": []
 				},
@@ -547,6 +748,49 @@
 							"path": ["api", "v1", "roles", "{{rolId}}"]
 						},
 						"description": "HU-19: Elimina un rol de proceso. Solo ADMINISTRADOR. Falla si el rol esta en uso."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permisos de Estructura",
+			"description": "HU-24: permisos de creacion/edicion/eliminacion de pools y lanes por rol de acceso.",
+			"item": [
+				{
+					"name": "Listar permisos de estructura",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/permisos-estructura",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "permisos-estructura"]
+						},
+						"description": "HU-24: Lista los permisos de estructura configurados para cada rol de acceso."
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar permisos de un rol",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"crearPool\": true,\n  \"editarPool\": true,\n  \"eliminarPool\": false,\n  \"crearLane\": true,\n  \"editarLane\": true,\n  \"eliminarLane\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/permisos-estructura/EDITOR",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "permisos-estructura", "EDITOR"]
+						},
+						"description": "HU-24: Actualiza los permisos de estructura de un rol de acceso (ADMINISTRADOR, EDITOR o SOLO_LECTURA). Solo ADMINISTRADOR."
 					},
 					"response": []
 				}
@@ -753,6 +997,29 @@
 					"response": []
 				},
 				{
+					"name": "Reordenar lanes",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"laneIds\": [\n    {{laneId}}\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/lanes/orden",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "pools", "{{poolId}}", "lanes", "orden"]
+						},
+						"description": "Reordena las lanes de un pool segun la lista de IDs enviada."
+					},
+					"response": []
+				},
+				{
 					"name": "Eliminar lane",
 					"request": {
 						"method": "DELETE",
@@ -763,6 +1030,114 @@
 							"path": ["api", "v1", "lanes", "{{laneId}}"]
 						},
 						"description": "Elimina una lane."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Eventos de Mensaje",
+			"description": "Eventos de mensaje (throw/catch) dentro de una lane.",
+			"item": [
+				{
+					"name": "Crear evento de mensaje",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('eventoMensajeId', json.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Recepcion de pago\",\n  \"tipoEvento\": \"CATCH_INTERMEDIO\",\n  \"contenido\": \"Confirmacion de pago recibida\",\n  \"claveCorrelacion\": \"orderId\",\n  \"posicionX\": 100,\n  \"posicionY\": 100,\n  \"origenExterno\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/eventos-mensaje",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "lanes", "{{laneId}}", "eventos-mensaje"]
+						},
+						"description": "Crea un evento de mensaje dentro de una lane."
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener evento de mensaje",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+						},
+						"description": "Obtiene el detalle de un evento de mensaje."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar eventos de mensaje de la lane",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/lanes/{{laneId}}/eventos-mensaje",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "lanes", "{{laneId}}", "eventos-mensaje"]
+						},
+						"description": "Lista los eventos de mensaje de una lane."
+					},
+					"response": []
+				},
+				{
+					"name": "Editar evento de mensaje",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Recepcion de pago confirmada\",\n  \"tipoEvento\": \"CATCH_INTERMEDIO\",\n  \"contenido\": \"Confirmacion de pago recibida y validada\",\n  \"claveCorrelacion\": \"orderId\",\n  \"posicionX\": 120,\n  \"posicionY\": 100,\n  \"origenExterno\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+						},
+						"description": "Edita un evento de mensaje existente."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar evento de mensaje",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/eventos-mensaje/{{eventoMensajeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "eventos-mensaje", "{{eventoMensajeId}}"]
+						},
+						"description": "Elimina un evento de mensaje."
 					},
 					"response": []
 				}
@@ -857,6 +1232,20 @@
 							"path": ["api", "v1", "actividades", "{{actividadId}}"]
 						},
 						"description": "HU-09: Edita una actividad existente."
+					},
+					"response": []
+				},
+				{
+					"name": "Impacto de eliminacion de actividad",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/actividades/{{actividadId}}/impacto-eliminacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "actividades", "{{actividadId}}", "impacto-eliminacion"]
+						},
+						"description": "Evalua el impacto de eliminar la actividad (arcos y elementos afectados) antes de confirmarlo."
 					},
 					"response": []
 				},
@@ -969,6 +1358,20 @@
 					"response": []
 				},
 				{
+					"name": "Impacto de eliminacion de gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/gateways/{{gatewayId}}/impacto-eliminacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "gateways", "{{gatewayId}}", "impacto-eliminacion"]
+						},
+						"description": "Evalua el impacto de eliminar el gateway antes de confirmarlo."
+					},
+					"response": []
+				},
+				{
 					"name": "Eliminar gateway",
 					"request": {
 						"method": "DELETE",
@@ -1073,6 +1476,20 @@
 							"path": ["api", "v1", "arcos", "{{arcoId}}"]
 						},
 						"description": "HU-12: Edita la etiqueta y condicion de un arco."
+					},
+					"response": []
+				},
+				{
+					"name": "Impacto de eliminacion de arco",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/arcos/{{arcoId}}/impacto-eliminacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "arcos", "{{arcoId}}", "impacto-eliminacion"]
+						},
+						"description": "Evalua el impacto de eliminar el arco antes de confirmarlo."
 					},
 					"response": []
 				},
@@ -1238,6 +1655,20 @@
 							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
 						},
 						"description": "HU-28: Obtiene la correlacion de un mensaje."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar correlacion",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/mensajes/{{mensajeId}}/correlacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "mensajes", "{{mensajeId}}", "correlacion"]
+						},
+						"description": "HU-28: Elimina el criterio de correlacion definido para un mensaje."
 					},
 					"response": []
 				}

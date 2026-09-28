@@ -41,7 +41,9 @@
 		{"key": "mensaje1Id", "value": ""},
 		{"key": "mensaje2Id", "value": ""},
 		{"key": "editorId", "value": ""},
-		{"key": "lectorId", "value": ""}
+		{"key": "lectorId", "value": ""},
+		{"key": "invitacionToken", "value": ""},
+		{"key": "empresaSecundariaId", "value": ""}
 	],
 	"item": [
 		{
@@ -1351,7 +1353,284 @@
 			]
 		},
 		{
-			"name": "13 — Publicar proceso (HU-05)",
+			"name": "13 \u2014 Invitaciones de colaborador (HU-02)",
+			"item": [
+				{
+					"name": "Invitar colaborador por email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Invitacion creada (201)', () => pm.response.to.have.status(201));",
+									"const json = pm.response.json();",
+									"pm.test('Rol es EDITOR', () => pm.expect(json.rolAcceso).to.eql('EDITOR'));",
+									"pm.test('Token de invitacion presente', () => pm.expect(json.token).to.be.a('string'));",
+									"pm.collectionVariables.set('invitacionToken', json.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"invitado.{{runId}}@test.com\",\n  \"rolAcceso\": \"EDITOR\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/usuarios/invitaciones"
+					}
+				},
+				{
+					"name": "Aceptar invitacion y crear cuenta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Cuenta creada (200)', () => pm.response.to.have.status(200));",
+									"pm.test('Rol heredado de la invitacion', () => pm.expect(pm.response.json().rolAcceso).to.eql('EDITOR'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Invitado Pruebas\",\n  \"password\": \"Invitado123!\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/usuarios/invitaciones/{{invitacionToken}}/aceptar"
+					}
+				}
+			]
+		},
+		{
+			"name": "14 \u2014 Procesos compartidos (HU-23)",
+			"item": [
+				{
+					"name": "Registrar segunda empresa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Empresa secundaria creada (201)', () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('empresaSecundariaId', pm.response.json().id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombreEmpresa\": \"QA Lab Secundaria {{runId}}\",\n  \"nit\": \"TEST{{runId}}-2\",\n  \"correoContacto\": \"contacto2.{{runId}}@test.com\",\n  \"nombreAdmin\": \"Admin Secundario\",\n  \"emailAdmin\": \"admin2.{{runId}}@test.com\",\n  \"passwordAdmin\": \"{{adminPassword}}\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/empresas"
+					}
+				},
+				{
+					"name": "Compartir proceso con empresa secundaria",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Proceso compartido (201)', () => pm.response.to.have.status(201));",
+									"pm.test('Empresa invitada correcta', () => pm.expect(pm.response.json().empresaInvitadaId).to.eql(Number(pm.collectionVariables.get('empresaSecundariaId'))));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"empresaInvitadaId\": {{empresaSecundariaId}}}"
+						},
+						"url": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos"
+					}
+				},
+				{
+					"name": "Listar compartidos del proceso",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Al menos un compartido', () => pm.expect(pm.response.json().length).to.be.above(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos"
+					}
+				},
+				{
+					"name": "Login como admin secundario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Login exitoso (200)', () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set('token', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\": \"admin2.{{runId}}@test.com\", \"password\": \"{{adminPassword}}\"}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/login"
+					}
+				},
+				{
+					"name": "Listar procesos recibidos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Incluye el proceso compartido', () => {",
+									"  const ids = pm.response.json().map(p => p.procesoId);",
+									"  pm.expect(ids).to.include(Number(pm.collectionVariables.get('procesoId')));",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/procesos-compartidos"
+					}
+				},
+				{
+					"name": "Detalle de proceso compartido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Tiene nombre de proceso', () => pm.expect(pm.response.json().proceso.nombre).to.be.a('string'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/procesos-compartidos/{{procesoId}}"
+					}
+				},
+				{
+					"name": "Re-login como admin original",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Login exitoso (200)', () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set('token', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\"}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/login"
+					}
+				},
+				{
+					"name": "Dejar de compartir",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Revocado (204)', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/compartidos/{{empresaSecundariaId}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "15 — Publicar proceso (HU-05)",
 			"item": [
 				{
 					"name": "Cambiar estado a PUBLICADO",
@@ -1380,7 +1659,7 @@
 			]
 		},
 		{
-			"name": "14 — Permisos por rol (HU-23, HU-24)",
+			"name": "16 — Control de acceso por rol (403 en escritura)",
 			"item": [
 				{
 					"name": "Login como SOLO_LECTURA",
@@ -1468,7 +1747,7 @@
 			]
 		},
 		{
-			"name": "15 — Eliminacion logica (HU-06)",
+			"name": "17 — Eliminacion logica (HU-06)",
 			"item": [
 				{
 					"name": "Eliminar proceso (baja logica)",
@@ -1527,6 +1806,141 @@
 					"request": {
 						"method": "GET",
 						"url": "{{baseUrl}}/api/v1/procesos?activo=false"
+					}
+				}
+			]
+		},
+		{
+			"name": "18 \u2014 Permisos de estructura (HU-24)",
+			"item": [
+				{
+					"name": "Listar permisos de estructura",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Un permiso por rol', () => pm.expect(pm.response.json().length).to.eql(3));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/permisos-estructura"
+					}
+				},
+				{
+					"name": "Restringir eliminacion de lanes al EDITOR",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('eliminarLane en false', () => pm.expect(pm.response.json().eliminarLane).to.eql(false));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"crearPool\": true,\n  \"editarPool\": true,\n  \"eliminarPool\": false,\n  \"crearLane\": true,\n  \"editarLane\": true,\n  \"eliminarLane\": false\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/permisos-estructura/EDITOR"
+					}
+				},
+				{
+					"name": "Login como editor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Login exitoso (200)', () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set('token', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\": \"{{editorEmail}}\", \"password\": \"{{editorPassword}}\"}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/login"
+					}
+				},
+				{
+					"name": "Editor no puede eliminar lane tras la restriccion",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Eliminacion denegada (403)', () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/api/v1/lanes/{{lane2Id}}"
+					}
+				},
+				{
+					"name": "Re-login como admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Login exitoso (200)', () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set('token', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\"}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/login"
 					}
 				}
 			]
