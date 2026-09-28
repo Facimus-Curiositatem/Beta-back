@@ -22,7 +22,11 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
+import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.modelado.model.TipoDestinoExterno;
+import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
 import com.facimus.procesos.modelado.repository.PoolRepository;
@@ -119,6 +123,31 @@ class MensajeServiceTest {
 
         assertEquals("Orden v2", resultado.getNombre());
         assertEquals("Nuevos datos", resultado.getContenido());
+    }
+
+    @Test
+    @DisplayName("Edicion parcial conserva configuracion externa cuando campos opcionales llegan null")
+    void editar_parcial_conserva_configuracion_externa() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        mensaje.setTipoDestinoExterno(TipoDestinoExterno.CORREO);
+        mensaje.setDestinoExterno("operaciones@demo.com");
+        mensaje.setPoliticaFalloNotificacion(PoliticaFalloNotificacion.CONTINUAR_FLUJO);
+        mensaje.setPoliticaSinCaso(PoliticaMensajeSinCaso.DESCARTAR);
+
+        when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.editar(
+                1L, 1L, "Orden", "Datos actualizados",
+                null, null, null, null, null, null, null);
+
+        assertEquals(TipoDestinoExterno.CORREO, resultado.getTipoDestinoExterno());
+        assertEquals("operaciones@demo.com", resultado.getDestinoExterno());
+        assertEquals(PoliticaFalloNotificacion.CONTINUAR_FLUJO, resultado.getPoliticaFalloNotificacion());
+        assertEquals(PoliticaMensajeSinCaso.DESCARTAR, resultado.getPoliticaSinCaso());
     }
 
     @Test
