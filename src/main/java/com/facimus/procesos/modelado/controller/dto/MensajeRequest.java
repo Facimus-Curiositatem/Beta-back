@@ -20,4 +20,8 @@ public record MensajeRequest(
         PoliticaFalloNotificacion politicaFalloNotificacion,
         Long actividadErrorId,
         PoliticaMensajeSinCaso politicaSinCaso) {
+
+    public MensajeRequest(String nombre, String contenido, Long poolOrigenId, Long poolDestinoId) {
+        this(nombre, contenido, poolOrigenId, poolDestinoId, null, null, null, null, null, null, null, null);
+    }
 }
