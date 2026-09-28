@@ -61,7 +61,8 @@ public class GatewayService {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoGateway == TipoGateway.PARALELO && gateway.getTipoGateway() != TipoGateway.PARALELO) {
-            arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId)
+            arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId).stream()
+                    .filter(arco -> arco.isActivo())
                     .forEach(arco -> {
                         arco.setCondicion(null);
                         arcoRepository.save(arco);
@@ -70,6 +71,7 @@ public class GatewayService {
         if ((tipoGateway == TipoGateway.EXCLUSIVO || tipoGateway == TipoGateway.INCLUSIVO)
                 && gateway.getTipoGateway() == TipoGateway.PARALELO) {
             boolean arcosSinCondicion = arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId).stream()
+                    .filter(arco -> arco.isActivo())
                     .anyMatch(arco -> !org.springframework.util.StringUtils.hasText(arco.getCondicion()));
             if (arcosSinCondicion) {
                 throw new ReglaNegocioException(
