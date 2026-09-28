@@ -127,7 +127,7 @@ public class MensajeService {
             PoliticaMensajeSinCaso politicaSinCaso) {
         Mensaje mensaje = obtener(empresaId, mensajeId);
         EventoMensaje eventoCatch = resolverEvento(empresaId, eventoCatchId, "Message Catch");
-        String correlacion = StringUtils.hasText(claveCorrelacion) ? claveCorrelacion : mensaje.getClaveCorrelacion();
+        String correlacion = StringUtils.hasText(claveCorrelacion) ? claveCorrelacion\n                : (StringUtils.hasText(mensaje.getClaveCorrelacion()) ? mensaje.getClaveCorrelacion() : "idProceso");
         if (mensaje.getEventoThrow() != null) {
             validarThrow(mensaje.getEventoThrow(), mensaje.getPoolOrigen(), nombre, correlacion);
         }
