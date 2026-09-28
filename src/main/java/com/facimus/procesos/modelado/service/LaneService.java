@@ -76,8 +76,10 @@ public class LaneService {
 
     @Transactional
     public List<Lane> reordenar(Long empresaId, Long poolId, List<Long> laneIds) {
-        Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
+            throw new RecursoNoEncontradoException("Pool no encontrado.");
+        }
+        Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId).orElse(null);
         List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
         java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
         if (idsUnicos.size() != laneIds.size()) {
@@ -98,7 +100,9 @@ public class LaneService {
             lane.setOrden(i);
             laneRepository.save(lane);
         }
-        auditoriaModeladoService.registrar(pool.getProceso(), "Lanes reordenadas en el pool " + pool.getNombre() + ".");
+        if (pool != null) {
+            auditoriaModeladoService.registrar(pool.getProceso(), "Lanes reordenadas en el pool " + pool.getNombre() + ".");
+        }
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
