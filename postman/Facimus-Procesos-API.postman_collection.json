@@ -36,6 +36,11 @@
 			"type": "string"
 		},
 		{
+			"key": "poolOrigenId",
+			"value": "",
+			"type": "string"
+		},
+		{
 			"key": "laneId",
 			"value": "",
 			"type": "string"
@@ -134,8 +139,7 @@
 								"exec": [
 									"if (pm.response.code === 200) {",
 									"    var json = pm.response.json();",
-									"    pm.collectionVariables.set('empresaId', json.empresaId);",
-									"    pm.collectionVariables.set('usuarioId', json.usuarioId);",
+									"    pm.collectionVariables.set('usuarioId', json.usuario.id);",
 									"    pm.collectionVariables.set('token', json.accessToken);",
 									"    pm.test('Login exitoso', function () {",
 									"        pm.expect(json.accessToken).to.not.be.empty;",
@@ -558,6 +562,22 @@
 			"item": [
 				{
 					"name": "Listar pools del proceso",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var pools = pm.response.json();",
+									"    if (pools.length > 0) {",
+									"        pm.collectionVariables.set('poolOrigenId', pools[0].id);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -1150,7 +1170,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombre\": \"Orden de compra\",\n  \"contenido\": \"Datos del pedido\",\n  \"poolOrigenId\": {{poolId}},\n  \"poolDestinoId\": {{poolId}}\n}"
+							"raw": "{\n  \"nombre\": \"Orden de compra\",\n  \"contenido\": \"Datos del pedido\",\n  \"poolOrigenId\": {{poolOrigenId}},\n  \"poolDestinoId\": {{poolId}}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes",
