@@ -114,14 +114,22 @@ public class ActividadService {
         Actividad actividad = obtener(empresaId, actividadId);
         var proceso = actividad.getLane().getPool().getProceso();
         String nombre = actividad.getNombre();
-        arcoRepository.deleteAll(arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId));
-        arcoRepository.deleteAll(arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId));
-        nodoFlujoRepository.delete(actividad);
-        auditoriaModeladoService.registrar(proceso, "Actividad eliminada: " + nombre + ".");
+        arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        actividad.setActivo(false);
+        nodoFlujoRepository.save(actividad);
+        auditoriaModeladoService.registrar(proceso, "Actividad eliminada (baja logica): " + nombre + ".");
     }
 
     public Actividad obtener(Long empresaId, Long actividadId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(actividadId, empresaId)
+                .filter(nodo -> nodo.isActivo())
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
@@ -132,6 +140,7 @@ public class ActividadService {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
         }
         return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+                .filter(nodo -> nodo.isActivo())
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .toList();
