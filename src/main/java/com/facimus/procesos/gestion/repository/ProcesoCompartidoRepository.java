@@ -17,4 +17,7 @@ public interface ProcesoCompartidoRepository extends RepositorioTenant<ProcesoCo
 
     Optional<ProcesoCompartido> findByProcesoIdAndEmpresaIdAndEmpresaInvitadaId(Long procesoId,
             Long empresaId, Long empresaInvitadaId);
+
+    Optional<ProcesoCompartido> findByProcesoIdAndEmpresaIdAndEmpresaInvitadaIdAndActivoTrue(Long procesoId,
+            Long empresaId, Long empresaInvitadaId);
 }
