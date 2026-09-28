@@ -30,10 +30,13 @@ public class InvitacionUsuarioService {
 
     @Transactional
     public InvitacionUsuario crear(Long empresaId, String email, RolAcceso rolAcceso) {
+        LocalDateTime ahora = LocalDateTime.now();
+        invitacionUsuarioRepository.deleteAllByFechaExpiracionBeforeAndUsadaFalse(ahora);
         if (usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email)) {
             throw new ReglaNegocioException("Ya existe un usuario con ese correo en la empresa.");
         }
-        if (invitacionUsuarioRepository.existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalse(empresaId, email)) {
+        if (invitacionUsuarioRepository.existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
+                empresaId, email, ahora)) {
             throw new ReglaNegocioException("Ya existe una invitacion pendiente para ese correo.");
         }
         Empresa empresa = empresaRepository.findById(empresaId)
@@ -44,7 +47,7 @@ public class InvitacionUsuarioService {
         invitacion.setEmail(email.trim().toLowerCase());
         invitacion.setRolAcceso(rolAcceso);
         invitacion.setToken(UUID.randomUUID().toString());
-        invitacion.setFechaExpiracion(LocalDateTime.now().plusHours(48));
+        invitacion.setFechaExpiracion(ahora.plusHours(48));
         invitacion.setUsada(false);
         return invitacionUsuarioRepository.save(invitacion);
     }
