@@ -141,4 +141,31 @@ class GatewayServiceTest {
 
         assertEquals(TipoGateway.INCLUSIVO, resultado.getTipoGateway());
     }
+
+    @Test
+    @DisplayName("Cambiar de PARALELO a INCLUSIVO con arcos sin condicion lanza excepcion")
+    void cambiar_paralelo_a_inclusivo_sin_condicion() {
+        gateway.setTipoGateway(TipoGateway.PARALELO);
+        Arco arco = new Arco();
+        arco.setCondicion(null);
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arco));
+
+        ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
+                () -> gatewayService.editar(1L, 1L, "Decision", TipoGateway.INCLUSIVO, 0, 0));
+
+        assertTrue(ex.getMessage().contains("arcos salientes sin condicion"));
+    }
+
+    @Test
+    @DisplayName("Editar gateway sin cambiar tipo ni nombre funciona")
+    void editar_sin_cambiar_tipo() {
+        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 5, 10);
+
+        assertEquals(TipoGateway.EXCLUSIVO, resultado.getTipoGateway());
+        assertEquals(5, resultado.getPosicionX());
+    }
 }
