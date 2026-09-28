@@ -1,8 +1,11 @@
 package com.facimus.procesos.gestion.service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +15,12 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.RolProcesoRepository;
+import com.facimus.procesos.gestion.repository.UsuarioRepository;
+import com.facimus.procesos.gestion.service.dto.RolProcesoConsulta;
 import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.repository.LaneRepository;
+import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +32,8 @@ public class RolProcesoService {
     private final RolProcesoRepository rolProcesoRepository;
     private final EmpresaRepository empresaRepository;
     private final LaneRepository laneRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final HistorialCambioService historialCambioService;
 
     @Transactional
     public RolProceso crear(Long empresaId, String nombre, String descripcion) {
@@ -47,7 +55,9 @@ public class RolProcesoService {
         validarNombreUnico(empresaId, nombre, rolId);
         rol.setNombre(nombre);
         rol.setDescripcion(descripcion);
-        return rolProcesoRepository.save(rol);
+        rol = rolProcesoRepository.save(rol);
+        registrarCambioEnProcesos(empresaId, rolId, "Rol de proceso editado: " + rol.getNombre() + ".");
+        return rol;
     }
 
     @Transactional
@@ -74,6 +84,35 @@ public class RolProcesoService {
                     return new RolProcesoVista(rol, usos, usos > 0);
                 })
                 .toList();
+    }
+
+    public List<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre) {
+        String filtro = nombre == null ? "" : nombre.trim().toLowerCase(Locale.ROOT);
+        return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
+                .filter(rol -> filtro.isBlank() || rol.getNombre().toLowerCase(Locale.ROOT).contains(filtro))
+                .map(rol -> {
+                    List<String> procesos = laneRepository.findAllByRolProcesoIdAndEmpresaId(rol.getId(), empresaId)
+                            .stream()
+                            .map(lane -> lane.getPool().getProceso().getNombre())
+                            .distinct()
+                            .sorted()
+                            .toList();
+                    return new RolProcesoConsulta(rol, procesos);
+                })
+                .toList();
+    }
+
+    private void registrarCambioEnProcesos(Long empresaId, Long rolId, String descripcion) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof ApiPrincipal principal)
+                || !empresaId.equals(principal.empresaId())) {
+            return;
+        }
+        usuarioRepository.findByIdAndEmpresaId(principal.usuarioId(), empresaId).ifPresent(usuario ->
+                laneRepository.findAllByRolProcesoIdAndEmpresaId(rolId, empresaId).stream()
+                        .map(lane -> lane.getPool().getProceso())
+                        .distinct()
+                        .forEach(proceso -> historialCambioService.registrar(proceso, usuario, descripcion)));
     }
 
     public long contarUsos(Long empresaId, Long rolId) {
