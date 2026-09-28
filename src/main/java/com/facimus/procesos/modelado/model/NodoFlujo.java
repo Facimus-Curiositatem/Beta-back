@@ -46,4 +46,7 @@ public abstract class NodoFlujo extends EntidadEmpresa {
     @ManyToOne(optional = false)
     @JoinColumn(name = "lane_id", nullable = false)
     private Lane lane;
+
+    @Column(nullable = false)
+    private boolean activo = true;
 }
