@@ -11,9 +11,9 @@ public record MensajeRequest(
         @NotBlank(message = "El contenido es obligatorio.") String contenido,
         @NotNull(message = "El pool de origen es obligatorio.") Long poolOrigenId,
         @NotNull(message = "El pool de destino es obligatorio.") Long poolDestinoId,
-        @NotNull(message = "El Message Throw es obligatorio.") Long eventoThrowId,
+        Long eventoThrowId,
         Long eventoCatchId,
-        @NotBlank(message = "La clave de correlacion es obligatoria.") String claveCorrelacion,
+        String claveCorrelacion,
         TipoDestinoExterno tipoDestinoExterno,
         String destinoExterno,
         PoliticaMensajeSinCaso politicaSinCaso) {
