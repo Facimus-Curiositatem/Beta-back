@@ -3,6 +3,7 @@ package com.facimus.procesos.config;
 import java.time.LocalDate;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
  * pasar antes por el formulario de registro.
  */
 @Component
+@Profile("!prod")
 @RequiredArgsConstructor
 public class DatosDemoInitializer implements CommandLineRunner {
 
