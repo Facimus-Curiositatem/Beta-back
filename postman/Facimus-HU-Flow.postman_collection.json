@@ -11,12 +11,14 @@
 	"variable": [
 		{"key": "baseUrl", "value": "http://localhost:8080"},
 		{"key": "token", "value": ""},
-		{"key": "adminEmail", "value": "admin@flujo-hu.com"},
+		{"key": "runId", "value": ""},
+		{"key": "adminEmail", "value": ""},
 		{"key": "adminPassword", "value": "Admin123!"},
-		{"key": "editorEmail", "value": "editor@flujo-hu.com"},
+		{"key": "editorEmail", "value": ""},
 		{"key": "editorPassword", "value": "Editor123!"},
-		{"key": "lectorEmail", "value": "lector@flujo-hu.com"},
+		{"key": "lectorEmail", "value": ""},
 		{"key": "lectorPassword", "value": "Lector123!"},
+		{"key": "nit", "value": ""},
 		{"key": "procesoId", "value": ""},
 		{"key": "pool1Id", "value": ""},
 		{"key": "pool2Id", "value": ""},
@@ -45,26 +47,42 @@
 			"item": [
 				{
 					"name": "Registrar empresa nueva",
-					"event": [{
-						"listen": "test",
-						"script": {
-							"type": "text/javascript",
-							"exec": [
-								"pm.test('Empresa creada (201)', () => pm.response.to.have.status(201));",
-								"const json = pm.response.json();",
-								"pm.test('Tiene ID', () => pm.expect(json.id).to.be.a('number'));",
-								"pm.test('NIT correcto', () => pm.expect(json.nit).to.eql('800555444-3'));",
-								"pm.test('Tiene fecha de registro', () => pm.expect(json.fechaRegistro).to.be.a('string'));"
-							]
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const id = Date.now().toString().slice(-6);",
+									"pm.collectionVariables.set('runId', id);",
+									"pm.collectionVariables.set('nit', '800' + id + '-1');",
+									"pm.collectionVariables.set('adminEmail', 'admin.' + id + '@test.com');",
+									"pm.collectionVariables.set('editorEmail', 'editor.' + id + '@test.com');",
+									"pm.collectionVariables.set('lectorEmail', 'lector.' + id + '@test.com');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Empresa creada (201)', () => pm.response.to.have.status(201));",
+									"const json = pm.response.json();",
+									"pm.test('Tiene ID', () => pm.expect(json.id).to.be.a('number'));",
+									"pm.test('NIT generado correctamente', () => pm.expect(json.nit).to.eql(pm.collectionVariables.get('nit')));",
+									"pm.test('Tiene fecha de registro', () => pm.expect(json.fechaRegistro).to.be.a('string'));"
+								]
+							}
 						}
-					}],
+					],
 					"request": {
 						"auth": {"type": "noauth"},
 						"method": "POST",
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombreEmpresa\": \"Laboratorio QA S.A.S.\",\n  \"nit\": \"800555444-3\",\n  \"correoContacto\": \"contacto@flujo-hu.com\",\n  \"nombreAdmin\": \"Admin Pruebas\",\n  \"emailAdmin\": \"{{adminEmail}}\",\n  \"passwordAdmin\": \"{{adminPassword}}\"\n}"
+							"raw": "{\n  \"nombreEmpresa\": \"QA Lab {{runId}}\",\n  \"nit\": \"{{nit}}\",\n  \"correoContacto\": \"contacto.{{runId}}@test.com\",\n  \"nombreAdmin\": \"Admin Pruebas\",\n  \"emailAdmin\": \"{{adminEmail}}\",\n  \"passwordAdmin\": \"{{adminPassword}}\"\n}"
 						},
 						"url": "{{baseUrl}}/api/v1/empresas"
 					}
@@ -88,7 +106,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nombreEmpresa\": \"Duplicada\",\n  \"nit\": \"800555444-3\",\n  \"correoContacto\": \"dup@test.com\",\n  \"nombreAdmin\": \"Admin\",\n  \"emailAdmin\": \"dup@test.com\",\n  \"passwordAdmin\": \"Test123!\"\n}"
+							"raw": "{\n  \"nombreEmpresa\": \"Duplicada\",\n  \"nit\": \"{{nit}}\",\n  \"correoContacto\": \"dup@test.com\",\n  \"nombreAdmin\": \"Admin\",\n  \"emailAdmin\": \"dup@test.com\",\n  \"passwordAdmin\": \"Test123!\"\n}"
 						},
 						"url": "{{baseUrl}}/api/v1/empresas"
 					}
