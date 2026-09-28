@@ -64,9 +64,8 @@ public class LaneService {
     @Transactional
     public void eliminar(Long empresaId, Long laneId) {
         Lane lane = obtener(empresaId, laneId);
-        if (!nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).isEmpty()) {
-            throw new ReglaNegocioException("La lane "" + lane.getNombre()
-                    + "" contiene elementos; primero deben reasignarse.");
+        if (nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream().anyMatch(nodo -> nodo.isActivo())) {
+            throw new ReglaNegocioException("La lane \"" + lane.getNombre()\n                    + "\" contiene elementos activos; primero deben reasignarse.");
         }
         var proceso = lane.getPool().getProceso();
         String nombre = lane.getNombre();
