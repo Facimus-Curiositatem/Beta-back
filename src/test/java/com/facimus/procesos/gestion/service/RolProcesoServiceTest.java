@@ -5,6 +5,10 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.RolProcesoRepository;
+import com.facimus.procesos.gestion.repository.UsuarioRepository;
+import com.facimus.procesos.gestion.model.Usuario;
+import com.facimus.procesos.gestion.model.RolAcceso;
+import com.facimus.procesos.security.ApiPrincipal;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
@@ -14,6 +18,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,6 +43,10 @@ class RolProcesoServiceTest {
     private EmpresaRepository empresaRepository;
     @Mock
     private LaneRepository laneRepository;
+    @Mock
+    private UsuarioRepository usuarioRepository;
+    @Mock
+    private HistorialCambioService historialCambioService;
 
     @InjectMocks
     private RolProcesoService rolProcesoService;
@@ -52,6 +64,108 @@ class RolProcesoServiceTest {
         rol.setEmpresa(empresa);
         rol.setNombre("Analista");
         rol.setActivo(true);
+    }
+
+
+    @Test
+    void crear_nombre_duplicado_falla() {
+        RolProceso existente = new RolProceso();
+        existente.setId(9L);
+        existente.setNombre("Analista");
+        when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(List.of(existente));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> rolProcesoService.crear(1L, "analista", "Duplicado"));
+    }
+
+    @Test
+    void editar_actualiza_y_registra_historial_con_usuario_autenticado() {
+        Proceso proceso = new Proceso();
+        proceso.setId(10L);
+        proceso.setNombre("Compras");
+        Pool pool = new Pool();
+        pool.setProceso(proceso);
+        Lane lane = new Lane();
+        lane.setPool(pool);
+
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+
+        when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
+        when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(List.of(rol));
+        when(rolProcesoRepository.save(any(RolProceso.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(usuarioRepository.findByIdAndEmpresaId(7L, 1L)).thenReturn(Optional.of(usuario));
+        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(lane));
+
+        ApiPrincipal principal = new ApiPrincipal(7L, 1L, RolAcceso.ADMINISTRADOR, "admin@demo.com");
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.authorities()));
+        try {
+            RolProceso resultado = rolProcesoService.editar(1L, 5L, "Analista Sr", "Senior");
+            assertEquals("Analista Sr", resultado.getNombre());
+            verify(historialCambioService).registrar(eq(proceso), eq(usuario), contains("editado"));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void listar_con_uso_mapea_conteo_y_bandera() {
+        when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(List.of(rol));
+        when(laneRepository.countByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(2L);
+
+        var resultado = rolProcesoService.listarConUso(1L);
+
+        assertEquals(1, resultado.size());
+        assertEquals(2L, resultado.get(0).procesosQueLoUsan());
+        assertTrue(resultado.get(0).enUso());
+    }
+
+    @Test
+    void buscar_sin_nombre_usa_paginacion_y_lista_procesos() {
+        Proceso proceso = new Proceso();
+        proceso.setNombre("Compras");
+        Pool pool = new Pool();
+        pool.setProceso(proceso);
+        Lane lane = new Lane();
+        lane.setPool(pool);
+
+        var pageable = PageRequest.of(0, 10);
+        when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L, pageable))
+                .thenReturn(new PageImpl<>(List.of(rol)));
+        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(lane));
+
+        var resultado = rolProcesoService.buscarConProcesos(1L, " ", pageable);
+
+        assertEquals("Compras", resultado.getContent().get(0).procesos().get(0));
+    }
+
+    @Test
+    void buscar_por_nombre_recorta_filtro() {
+        var pageable = PageRequest.of(0, 10);
+        when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrueAndNombreContainingIgnoreCase(
+                1L, "Ana", pageable)).thenReturn(new PageImpl<>(List.of(rol)));
+        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of());
+
+        var resultado = rolProcesoService.buscarConProcesos(1L, " Ana ", pageable);
+
+        assertEquals(1, resultado.getTotalElements());
+    }
+
+    @Test
+    void contar_usos_valida_rol_y_retorna_conteo() {
+        when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
+        when(laneRepository.countByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(3L);
+
+        assertEquals(3L, rolProcesoService.contarUsos(1L, 5L));
+    }
+
+    @Test
+    void obtener_inexistente_falla() {
+        when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(99L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(com.facimus.procesos.common.RecursoNoEncontradoException.class,
+                () -> rolProcesoService.obtener(1L, 99L));
     }
 
     @Test

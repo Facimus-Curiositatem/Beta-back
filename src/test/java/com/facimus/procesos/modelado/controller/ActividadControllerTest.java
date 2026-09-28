@@ -128,6 +128,21 @@ class ActividadControllerTest {
     }
 
     @Test
+    void impacto_eliminacion_retorna_advertencias() throws Exception {
+        given(actividadService.evaluarImpactoEliminacion(1L, 1L))
+                .willReturn(new com.facimus.procesos.modelado.service.dto.ImpactoEliminacion(
+                        true, List.of("Quedara sin salida")));
+
+        mockMvc.perform(get("/api/v1/actividades/1/impacto-eliminacion")
+                .with(principal(RolAcceso.EDITOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiereConfirmacion").value(true))
+                .andExpect(jsonPath("$.rompeContinuidad").value(true))
+                .andExpect(jsonPath("$.advertencias[0]").value("Quedara sin salida"));
+    }
+
+
+    @Test
     @DisplayName("DELETE /api/v1/actividades/{id} - eliminar actividad (204)")
     void eliminar_actividad() throws Exception {
         doNothing().when(actividadService).eliminar(1L, 1L);
