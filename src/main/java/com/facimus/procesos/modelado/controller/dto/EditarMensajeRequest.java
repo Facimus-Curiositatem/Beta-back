@@ -16,4 +16,8 @@ public record EditarMensajeRequest(
         PoliticaFalloNotificacion politicaFalloNotificacion,
         Long actividadErrorId,
         PoliticaMensajeSinCaso politicaSinCaso) {
+
+    public EditarMensajeRequest(String nombre, String contenido) {
+        this(nombre, contenido, null, null, null, null, null, null, null);
+    }
 }
