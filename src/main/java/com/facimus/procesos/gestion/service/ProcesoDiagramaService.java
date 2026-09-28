@@ -54,7 +54,7 @@ public class ProcesoDiagramaService {
         List<ActividadResponse> actividades = new ArrayList<>();
         List<GatewayResponse> gateways = new ArrayList<>();
         List<EventoMensajeResponse> eventos = new ArrayList<>();
-        lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId)
+        lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .forEach(nodo -> {
                     if (nodo instanceof Actividad actividad) {
