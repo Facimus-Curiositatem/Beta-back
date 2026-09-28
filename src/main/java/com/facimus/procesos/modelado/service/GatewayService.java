@@ -35,7 +35,7 @@ public class GatewayService {
         }
         Long procesoId = lane.getPool().getProceso().getId();
         if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(nombre, procesoId, empresaId)) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre "" + nombre + "" en este proceso.");
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
 
         Gateway gateway = new Gateway();
@@ -58,7 +58,7 @@ public class GatewayService {
         if (!gateway.getNombre().equalsIgnoreCase(nombre)
                 && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
                         nombre, procesoId, empresaId)) {
-            throw new ReglaNegocioException("Ya existe un nodo con el nombre "" + nombre + "" en este proceso.");
+            throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoGateway == TipoGateway.PARALELO && gateway.getTipoGateway() != TipoGateway.PARALELO) {
             arcoRepository.findAllByOrigenIdAndEmpresaId(gatewayId, empresaId)
