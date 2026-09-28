@@ -87,4 +87,3 @@ src/main/java/com/facimus/procesos/
 ## Documentacion adicional
 
 - [Guia tecnica](docs/guia-tecnica.md)
-- [Plan de migracion REST](docs/plan-migracion-rest.md)
