@@ -141,6 +141,129 @@ class ValidacionModeloServiceTest {
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
 
+
+    @Test
+    void mensaje_sin_receptor_falla() {
+        Mensaje mensaje = mensajeBase();
+        mensaje.setEventoThrow(new EventoMensaje());
+        mensaje.setClaveCorrelacion("pedidoId");
+
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+
+        assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void mensaje_sin_clave_correlacion_falla() {
+        Mensaje mensaje = mensajeBase();
+        mensaje.setEventoThrow(new EventoMensaje());
+        mensaje.setEventoCatch(new EventoMensaje());
+
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+
+        assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void mensaje_sin_entidad_correlacion_falla() {
+        Mensaje mensaje = mensajeBase();
+        mensaje.setEventoThrow(new EventoMensaje());
+        mensaje.setEventoCatch(new EventoMensaje());
+        mensaje.setClaveCorrelacion("pedidoId");
+
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void mensajes_duplicados_por_nombre_y_clave_fallan() {
+        Mensaje a = mensajeBase();
+        a.setEventoThrow(new EventoMensaje());
+        a.setEventoCatch(new EventoMensaje());
+        a.setClaveCorrelacion("pedidoId");
+
+        Mensaje b = mensajeBase();
+        b.setId(2L);
+        b.setNombre(" orden ");
+        b.setEventoThrow(new EventoMensaje());
+        b.setEventoCatch(new EventoMensaje());
+        b.setClaveCorrelacion(" PEDIDOID ");
+
+        Correlacion correlacion = new Correlacion();
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(a, b));
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(anyLong(), eq(1L)))
+                .thenReturn(Optional.of(correlacion));
+
+        assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void mensaje_externo_con_pool_invalido_falla() {
+        Mensaje mensaje = mensajeBase();
+        mensaje.setEventoThrow(new EventoMensaje());
+        mensaje.setClaveCorrelacion("pedidoId");
+        mensaje.setTipoDestinoExterno(TipoDestinoExterno.CORREO);
+        mensaje.setDestinoExterno("ops@demo.com");
+        mensaje.setPoolDestino(pool);
+
+        Correlacion correlacion = new Correlacion();
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
+
+        assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void mensaje_externo_valido_es_aceptado() {
+        Pool externo = new Pool();
+        externo.setId(200L);
+        externo.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        externo.setCajaNegra(true);
+
+        Mensaje mensaje = mensajeBase();
+        mensaje.setEventoThrow(new EventoMensaje());
+        mensaje.setClaveCorrelacion("pedidoId");
+        mensaje.setTipoDestinoExterno(TipoDestinoExterno.CORREO);
+        mensaje.setDestinoExterno("ops@demo.com");
+        mensaje.setPoolDestino(externo);
+
+        Correlacion correlacion = new Correlacion();
+        prepararEstructuraVacia();
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
+
+        assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
+    }
+
+    @Test
+    void gateway_paralelo_con_dos_salidas_es_valido() {
+        Gateway gateway = new Gateway();
+        gateway.setId(1L);
+        gateway.setNombre("Paralelo");
+        gateway.setTipoGateway(TipoGateway.PARALELO);
+        gateway.setActivo(true);
+
+        Actividad a = actividad(2L);
+        Actividad b = actividad(3L);
+        Arco ab = arco(11L, gateway, a, null);
+        Arco ac = arco(12L, gateway, b, null);
+
+        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
+        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(gateway,a,b));
+        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(ab,ac));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
+    }
+
     @Test
     void mensaje_interno_completo_es_valido() {
         EventoMensaje throwEvt = new EventoMensaje();
@@ -167,6 +290,22 @@ class ValidacionModeloServiceTest {
         when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
 
         assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
+    }
+
+
+    private void prepararEstructuraVacia() {
+        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
+        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+    }
+
+    private Mensaje mensajeBase() {
+        Mensaje mensaje = new Mensaje();
+        mensaje.setId(1L);
+        mensaje.setNombre("Orden");
+        mensaje.setActivo(true);
+        return mensaje;
     }
 
     private Actividad actividad(Long id) {
