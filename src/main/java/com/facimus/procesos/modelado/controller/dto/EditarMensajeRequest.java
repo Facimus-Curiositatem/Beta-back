@@ -9,7 +9,7 @@ public record EditarMensajeRequest(
         @NotBlank(message = "El nombre es obligatorio.") String nombre,
         @NotBlank(message = "El contenido es obligatorio.") String contenido,
         Long eventoCatchId,
-        @NotBlank(message = "La clave de correlacion es obligatoria.") String claveCorrelacion,
+        String claveCorrelacion,
         TipoDestinoExterno tipoDestinoExterno,
         String destinoExterno,
         PoliticaMensajeSinCaso politicaSinCaso) {
