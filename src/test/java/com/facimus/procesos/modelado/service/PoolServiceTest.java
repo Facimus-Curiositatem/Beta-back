@@ -40,6 +40,8 @@ class PoolServiceTest {
     private LaneRepository laneRepository;
     @Mock
     private NodoFlujoRepository nodoFlujoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private PoolService poolService;

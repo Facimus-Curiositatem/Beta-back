@@ -22,7 +22,11 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
+import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.modelado.model.TipoDestinoExterno;
+import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
 import com.facimus.procesos.modelado.repository.PoolRepository;
@@ -38,6 +42,8 @@ class MensajeServiceTest {
     private ProcesoRepository procesoRepository;
     @Mock
     private CorrelacionRepository correlacionRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private MensajeService mensajeService;
@@ -60,10 +66,12 @@ class MensajeServiceTest {
         poolOrigen = new Pool();
         poolOrigen.setId(100L);
         poolOrigen.setEmpresa(empresa);
+        poolOrigen.setProceso(proceso);
 
         poolDestino = new Pool();
         poolDestino.setId(200L);
         poolDestino.setEmpresa(empresa);
+        poolDestino.setProceso(proceso);
 
         mensaje = new Mensaje();
         mensaje.setId(1L);
@@ -73,6 +81,7 @@ class MensajeServiceTest {
         mensaje.setProceso(proceso);
         mensaje.setPoolOrigen(poolOrigen);
         mensaje.setPoolDestino(poolDestino);
+        mensaje.setActivo(true);
     }
 
     @Test
@@ -117,6 +126,31 @@ class MensajeServiceTest {
     }
 
     @Test
+    @DisplayName("Edicion parcial conserva configuracion externa cuando campos opcionales llegan null")
+    void editar_parcial_conserva_configuracion_externa() {
+        poolDestino.setTipoParticipante(TipoParticipante.SISTEMA_EXTERNO);
+        poolDestino.setCajaNegra(true);
+        mensaje.setTipoDestinoExterno(TipoDestinoExterno.CORREO);
+        mensaje.setDestinoExterno("operaciones@demo.com");
+        mensaje.setPoliticaFalloNotificacion(PoliticaFalloNotificacion.CONTINUAR_FLUJO);
+        mensaje.setPoliticaSinCaso(PoliticaMensajeSinCaso.DESCARTAR);
+
+        when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Mensaje resultado = mensajeService.editar(
+                1L, 1L, "Orden", "Datos actualizados",
+                null, null, null, null, null, null, null);
+
+        assertEquals(TipoDestinoExterno.CORREO, resultado.getTipoDestinoExterno());
+        assertEquals("operaciones@demo.com", resultado.getDestinoExterno());
+        assertEquals(PoliticaFalloNotificacion.CONTINUAR_FLUJO, resultado.getPoliticaFalloNotificacion());
+        assertEquals(PoliticaMensajeSinCaso.DESCARTAR, resultado.getPoliticaSinCaso());
+    }
+
+    @Test
     @DisplayName("Eliminar mensaje sin correlacion elimina solo el mensaje")
     void eliminar_sin_correlacion() {
         when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
@@ -125,7 +159,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository, never()).delete(any());
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -139,7 +175,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository).delete(correlacion);
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -155,7 +193,7 @@ class MensajeServiceTest {
     @DisplayName("Listar mensajes de proceso existente retorna lista")
     void listar_exitoso() {
         when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(true);
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
 
         List<Mensaje> resultado = mensajeService.listarPorProceso(1L, 10L);
 

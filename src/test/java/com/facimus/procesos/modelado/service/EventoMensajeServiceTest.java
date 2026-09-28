@@ -1,0 +1,74 @@
+package com.facimus.procesos.modelado.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.facimus.procesos.gestion.model.Empresa;
+import com.facimus.procesos.gestion.model.Proceso;
+import com.facimus.procesos.modelado.model.Arco;
+import com.facimus.procesos.modelado.model.EventoMensaje;
+import com.facimus.procesos.modelado.model.Lane;
+import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.modelado.model.TipoEventoMensaje;
+import com.facimus.procesos.modelado.repository.ArcoRepository;
+import com.facimus.procesos.modelado.repository.LaneRepository;
+import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
+
+@ExtendWith(MockitoExtension.class)
+class EventoMensajeServiceTest {
+
+    @Mock
+    private NodoFlujoRepository nodoFlujoRepository;
+    @Mock
+    private LaneRepository laneRepository;
+    @Mock
+    private ArcoRepository arcoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
+
+    @InjectMocks
+    private EventoMensajeService eventoMensajeService;
+
+    @Test
+    void arco_inactivo_no_bloquea_catch_inicio() {
+        Empresa empresa = new Empresa();
+        empresa.setId(1L);
+        Proceso proceso = new Proceso();
+        proceso.setId(10L);
+        Pool pool = new Pool();
+        pool.setProceso(proceso);
+        Lane lane = new Lane();
+        lane.setPool(pool);
+
+        EventoMensaje evento = new EventoMensaje();
+        evento.setId(5L);
+        evento.setNombre("Recepcion");
+        evento.setEmpresa(empresa);
+        evento.setLane(lane);
+        evento.setActivo(true);
+        evento.setTipoEvento(TipoEventoMensaje.CATCH_INTERMEDIO);
+
+        Arco arcoInactivo = new Arco();
+        arcoInactivo.setActivo(false);
+
+        when(nodoFlujoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(evento));
+        when(arcoRepository.findAllByDestinoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(arcoInactivo));
+        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EventoMensaje resultado = eventoMensajeService.editar(
+                1L, 5L, "Recepcion", TipoEventoMensaje.CATCH_INICIO,
+                "payload", "pedidoId", 10, 20, false);
+
+        assertEquals(TipoEventoMensaje.CATCH_INICIO, resultado.getTipoEvento());
+    }
+}

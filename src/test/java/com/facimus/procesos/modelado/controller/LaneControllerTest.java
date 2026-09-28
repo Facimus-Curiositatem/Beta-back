@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
+import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
@@ -35,6 +36,9 @@ class LaneControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private PermisoEstructuraService permisoEstructuraService;
 
     @MockitoBean
     private LaneService laneService;

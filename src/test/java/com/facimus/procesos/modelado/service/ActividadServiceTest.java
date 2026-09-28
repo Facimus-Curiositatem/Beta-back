@@ -36,6 +36,8 @@ class ActividadServiceTest {
     private LaneRepository laneRepository;
     @Mock
     private ArcoRepository arcoRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private ActividadService actividadService;

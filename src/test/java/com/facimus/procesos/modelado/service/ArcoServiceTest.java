@@ -35,6 +35,8 @@ class ArcoServiceTest {
     private NodoFlujoRepository nodoFlujoRepository;
     @Mock
     private PoolRepository poolRepository;
+    @Mock
+    private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private ArcoService arcoService;
@@ -91,7 +93,7 @@ class ArcoServiceTest {
     void crear_arco_desde_gateway_exclusivo_sin_condicion() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(30L, 1L)).thenReturn(Optional.of(gatewayExclusivo));
         when(nodoFlujoRepository.findByIdAndEmpresaId(20L, 1L)).thenReturn(Optional.of(nodoB));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(30L, 20L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(30L, 20L, 1L)).thenReturn(false);
 
         assertThrows(ReglaNegocioException.class,
                 () -> arcoService.crear(1L, 30L, 20L, "si", null));
@@ -102,7 +104,7 @@ class ArcoServiceTest {
     void crear_arco_desde_gateway_exclusivo_con_condicion() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(30L, 1L)).thenReturn(Optional.of(gatewayExclusivo));
         when(nodoFlujoRepository.findByIdAndEmpresaId(20L, 1L)).thenReturn(Optional.of(nodoB));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(30L, 20L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(30L, 20L, 1L)).thenReturn(false);
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Arco resultado = arcoService.crear(1L, 30L, 20L, "si", "monto > 100");
@@ -115,7 +117,7 @@ class ArcoServiceTest {
     void crear_arco_hacia_gateway_exclusivo_sin_condicion() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(nodoA));
         when(nodoFlujoRepository.findByIdAndEmpresaId(30L, 1L)).thenReturn(Optional.of(gatewayExclusivo));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(10L, 30L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(10L, 30L, 1L)).thenReturn(false);
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Arco resultado = arcoService.crear(1L, 10L, 30L, "entrada", null);
@@ -132,7 +134,7 @@ class ArcoServiceTest {
 
         when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
         when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(40L, 20L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(40L, 20L, 1L)).thenReturn(false);
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Arco resultado = arcoService.editar(1L, 1L, "si", null, 40L, null);
@@ -173,7 +175,7 @@ class ArcoServiceTest {
 
         when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
         when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(10L, 40L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(10L, 40L, 1L)).thenReturn(false);
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Arco resultado = arcoService.editar(1L, 1L, "si", null, null, 40L);
@@ -195,7 +197,7 @@ class ArcoServiceTest {
         when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
         when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
         when(nodoFlujoRepository.findByIdAndEmpresaId(50L, 1L)).thenReturn(Optional.of(nodoD));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(40L, 50L, 1L)).thenReturn(false);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(40L, 50L, 1L)).thenReturn(false);
         when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Arco resultado = arcoService.editar(1L, 1L, "si", null, 40L, 50L);
@@ -233,7 +235,7 @@ class ArcoServiceTest {
 
         when(arcoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(arco));
         when(nodoFlujoRepository.findByIdAndEmpresaId(40L, 1L)).thenReturn(Optional.of(nodoC));
-        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(10L, 40L, 1L)).thenReturn(true);
+        when(arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(10L, 40L, 1L)).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
                 () -> arcoService.editar(1L, 1L, "si", null, null, 40L));
@@ -277,7 +279,7 @@ class ArcoServiceTest {
         Arco resultado = arcoService.editar(1L, 1L, "nueva", null, 10L, null);
 
         assertEquals("nueva", resultado.getEtiqueta());
-        verify(arcoRepository, never()).existsByOrigenIdAndDestinoIdAndEmpresaId(anyLong(), anyLong(), anyLong());
+        verify(arcoRepository, never()).existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(anyLong(), anyLong(), anyLong());
     }
 
     @Test

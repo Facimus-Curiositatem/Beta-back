@@ -11,6 +11,7 @@ import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.repository.PoolRepository;
+import com.facimus.procesos.modelado.service.ValidacionModeloService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +41,8 @@ class ProcesoServiceTest {
     private PoolRepository poolRepository;
     @Mock
     private HistorialCambioService historialCambioService;
+    @Mock
+    private ValidacionModeloService validacionModeloService;
 
     @InjectMocks
     private ProcesoService procesoService;
