@@ -35,11 +35,11 @@ class PermisoEstructuraServiceTest {
     void setUp() {
         empresa = new Empresa();
         empresa.setId(1L);
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
     }
 
     @Test
     void administrador_tiene_permisos_por_defecto() {
+        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
         var permiso = service.obtener(1L, RolAcceso.ADMINISTRADOR);
         assertTrue(permiso.isCrearPool());
         assertTrue(permiso.isEliminarLane());
@@ -47,6 +47,7 @@ class PermisoEstructuraServiceTest {
 
     @Test
     void editor_no_puede_eliminar_por_defecto() {
+        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
         var permiso = service.obtener(1L, RolAcceso.EDITOR);
         assertTrue(permiso.isCrearPool());
         assertFalse(permiso.isEliminarPool());
