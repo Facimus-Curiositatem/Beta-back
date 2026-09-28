@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.modelado.controller.dto.ActividadRequest;
 import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
+import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.service.ActividadService;
 import com.facimus.procesos.security.ApiPrincipal;
@@ -66,6 +67,13 @@ public class ActividadController {
                 : actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
                         request.posicionX(), request.posicionY(), request.laneId(), request.tipoActividad());
         return ResponseEntity.ok(ActividadResponse.of(actividad));
+    }
+
+    @GetMapping("/actividades/{id}/impacto-eliminacion")
+    public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
+                actividadService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
     @DeleteMapping("/actividades/{id}")
