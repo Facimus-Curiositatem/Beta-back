@@ -55,7 +55,8 @@ public class ProcesoDiagramaService {
         List<GatewayResponse> gateways = new ArrayList<>();
         List<EventoMensajeResponse> eventos = new ArrayList<>();
         lanes.forEach(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId)
-                .filter(nodo -> nodo.isActivo())\n                .forEach(nodo -> {
+                .filter(nodo -> nodo.isActivo())
+                .forEach(nodo -> {
                     if (nodo instanceof Actividad actividad) {
                         actividades.add(ActividadResponse.of(actividad));
                     } else if (nodo instanceof Gateway gateway) {
@@ -67,7 +68,8 @@ public class ProcesoDiagramaService {
 
         List<ArcoResponse> arcos = new ArrayList<>();
         pools.forEach(pool -> arcoRepository.findAllByPoolIdAndEmpresaId(pool.getId(), empresaId)
-                .stream().filter(arco -> arco.isActivo())\n                .forEach(arco -> arcos.add(ArcoResponse.of(arco))));
+                .stream().filter(arco -> arco.isActivo())
+                .forEach(arco -> arcos.add(ArcoResponse.of(arco))));
 
         return new ProcesoDiagramaResponse(
                 ProcesoResponse.of(proceso),
