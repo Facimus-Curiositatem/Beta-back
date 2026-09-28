@@ -93,12 +93,14 @@ public class ArcoService {
         Arco arco = obtener(empresaId, arcoId);
         var proceso = arco.getPool().getProceso();
         String descripcion = arco.getOrigen().getNombre() + " -> " + arco.getDestino().getNombre();
-        arcoRepository.delete(arco);
-        auditoriaModeladoService.registrar(proceso, "Arco eliminado: " + descripcion + ".");
+        arco.setActivo(false);
+        arcoRepository.save(arco);
+        auditoriaModeladoService.registrar(proceso, "Arco eliminado (baja logica): " + descripcion + ".");
     }
 
     public Arco obtener(Long empresaId, Long arcoId) {
         return arcoRepository.findByIdAndEmpresaId(arcoId, empresaId)
+                .filter(arco -> arco.isActivo())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Arco no encontrado."));
     }
 
@@ -106,17 +108,22 @@ public class ArcoService {
         if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
             throw new RecursoNoEncontradoException("Pool no encontrado.");
         }
-        return arcoRepository.findAllByPoolIdAndEmpresaId(poolId, empresaId);
+        return arcoRepository.findAllByPoolIdAndEmpresaId(poolId, empresaId).stream()
+                .filter(arco -> arco.isActivo())
+                .toList();
     }
 
     private void validarConexion(Long empresaId, NodoFlujo origen, NodoFlujo destino, String condicion,
             Long arcoActualId) {
+        if (!origen.isActivo() || !destino.isActivo()) {
+            throw new RecursoNoEncontradoException("Los nodos del arco deben estar activos.");
+        }
         Pool poolOrigen = origen.getLane().getPool();
         Pool poolDestino = destino.getLane().getPool();
         if (!poolOrigen.getId().equals(poolDestino.getId())) {
             throw new ReglaNegocioException("El origen y el destino de un arco deben pertenecer al mismo pool.");
         }
-        boolean duplicado = arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaId(origen.getId(), destino.getId(),
+        boolean duplicado = arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(origen.getId(), destino.getId(),
                 empresaId);
         if (duplicado && (arcoActualId == null
                 || !esMismoArco(arcoActualId, empresaId, origen.getId(), destino.getId()))) {
