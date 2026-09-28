@@ -142,10 +142,11 @@ public class ArcoService {
         if (!poolOrigen.getId().equals(poolDestino.getId())) {
             throw new ReglaNegocioException("El origen y el destino de un arco deben pertenecer al mismo pool.");
         }
-        boolean duplicado = arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(origen.getId(), destino.getId(),
-                empresaId);
-        if (duplicado && (arcoActualId == null
-                || !esMismoArco(arcoActualId, empresaId, origen.getId(), destino.getId()))) {
+        boolean mismosExtremos = arcoActualId != null
+                && esMismoArco(arcoActualId, empresaId, origen.getId(), destino.getId());
+        if (!mismosExtremos
+                && arcoRepository.existsByOrigenIdAndDestinoIdAndEmpresaIdAndActivoTrue(
+                        origen.getId(), destino.getId(), empresaId)) {
             throw new ReglaNegocioException("Ya existe un arco entre estos dos nodos.");
         }
         if (origen instanceof Gateway gatewayOrigen
