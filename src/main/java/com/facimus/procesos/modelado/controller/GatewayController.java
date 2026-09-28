@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.modelado.controller.dto.GatewayRequest;
 import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
+import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.service.GatewayService;
 import com.facimus.procesos.security.ApiPrincipal;
@@ -64,6 +65,13 @@ public class GatewayController {
         Gateway gateway = gatewayService.editar(empresaId, id, request.nombre(), request.tipoGateway(),
                 request.posicionX(), request.posicionY());
         return ResponseEntity.ok(GatewayResponse.of(gateway));
+    }
+
+    @GetMapping("/gateways/{id}/impacto-eliminacion")
+    public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
+            @AuthenticationPrincipal ApiPrincipal principal) {
+        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
+                gatewayService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
     @DeleteMapping("/gateways/{id}")
