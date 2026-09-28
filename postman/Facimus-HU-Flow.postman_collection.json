@@ -53,9 +53,9 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"const id = Date.now().toString().slice(-6);",
+									"const id = Date.now().toString().slice(-10) + Math.floor(Math.random() * 100).toString().padStart(2, '0');",
 									"pm.collectionVariables.set('runId', id);",
-									"pm.collectionVariables.set('nit', '800' + id + '-1');",
+									"pm.collectionVariables.set('nit', 'TEST' + id + '-1');",
 									"pm.collectionVariables.set('adminEmail', 'admin.' + id + '@test.com');",
 									"pm.collectionVariables.set('editorEmail', 'editor.' + id + '@test.com');",
 									"pm.collectionVariables.set('lectorEmail', 'lector.' + id + '@test.com');"
