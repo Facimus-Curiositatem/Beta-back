@@ -105,13 +105,11 @@ public class MensajeService {
         mensaje.setEventoThrow(eventoThrow);
         mensaje.setEventoCatch(eventoCatch);
         mensaje.setClaveCorrelacion(correlacion);
-        mensaje.setTipoDestinoExterno(tipoDestinoExterno);
-        mensaje.setDestinoExterno(destinoExterno);
-        mensaje.setPoliticaFalloNotificacion(politicaFalloNotificacion);
+        mensaje.setTipoDestinoExterno(tipoDestinoEfectivo);
+        mensaje.setDestinoExterno(destinoEfectivo);
+        mensaje.setPoliticaFalloNotificacion(politicaFalloEfectiva);
         mensaje.setActividadError(actividadError);
-        mensaje.setPoliticaSinCaso(politicaSinCaso != null
-                ? politicaSinCaso
-                : PoliticaMensajeSinCaso.DESCARTAR);
+        mensaje.setPoliticaSinCaso(politicaSinCasoEfectiva);
         mensaje = mensajeRepository.save(mensaje);
 
         Correlacion entidadCorrelacion = new Correlacion();
@@ -141,13 +139,27 @@ public class MensajeService {
             String destinoExterno, PoliticaFalloNotificacion politicaFalloNotificacion,
             Long actividadErrorId, PoliticaMensajeSinCaso politicaSinCaso) {
         Mensaje mensaje = obtener(empresaId, mensajeId);
-        EventoMensaje eventoCatch = resolverEvento(empresaId, eventoCatchId, "Message Catch");
+        Long catchEfectivoId = eventoCatchId != null
+                ? eventoCatchId
+                : (mensaje.getEventoCatch() != null ? mensaje.getEventoCatch().getId() : null);
+        EventoMensaje eventoCatch = resolverEvento(empresaId, catchEfectivoId, "Message Catch");
 
         String correlacion = StringUtils.hasText(claveCorrelacion)
                 ? claveCorrelacion
                 : (StringUtils.hasText(mensaje.getClaveCorrelacion())
                         ? mensaje.getClaveCorrelacion()
                         : "idProceso");
+
+        TipoDestinoExterno tipoDestinoEfectivo = tipoDestinoExterno != null
+                ? tipoDestinoExterno : mensaje.getTipoDestinoExterno();
+        String destinoEfectivo = destinoExterno != null ? destinoExterno : mensaje.getDestinoExterno();
+        PoliticaFalloNotificacion politicaFalloEfectiva = politicaFalloNotificacion != null
+                ? politicaFalloNotificacion : mensaje.getPoliticaFalloNotificacion();
+        Long actividadErrorEfectivaId = actividadErrorId != null
+                ? actividadErrorId
+                : (mensaje.getActividadError() != null ? mensaje.getActividadError().getId() : null);
+        PoliticaMensajeSinCaso politicaSinCasoEfectiva = politicaSinCaso != null
+                ? politicaSinCaso : mensaje.getPoliticaSinCaso();
 
         if (mensaje.getEventoThrow() != null) {
             validarThrow(mensaje.getEventoThrow(), mensaje.getPoolOrigen(), nombre, correlacion);
@@ -157,8 +169,8 @@ public class MensajeService {
         }
 
         Actividad actividadError = validarDestinoExterno(empresaId, mensaje.getProceso().getId(),
-                mensaje.getPoolDestino(), eventoCatch, tipoDestinoExterno, destinoExterno,
-                politicaFalloNotificacion, actividadErrorId);
+                mensaje.getPoolDestino(), eventoCatch, tipoDestinoEfectivo, destinoEfectivo,
+                politicaFalloEfectiva, actividadErrorEfectivaId);
         validarAmbiguedad(empresaId, mensaje.getProceso().getId(), nombre, correlacion, mensajeId);
 
         mensaje.setNombre(nombre);
@@ -199,20 +211,22 @@ public class MensajeService {
         Optional<Correlacion> correlacion = correlacionRepository
                 .findByMensajeIdAndEmpresaId(mensajeId, empresaId);
         correlacion.ifPresent(correlacionRepository::delete);
-        mensajeRepository.delete(mensaje);
+        mensaje.setActivo(false);
+        mensajeRepository.save(mensaje);
 
-        auditoriaModeladoService.registrar(proceso, "Mensaje eliminado: " + nombre + ".");
+        auditoriaModeladoService.registrar(proceso, "Mensaje eliminado (baja logica): " + nombre + ".");
     }
 
     public List<Mensaje> listarPorProceso(Long empresaId, Long procesoId) {
         if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
         }
-        return mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
+        return mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
     }
 
     public Mensaje obtener(Long empresaId, Long mensajeId) {
         return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId)
+                .filter(Mensaje::isActivo)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Mensaje no encontrado."));
     }
 
@@ -329,7 +343,7 @@ public class MensajeService {
 
     private void validarAmbiguedad(Long empresaId, Long procesoId, String nombre,
             String clave, Long mensajeActualId) {
-        boolean ambiguo = mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId)
+        boolean ambiguo = mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)
                 .stream()
                 .filter(m -> mensajeActualId == null || !m.getId().equals(mensajeActualId))
                 .anyMatch(m -> m.getNombre().equalsIgnoreCase(nombre)
