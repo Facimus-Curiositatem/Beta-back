@@ -18,6 +18,7 @@ import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 import com.facimus.procesos.modelado.repository.PoolRepository;
+import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
 
@@ -86,6 +87,24 @@ public class ArcoService {
         auditoriaModeladoService.registrar(origen.getLane().getPool().getProceso(),
                 "Arco editado: " + origen.getNombre() + " -> " + destino.getNombre() + ".");
         return arco;
+    }
+
+    public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long arcoId) {
+        Arco arco = obtener(empresaId, arcoId);
+        List<String> advertencias = new java.util.ArrayList<>();
+
+        long otrasSalidas = arcoRepository.findAllByOrigenIdAndEmpresaId(arco.getOrigen().getId(), empresaId)
+                .stream().filter(a -> a.isActivo() && !a.getId().equals(arcoId)).count();
+        long otrasEntradas = arcoRepository.findAllByDestinoIdAndEmpresaId(arco.getDestino().getId(), empresaId)
+                .stream().filter(a -> a.isActivo() && !a.getId().equals(arcoId)).count();
+
+        if (otrasSalidas == 0) {
+            advertencias.add("El nodo " + arco.getOrigen().getNombre() + " quedara sin salida.");
+        }
+        if (otrasEntradas == 0) {
+            advertencias.add("El nodo " + arco.getDestino().getNombre() + " quedara sin entrada.");
+        }
+        return new ImpactoEliminacion(!advertencias.isEmpty(), advertencias);
     }
 
     @Transactional
