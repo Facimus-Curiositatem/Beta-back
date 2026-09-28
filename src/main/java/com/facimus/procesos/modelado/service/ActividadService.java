@@ -13,6 +13,7 @@ import com.facimus.procesos.modelado.model.TipoActividad;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
 import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
+import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
 
@@ -107,6 +108,36 @@ public class ActividadService {
         auditoriaModeladoService.registrar(actividad.getLane().getPool().getProceso(),
                 "Actividad editada: " + actividad.getNombre() + ".");
         return actividad;
+    }
+
+    public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long actividadId) {
+        Actividad actividad = obtener(empresaId, actividadId);
+        List<String> advertencias = new java.util.ArrayList<>();
+
+        var entrantes = arcoRepository.findAllByDestinoIdAndEmpresaId(actividadId, empresaId).stream()
+                .filter(arco -> arco.isActivo()).toList();
+        var salientes = arcoRepository.findAllByOrigenIdAndEmpresaId(actividadId, empresaId).stream()
+                .filter(arco -> arco.isActivo()).toList();
+
+        entrantes.forEach(arco -> {
+            long otrasSalidas = arcoRepository.findAllByOrigenIdAndEmpresaId(arco.getOrigen().getId(), empresaId)
+                    .stream().filter(a -> a.isActivo() && !a.getId().equals(arco.getId())).count();
+            if (otrasSalidas == 0) {
+                advertencias.add("El nodo " + arco.getOrigen().getNombre() + " quedara sin salida.");
+            }
+        });
+        salientes.forEach(arco -> {
+            long otrasEntradas = arcoRepository.findAllByDestinoIdAndEmpresaId(arco.getDestino().getId(), empresaId)
+                    .stream().filter(a -> a.isActivo() && !a.getId().equals(arco.getId())).count();
+            if (otrasEntradas == 0) {
+                advertencias.add("El nodo " + arco.getDestino().getNombre() + " quedara sin entrada.");
+            }
+        });
+
+        if (!entrantes.isEmpty() && !salientes.isEmpty()) {
+            advertencias.add("Se eliminaran los arcos conectados a " + actividad.getNombre() + ".");
+        }
+        return new ImpactoEliminacion(!advertencias.isEmpty(), advertencias);
     }
 
     @Transactional
