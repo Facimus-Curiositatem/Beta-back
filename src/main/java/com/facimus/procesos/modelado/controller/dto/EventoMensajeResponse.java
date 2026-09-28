@@ -9,6 +9,6 @@ public record EventoMensajeResponse(Long id, String nombre, TipoEventoMensaje ti
     public static EventoMensajeResponse of(EventoMensaje evento) {
         return new EventoMensajeResponse(evento.getId(), evento.getNombre(), evento.getTipoEvento(),
                 evento.getContenido(), evento.getClaveCorrelacion(), evento.getPosicionX(), evento.getPosicionY(),
-                evento.getLane().getId(), evento.isOrigenExterno());
+                evento.getLane().getId(), Boolean.TRUE.equals(evento.getOrigenExterno()));
     }
 }

@@ -29,6 +29,10 @@ public class EventoMensaje extends NodoFlujo {
     @Column(name = "clave_correlacion_evento")
     private String claveCorrelacion;
 
+    // Boolean (no boolean primitivo): con SINGLE_TABLE los demas subtipos comparten esta columna
+    // y no tienen este campo. Un primitivo hace que Hibernate infiera NOT NULL y genere un check
+    // constraint condicional fragil (tipo_nodo <> 'EVENTO_MENSAJE' OR origen_externo IS NOT NULL)
+    // que fallaba de forma intermitente en la insercion.
     @Column(name = "origen_externo")
-    private boolean origenExterno;
+    private Boolean origenExterno;
 }
