@@ -20,6 +20,7 @@ import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.PoolRepository;
+import com.facimus.procesos.modelado.service.ValidacionModeloService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +34,7 @@ public class ProcesoService {
     private final UsuarioRepository usuarioRepository;
     private final PoolRepository poolRepository;
     private final HistorialCambioService historialCambioService;
+    private final ValidacionModeloService validacionModeloService;
 
     @Transactional
     public Proceso crear(Long empresaId, Long usuarioId, String nombre, String descripcion, String categoria) {
@@ -41,6 +43,9 @@ public class ProcesoService {
         }
         Empresa empresa = empresaRepository.findById(empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
+        if (nuevoEstado == EstadoProceso.PUBLICADO) {
+            validacionModeloService.validarParaPublicacion(empresaId, procesoId);
+        }
         Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
 
