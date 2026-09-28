@@ -93,7 +93,7 @@ public class ValidacionModeloService {
 
     private void validarMensajes(Long empresaId, Long procesoId) {
         Set<String> claves = new HashSet<>();
-        for (Mensaje mensaje : mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId)) {
+        for (Mensaje mensaje : mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)) {
             if (mensaje.getEventoThrow() == null) {
                 throw new ReglaNegocioException(
                         "El mensaje \"" + mensaje.getNombre() + "\" debe tener un Message Throw asociado.");
