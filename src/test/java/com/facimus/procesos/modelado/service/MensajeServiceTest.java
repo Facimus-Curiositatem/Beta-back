@@ -77,6 +77,7 @@ class MensajeServiceTest {
         mensaje.setProceso(proceso);
         mensaje.setPoolOrigen(poolOrigen);
         mensaje.setPoolDestino(poolDestino);
+        mensaje.setActivo(true);
     }
 
     @Test
@@ -129,7 +130,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository, never()).delete(any());
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -143,7 +146,9 @@ class MensajeServiceTest {
         mensajeService.eliminar(1L, 1L);
 
         verify(correlacionRepository).delete(correlacion);
-        verify(mensajeRepository).delete(mensaje);
+        verify(mensajeRepository).save(mensaje);
+        assertFalse(mensaje.isActivo());
+        verify(mensajeRepository, never()).delete(any(Mensaje.class));
     }
 
     @Test
@@ -159,7 +164,7 @@ class MensajeServiceTest {
     @DisplayName("Listar mensajes de proceso existente retorna lista")
     void listar_exitoso() {
         when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(true);
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
 
         List<Mensaje> resultado = mensajeService.listarPorProceso(1L, 10L);
 
