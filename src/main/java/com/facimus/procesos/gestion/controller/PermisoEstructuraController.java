@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.gestion.controller.dto.PermisoEstructuraRequest;
 import com.facimus.procesos.gestion.controller.dto.PermisoEstructuraResponse;
 import com.facimus.procesos.gestion.model.RolAcceso;
@@ -26,11 +28,12 @@ import lombok.RequiredArgsConstructor;
 public class PermisoEstructuraController {
 
     private final PermisoEstructuraService permisoEstructuraService;
+    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<List<PermisoEstructuraResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(permisoEstructuraService.listar(principal.empresaId()).stream()
-                .map(PermisoEstructuraResponse::of).toList());
+                .map(p -> modelMapper.map(p, PermisoEstructuraResponse.class)).toList());
     }
 
     @PutMapping("/{rol}")
@@ -40,6 +43,6 @@ public class PermisoEstructuraController {
         var permiso = permisoEstructuraService.actualizar(principal.empresaId(), rol,
                 request.crearPool(), request.editarPool(), request.eliminarPool(),
                 request.crearLane(), request.editarLane(), request.eliminarLane());
-        return ResponseEntity.ok(PermisoEstructuraResponse.of(permiso));
+        return ResponseEntity.ok(modelMapper.map(permiso, PermisoEstructuraResponse.class));
     }
 }
