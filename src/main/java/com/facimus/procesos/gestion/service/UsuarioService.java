@@ -11,7 +11,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class UsuarioService {
     private static final String CREDENCIALES_INVALIDAS = "Correo o contrasena incorrectos.";
 
     private final UsuarioRepository usuarioRepository;
-    private final EmpresaRepository empresaRepository;
+    private final EmpresaService empresaService;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -33,8 +32,7 @@ public class UsuarioService {
         if (usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email)) {
             throw new ReglaNegocioException("Ya existe un usuario con el correo " + email + " en esta empresa.");
         }
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
+        Empresa empresa = empresaService.obtener(empresaId);
 
         Usuario usuario = new Usuario();
         usuario.setEmpresa(empresa);
@@ -87,5 +85,13 @@ public class UsuarioService {
     public Usuario obtener(Long empresaId, Long usuarioId) {
         return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+    }
+
+    public boolean existePorEmail(Long empresaId, String email) {
+        return usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email);
+    }
+
+    public java.util.Optional<Usuario> buscar(Long empresaId, Long usuarioId) {
+        return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId);
     }
 }
