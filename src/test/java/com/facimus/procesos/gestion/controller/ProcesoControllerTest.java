@@ -22,6 +22,9 @@ import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -33,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(ProcesoController.class)
+@Import(ModelMapperConfig.class)
 class ProcesoControllerTest {
 
     @Autowired
