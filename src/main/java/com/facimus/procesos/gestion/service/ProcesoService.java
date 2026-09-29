@@ -2,6 +2,7 @@ package com.facimus.procesos.gestion.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,38 +14,41 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.gestion.repository.ProcesoSpecifications;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
-import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.repository.PoolRepository;
+import com.facimus.procesos.modelado.service.PoolService;
 import com.facimus.procesos.modelado.service.ValidacionModeloService;
-
-import lombok.RequiredArgsConstructor;
 
 /** HU-04 a HU-07: ciclo de vida y consulta de procesos. */
 @Service
-@RequiredArgsConstructor
 public class ProcesoService {
 
     private final ProcesoRepository procesoRepository;
-    private final EmpresaRepository empresaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final PoolRepository poolRepository;
+    private final EmpresaService empresaService;
+    private final UsuarioService usuarioService;
+    private final PoolService poolService;
     private final HistorialCambioService historialCambioService;
     private final ValidacionModeloService validacionModeloService;
+
+    public ProcesoService(ProcesoRepository procesoRepository, EmpresaService empresaService,
+            UsuarioService usuarioService, @Lazy PoolService poolService,
+            HistorialCambioService historialCambioService, @Lazy ValidacionModeloService validacionModeloService) {
+        this.procesoRepository = procesoRepository;
+        this.empresaService = empresaService;
+        this.usuarioService = usuarioService;
+        this.poolService = poolService;
+        this.historialCambioService = historialCambioService;
+        this.validacionModeloService = validacionModeloService;
+    }
 
     @Transactional
     public Proceso crear(Long empresaId, Long usuarioId, String nombre, String descripcion, String categoria) {
         if (procesoRepository.existsByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(empresaId, nombre)) {
             throw new ReglaNegocioException("Ya existe un proceso activo con el nombre \"" + nombre + "\" en esta empresa.");
         }
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
-        Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+        Empresa empresa = empresaService.obtener(empresaId);
+        Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 
         LocalDateTime ahora = LocalDateTime.now();
         Proceso proceso = new Proceso();
@@ -58,14 +62,7 @@ public class ProcesoService {
         proceso.setFechaModificacion(ahora);
         proceso = procesoRepository.save(proceso);
 
-        Pool poolInicial = new Pool();
-        poolInicial.setEmpresa(empresa);
-        poolInicial.setProceso(proceso);
-        poolInicial.setNombre(empresa.getNombre());
-        poolInicial.setTipoParticipante(TipoParticipante.EMPRESA);
-        poolInicial.setCajaNegra(false);
-        poolInicial.setOrden(0);
-        poolRepository.save(poolInicial);
+        poolService.crear(empresaId, proceso.getId(), empresa.getNombre(), TipoParticipante.EMPRESA, false);
 
         historialCambioService.registrar(proceso, autor, "Proceso creado.");
         return proceso;
@@ -75,8 +72,7 @@ public class ProcesoService {
     public Proceso editarDatos(Long empresaId, Long procesoId, Long usuarioId, String nombre, String descripcion,
             String categoria) {
         Proceso proceso = obtener(empresaId, procesoId);
-        Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+        Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 
         if (!proceso.getNombre().equalsIgnoreCase(nombre)
                 && procesoRepository.existsByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(empresaId, nombre)) {
@@ -110,8 +106,7 @@ public class ProcesoService {
         if (nuevoEstado == EstadoProceso.PUBLICADO) {
             validacionModeloService.validarParaPublicacion(empresaId, procesoId);
         }
-        Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+        Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 
         proceso.setEstado(nuevoEstado);
         proceso.setFechaModificacion(LocalDateTime.now());
@@ -125,8 +120,7 @@ public class ProcesoService {
     @Transactional
     public void eliminarLogico(Long empresaId, Long procesoId, Long usuarioId) {
         Proceso proceso = obtener(empresaId, procesoId);
-        Usuario autor = usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+        Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 
         proceso.setActivo(false);
         proceso.setFechaModificacion(LocalDateTime.now());
@@ -139,6 +133,15 @@ public class ProcesoService {
             Boolean activo, Pageable pageable) {
         return procesoRepository.findAll(
                 ProcesoSpecifications.conFiltros(empresaId, nombre, estado, categoria, activo), pageable);
+    }
+
+    public boolean existe(Long empresaId, Long procesoId) {
+        return procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId);
+    }
+
+    public Proceso obtenerPorId(Long empresaId, Long procesoId) {
+        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
     }
 
     public Proceso obtener(Long empresaId, Long procesoId) {
