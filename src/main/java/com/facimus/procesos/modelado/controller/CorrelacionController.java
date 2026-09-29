@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.modelado.controller.dto.CorrelacionRequest;
 import com.facimus.procesos.modelado.controller.dto.CorrelacionResponse;
 import com.facimus.procesos.modelado.model.Correlacion;
@@ -26,13 +28,14 @@ import lombok.RequiredArgsConstructor;
 public class CorrelacionController {
 
     private final CorrelacionService correlacionService;
+    private final ModelMapper modelMapper;
 
     @PutMapping
     public ResponseEntity<CorrelacionResponse> definir(@PathVariable Long mensajeId,
             @Validated @RequestBody CorrelacionRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Correlacion correlacion = correlacionService.definir(empresaId, mensajeId, request.criterio());
-        return ResponseEntity.ok(CorrelacionResponse.of(correlacion));
+        return ResponseEntity.ok(modelMapper.map(correlacion, CorrelacionResponse.class));
     }
 
     @GetMapping
@@ -40,7 +43,7 @@ public class CorrelacionController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Correlacion correlacion = correlacionService.obtener(empresaId, mensajeId);
-        return ResponseEntity.ok(CorrelacionResponse.of(correlacion));
+        return ResponseEntity.ok(modelMapper.map(correlacion, CorrelacionResponse.class));
     }
 
     @DeleteMapping
