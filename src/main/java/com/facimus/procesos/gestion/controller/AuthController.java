@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.facimus.procesos.common.ReglaNegocioException;
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.gestion.controller.dto.LoginRequest;
 import com.facimus.procesos.gestion.controller.dto.LoginResponse;
 import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
@@ -27,10 +29,12 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final JwtService jwtService;
+    private final ModelMapper modelMapper;
 
-    public AuthController(UsuarioService usuarioService, JwtService jwtService) {
+    public AuthController(UsuarioService usuarioService, JwtService jwtService, ModelMapper modelMapper) {
         this.usuarioService = usuarioService;
         this.jwtService = jwtService;
+        this.modelMapper = modelMapper;
     }
 
     @SecurityRequirements()
@@ -46,7 +50,7 @@ public class AuthController {
         }
         String token = jwtService.generarToken(ApiPrincipal.of(usuario));
         return ResponseEntity.ok(new LoginResponse(token, TIPO_TOKEN, jwtService.getExpirationSeconds(),
-                UsuarioResponse.of(usuario)));
+                modelMapper.map(usuario, UsuarioResponse.class)));
     }
 
     /** Sin estado en el servidor: cerrar sesion es que el cliente descarte su token. */
