@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.modelado.controller.dto.EventoMensajeRequest;
 import com.facimus.procesos.modelado.controller.dto.EventoMensajeResponse;
 import com.facimus.procesos.modelado.model.EventoMensaje;
@@ -29,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class EventoMensajeController {
 
     private final EventoMensajeService eventoMensajeService;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/lanes/{laneId}/eventos-mensaje")
     public ResponseEntity<EventoMensajeResponse> crear(@PathVariable Long laneId,
@@ -38,20 +41,20 @@ public class EventoMensajeController {
                 request.tipoEvento(), request.contenido(), request.claveCorrelacion(),
                 request.posicionX(), request.posicionY(), request.origenExterno());
         return ResponseEntity.created(URI.create("/api/v1/eventos-mensaje/" + evento.getId()))
-                .body(EventoMensajeResponse.of(evento));
+                .body(modelMapper.map(evento, EventoMensajeResponse.class));
     }
 
     @GetMapping("/eventos-mensaje/{id}")
     public ResponseEntity<EventoMensajeResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(EventoMensajeResponse.of(eventoMensajeService.obtener(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(eventoMensajeService.obtener(principal.empresaId(), id), EventoMensajeResponse.class));
     }
 
     @GetMapping("/lanes/{laneId}/eventos-mensaje")
     public ResponseEntity<List<EventoMensajeResponse>> listar(@PathVariable Long laneId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(eventoMensajeService.listarPorLane(principal.empresaId(), laneId).stream()
-                .map(EventoMensajeResponse::of).toList());
+                .map(e -> modelMapper.map(e, EventoMensajeResponse.class)).toList());
     }
 
     @PutMapping("/eventos-mensaje/{id}")
@@ -61,7 +64,7 @@ public class EventoMensajeController {
         EventoMensaje evento = eventoMensajeService.editar(principal.empresaId(), id, request.nombre(),
                 request.tipoEvento(), request.contenido(), request.claveCorrelacion(),
                 request.posicionX(), request.posicionY(), request.origenExterno());
-        return ResponseEntity.ok(EventoMensajeResponse.of(evento));
+        return ResponseEntity.ok(modelMapper.map(evento, EventoMensajeResponse.class));
     }
 
     @DeleteMapping("/eventos-mensaje/{id}")
