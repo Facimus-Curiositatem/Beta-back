@@ -2,6 +2,8 @@ package com.facimus.procesos.modelado.controller;
 
 import java.net.URI;
 import java.util.List;
+
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class ActividadController {
 
     private final ActividadService actividadService;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/lanes/{laneId}/actividades")
     public ResponseEntity<ActividadResponse> crear(@PathVariable Long laneId,
@@ -41,20 +44,21 @@ public class ActividadController {
                 : actividadService.crear(empresaId, laneId, request.nombre(), request.descripcion(),
                         request.posicionX(), request.posicionY(), request.tipoActividad());
         return ResponseEntity.created(URI.create("/api/v1/actividades/" + actividad.getId()))
-                .body(ActividadResponse.of(actividad));
+                .body(modelMapper.map(actividad, ActividadResponse.class));
     }
 
     @GetMapping("/actividades/{id}")
     public ResponseEntity<ActividadResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(ActividadResponse.of(actividadService.obtener(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(actividadService.obtener(principal.empresaId(), id),
+                ActividadResponse.class));
     }
 
     @GetMapping("/lanes/{laneId}/actividades")
     public ResponseEntity<List<ActividadResponse>> listar(@PathVariable Long laneId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(actividadService.listarPorLane(principal.empresaId(), laneId).stream()
-                .map(ActividadResponse::of).toList());
+                .map(a -> modelMapper.map(a, ActividadResponse.class)).toList());
     }
 
     @PutMapping("/actividades/{id}")
@@ -66,7 +70,7 @@ public class ActividadController {
                         request.posicionX(), request.posicionY(), request.laneId())
                 : actividadService.editar(empresaId, id, request.nombre(), request.descripcion(),
                         request.posicionX(), request.posicionY(), request.laneId(), request.tipoActividad());
-        return ResponseEntity.ok(ActividadResponse.of(actividad));
+        return ResponseEntity.ok(modelMapper.map(actividad, ActividadResponse.class));
     }
 
     @GetMapping("/actividades/{id}/impacto-eliminacion")
