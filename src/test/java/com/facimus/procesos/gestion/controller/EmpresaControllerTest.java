@@ -13,6 +13,9 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.service.EmpresaService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -22,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(EmpresaController.class)
+@Import(ModelMapperConfig.class)
 class EmpresaControllerTest {
 
     @Autowired
