@@ -277,10 +277,10 @@ class AislamientoEmpresasIntegracionTest {
                 Arguments.of(HttpMethod.PUT, "/api/v1/lanes/{id}", laneA, new LaneRequest("Mixta", rolB),
                         "Rol de proceso no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/arcos", null, new ArcoRequest(gatewayA, gatewayB, null, null),
-                        "Nodo de destino no encontrado"),
+                        "Nodo no encontrado"),
                 Arguments.of(HttpMethod.POST, "/api/v1/procesos/{id}/mensajes", procesoA,
                         new MensajeRequest("Mixto", "Hacia la empresa B", poolA, poolB),
-                        "Pool de destino no encontrado"));
+                        "Pool no encontrado"));
     }
 
     @ParameterizedTest(name = "{0} {1} -> 404 {4}")
