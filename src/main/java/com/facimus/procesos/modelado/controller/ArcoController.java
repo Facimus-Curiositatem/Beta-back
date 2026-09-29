@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.modelado.controller.dto.ArcoRequest;
 import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
 import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class ArcoController {
 
     private final ArcoService arcoService;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/arcos")
     public ResponseEntity<ArcoResponse> crear(@Validated @RequestBody ArcoRequest request,
@@ -39,7 +42,7 @@ public class ArcoController {
         Arco arco = arcoService.crear(empresaId, request.origenId(), request.destinoId(), request.etiqueta(),
                 request.condicion());
         return ResponseEntity.created(URI.create("/api/v1/arcos/" + arco.getId()))
-                .body(ArcoResponse.of(arco));
+                .body(modelMapper.map(arco, ArcoResponse.class));
     }
 
     @GetMapping("/arcos/{id}")
@@ -47,7 +50,7 @@ public class ArcoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Arco arco = arcoService.obtener(empresaId, id);
-        return ResponseEntity.ok(ArcoResponse.of(arco));
+        return ResponseEntity.ok(modelMapper.map(arco, ArcoResponse.class));
     }
 
     @GetMapping("/pools/{poolId}/arcos")
@@ -55,7 +58,7 @@ public class ArcoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         List<ArcoResponse> arcos = arcoService.listarPorPool(empresaId, poolId).stream()
-                .map(ArcoResponse::of).toList();
+                .map(a -> modelMapper.map(a, ArcoResponse.class)).toList();
         return ResponseEntity.ok(arcos);
     }
 
@@ -66,7 +69,7 @@ public class ArcoController {
         Long empresaId = principal.empresaId();
         Arco arco = arcoService.editar(empresaId, id, request.etiqueta(), request.condicion(),
                 request.origenId(), request.destinoId());
-        return ResponseEntity.ok(ArcoResponse.of(arco));
+        return ResponseEntity.ok(modelMapper.map(arco, ArcoResponse.class));
     }
 
     @GetMapping("/arcos/{id}/impacto-eliminacion")
