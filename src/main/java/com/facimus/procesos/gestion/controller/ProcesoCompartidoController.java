@@ -3,6 +3,7 @@ package com.facimus.procesos.gestion.controller;
 import java.net.URI;
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -30,13 +31,14 @@ import lombok.RequiredArgsConstructor;
 public class ProcesoCompartidoController {
 
     private final ProcesoCompartidoService procesoCompartidoService;
+    private final ModelMapper modelMapper;
 
     @GetMapping("/procesos/{procesoId}/compartidos")
     public ResponseEntity<List<ProcesoCompartidoResponse>> listarCompartidos(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(procesoCompartidoService
                 .listarCompartidosPorPropietario(principal.empresaId(), procesoId).stream()
-                .map(ProcesoCompartidoResponse::of).toList());
+                .map(c -> modelMapper.map(c, ProcesoCompartidoResponse.class)).toList());
     }
 
     @PostMapping("/procesos/{procesoId}/compartidos")
@@ -46,7 +48,7 @@ public class ProcesoCompartidoController {
         ProcesoCompartido compartido = procesoCompartidoService.compartir(principal.empresaId(),
                 principal.usuarioId(), procesoId, request.empresaInvitadaId());
         return ResponseEntity.created(URI.create("/api/v1/procesos-compartidos/" + procesoId))
-                .body(ProcesoCompartidoResponse.of(compartido));
+                .body(modelMapper.map(compartido, ProcesoCompartidoResponse.class));
     }
 
     @DeleteMapping("/procesos/{procesoId}/compartidos/{empresaInvitadaId}")
@@ -62,7 +64,7 @@ public class ProcesoCompartidoController {
     public ResponseEntity<List<ProcesoCompartidoResponse>> listarRecibidos(
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(procesoCompartidoService.listarRecibidos(principal.empresaId()).stream()
-                .map(ProcesoCompartidoResponse::of).toList());
+                .map(c -> modelMapper.map(c, ProcesoCompartidoResponse.class)).toList());
     }
 
     @GetMapping("/procesos-compartidos/{procesoId}")
