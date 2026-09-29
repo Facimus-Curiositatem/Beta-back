@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.modelado.controller.dto.EditarMensajeRequest;
 import com.facimus.procesos.modelado.controller.dto.MensajeRequest;
 import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
@@ -30,18 +32,19 @@ import lombok.RequiredArgsConstructor;
 public class MensajeController {
 
     private final MensajeService mensajeService;
+    private final ModelMapper modelMapper;
 
     @GetMapping("/procesos/{procesoId}/mensajes")
     public ResponseEntity<List<MensajeResponse>> listar(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(mensajeService.listarPorProceso(principal.empresaId(), procesoId).stream()
-                .map(MensajeResponse::of).toList());
+                .map(m -> modelMapper.map(m, MensajeResponse.class)).toList());
     }
 
     @GetMapping("/mensajes/{id}")
     public ResponseEntity<MensajeResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(MensajeResponse.of(mensajeService.obtener(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(mensajeService.obtener(principal.empresaId(), id), MensajeResponse.class));
     }
 
     @PostMapping("/procesos/{procesoId}/mensajes")
@@ -55,7 +58,7 @@ public class MensajeController {
                         request.claveCorrelacion(), request.tipoDestinoExterno(), request.destinoExterno(),
                         request.politicaFalloNotificacion(), request.actividadErrorId(), request.politicaSinCaso());
         return ResponseEntity.created(URI.create("/api/v1/mensajes/" + mensaje.getId()))
-                .body(MensajeResponse.of(mensaje));
+                .body(modelMapper.map(mensaje, MensajeResponse.class));
     }
 
     @PutMapping("/mensajes/{id}")
@@ -71,7 +74,7 @@ public class MensajeController {
                         request.eventoCatchId(), request.claveCorrelacion(), request.tipoDestinoExterno(),
                         request.destinoExterno(), request.politicaFalloNotificacion(),
                         request.actividadErrorId(), request.politicaSinCaso());
-        return ResponseEntity.ok(MensajeResponse.of(mensaje));
+        return ResponseEntity.ok(modelMapper.map(mensaje, MensajeResponse.class));
     }
 
     @DeleteMapping("/mensajes/{id}")
