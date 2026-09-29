@@ -12,9 +12,7 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.InvitacionUsuario;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.InvitacionUsuarioRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,23 +22,21 @@ import lombok.RequiredArgsConstructor;
 public class InvitacionUsuarioService {
 
     private final InvitacionUsuarioRepository invitacionUsuarioRepository;
-    private final EmpresaRepository empresaRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final EmpresaService empresaService;
     private final UsuarioService usuarioService;
 
     @Transactional
     public InvitacionUsuario crear(Long empresaId, String email, RolAcceso rolAcceso) {
         LocalDateTime ahora = LocalDateTime.now();
         invitacionUsuarioRepository.deleteAllByFechaExpiracionBeforeAndUsadaFalse(ahora);
-        if (usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email)) {
+        if (usuarioService.existePorEmail(empresaId, email)) {
             throw new ReglaNegocioException("Ya existe un usuario con ese correo en la empresa.");
         }
         if (invitacionUsuarioRepository.existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
                 empresaId, email, ahora)) {
             throw new ReglaNegocioException("Ya existe una invitacion pendiente para ese correo.");
         }
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
+        Empresa empresa = empresaService.obtener(empresaId);
 
         InvitacionUsuario invitacion = new InvitacionUsuario();
         invitacion.setEmpresa(empresa);
