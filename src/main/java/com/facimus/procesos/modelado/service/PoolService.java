@@ -2,36 +2,41 @@ package com.facimus.procesos.modelado.service;
 
 import java.util.List;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Proceso;
-import com.facimus.procesos.gestion.repository.ProcesoRepository;
+import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.repository.LaneRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 import com.facimus.procesos.modelado.repository.PoolRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class PoolService {
 
     private final PoolRepository poolRepository;
-    private final ProcesoRepository procesoRepository;
-    private final LaneRepository laneRepository;
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final ProcesoService procesoService;
+    private final LaneService laneService;
+    private final NodoFlujoService nodoFlujoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
+
+    public PoolService(PoolRepository poolRepository, @Lazy ProcesoService procesoService,
+            @Lazy LaneService laneService, NodoFlujoService nodoFlujoService,
+            AuditoriaModeladoService auditoriaModeladoService) {
+        this.poolRepository = poolRepository;
+        this.procesoService = procesoService;
+        this.laneService = laneService;
+        this.nodoFlujoService = nodoFlujoService;
+        this.auditoriaModeladoService = auditoriaModeladoService;
+    }
 
     @Transactional
     public Pool crear(Long empresaId, Long procesoId, String nombre, TipoParticipante tipoParticipante,
             boolean cajaNegra) {
-        Proceso proceso = procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
+        Proceso proceso = procesoService.obtenerPorId(empresaId, procesoId);
         int orden = poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId).size();
 
         Pool pool = new Pool();
@@ -57,7 +62,7 @@ public class PoolService {
             boolean cajaNegra) {
         Pool pool = obtener(empresaId, poolId);
         if (cajaNegra && !pool.isCajaNegra()
-                && !laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId).isEmpty()) {
+                && !laneService.listarPorPool(empresaId, poolId).isEmpty()) {
             throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
         }
         pool.setNombre(nombre);
@@ -71,23 +76,21 @@ public class PoolService {
     @Transactional
     public void eliminar(Long empresaId, Long poolId) {
         Pool pool = obtener(empresaId, poolId);
-        boolean tieneNodos = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId)
-                .stream()
-                .anyMatch(lane -> nodoFlujoRepository.findAllByLaneIdAndEmpresaId(lane.getId(), empresaId).stream()
-                        .anyMatch(nodo -> nodo.isActivo()));
+        boolean tieneNodos = laneService.listarPorPool(empresaId, poolId).stream()
+                .anyMatch(lane -> nodoFlujoService.tieneNodosActivos(empresaId, lane.getId()));
         if (tieneNodos) {
             throw new ReglaNegocioException("El pool \"" + pool.getNombre()
                     + "\" tiene lanes con actividades o elementos activos; no se puede eliminar.");
         }
         var proceso = pool.getProceso();
         String nombre = pool.getNombre();
-        laneRepository.deleteAll(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId));
+        laneService.eliminarPorPool(empresaId, poolId);
         poolRepository.delete(pool);
         auditoriaModeladoService.registrar(proceso, "Pool eliminado: " + nombre + ".");
     }
 
     public List<Pool> listarPorProceso(Long empresaId, Long procesoId) {
-        if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
+        if (!procesoService.existe(empresaId, procesoId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
         }
         return poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
@@ -96,5 +99,9 @@ public class PoolService {
     public Pool obtener(Long empresaId, Long poolId) {
         return poolRepository.findByIdAndEmpresaId(poolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+    }
+
+    public boolean existe(Long empresaId, Long poolId) {
+        return poolRepository.existsByIdAndEmpresaId(poolId, empresaId);
     }
 }
