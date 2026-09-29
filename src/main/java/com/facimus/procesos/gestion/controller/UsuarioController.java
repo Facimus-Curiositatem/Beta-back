@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.gestion.controller.dto.ActualizarUsuarioRequest;
 import com.facimus.procesos.gestion.controller.dto.CrearUsuarioRequest;
 import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
@@ -31,12 +33,13 @@ import lombok.RequiredArgsConstructor;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         List<UsuarioResponse> usuarios = usuarioService.listarPorEmpresa(empresaId).stream()
-                .map(UsuarioResponse::of)
+                .map(u -> modelMapper.map(u, UsuarioResponse.class))
                 .toList();
         return ResponseEntity.ok(usuarios);
     }
@@ -48,7 +51,7 @@ public class UsuarioController {
         Usuario usuario = usuarioService.crearColaborador(empresaId, request.nombre(), request.email(),
                 request.password(), request.rolAcceso());
         return ResponseEntity.created(URI.create("/api/v1/usuarios/" + usuario.getId()))
-        .body(UsuarioResponse.of(usuario));
+        .body(modelMapper.map(usuario, UsuarioResponse.class));
     }
 
     @GetMapping("/{id}")
@@ -56,7 +59,7 @@ public class UsuarioController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Usuario usuario = usuarioService.obtener(empresaId, id);
-        return ResponseEntity.ok(UsuarioResponse.of(usuario));
+        return ResponseEntity.ok(modelMapper.map(usuario, UsuarioResponse.class));
     }
 
     @PatchMapping("/{id}")
@@ -64,7 +67,7 @@ public class UsuarioController {
             @Validated @RequestBody ActualizarUsuarioRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Usuario usuario = usuarioService.actualizar(empresaId, id, request.rolAcceso(), request.activo());
-        return ResponseEntity.ok(UsuarioResponse.of(usuario));
+        return ResponseEntity.ok(modelMapper.map(usuario, UsuarioResponse.class));
     }
 
     @DeleteMapping("/{id}")
