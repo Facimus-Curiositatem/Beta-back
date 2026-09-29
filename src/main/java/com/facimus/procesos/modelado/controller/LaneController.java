@@ -3,6 +3,8 @@ package com.facimus.procesos.modelado.controller;
 import java.util.List;
 
 import java.net.URI;
+
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -35,13 +37,14 @@ public class LaneController {
 
     private final LaneService laneService;
     private final PermisoEstructuraService permisoEstructuraService;
+    private final ModelMapper modelMapper;
 
     @GetMapping("/pools/{poolId}/lanes")
     public ResponseEntity<List<LaneResponse>> listar(@PathVariable Long poolId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         List<LaneResponse> lanes = laneService.listarPorPool(empresaId, poolId).stream()
-                .map(LaneResponse::of)
+                .map(l -> modelMapper.map(l, LaneResponse.class))
                 .toList();
         return ResponseEntity.ok(lanes);
     }
@@ -51,7 +54,7 @@ public class LaneController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Lane lane = laneService.obtener(empresaId, id);
-        return ResponseEntity.ok(LaneResponse.of(lane));
+        return ResponseEntity.ok(modelMapper.map(lane, LaneResponse.class));
     }
 
     @PostMapping("/pools/{poolId}/lanes")
@@ -61,7 +64,7 @@ public class LaneController {
         permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.CREAR_LANE);
         Lane lane = laneService.crear(empresaId, poolId, request.nombre(), request.rolProcesoId());
         return ResponseEntity.created(URI.create("/api/v1/lanes/" + lane.getId()))
-        .body(LaneResponse.of(lane));
+        .body(modelMapper.map(lane, LaneResponse.class));
     }
 
     @PutMapping("/lanes/{id}")
@@ -70,7 +73,7 @@ public class LaneController {
         Long empresaId = principal.empresaId();
         permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_LANE);
         Lane lane = laneService.editar(empresaId, id, request.nombre(), request.rolProcesoId());
-        return ResponseEntity.ok(LaneResponse.of(lane));
+        return ResponseEntity.ok(modelMapper.map(lane, LaneResponse.class));
     }
 
     @PatchMapping("/pools/{poolId}/lanes/orden")
@@ -80,7 +83,7 @@ public class LaneController {
         Long empresaId = principal.empresaId();
         permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_LANE);
         List<LaneResponse> lanes = laneService.reordenar(empresaId, poolId, request.laneIds()).stream()
-                .map(LaneResponse::of).toList();
+                .map(l -> modelMapper.map(l, LaneResponse.class)).toList();
         return ResponseEntity.ok(lanes);
     }
 
