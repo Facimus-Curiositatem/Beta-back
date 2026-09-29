@@ -10,8 +10,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,15 +19,14 @@ import lombok.RequiredArgsConstructor;
 public class EventoMensajeService {
 
     private final NodoFlujoRepository nodoFlujoRepository;
-    private final LaneRepository laneRepository;
-    private final ArcoRepository arcoRepository;
+    private final LaneService laneService;
+    private final ArcoService arcoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
 
     @Transactional
     public EventoMensaje crear(Long empresaId, Long laneId, String nombre, TipoEventoMensaje tipoEvento,
             String contenido, String claveCorrelacion, int posX, int posY, boolean origenExterno) {
-        Lane lane = laneRepository.findByIdAndEmpresaId(laneId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
+        Lane lane = laneService.obtener(empresaId, laneId);
         if (lane.getPool().isCajaNegra()) {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener eventos internos.");
         }
@@ -66,7 +63,7 @@ public class EventoMensajeService {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoEvento == TipoEventoMensaje.CATCH_INICIO
-                && arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId).stream()
+                && arcoService.listarPorDestino(empresaId, eventoId).stream()
                         .anyMatch(arco -> arco.isActivo())) {
             throw new ReglaNegocioException("Un Message Catch de inicio no puede tener arcos entrantes.");
         }
@@ -88,14 +85,7 @@ public class EventoMensajeService {
         EventoMensaje evento = obtener(empresaId, eventoId);
         var proceso = evento.getLane().getPool().getProceso();
         String nombre = evento.getNombre();
-        arcoRepository.findAllByOrigenIdAndEmpresaId(eventoId, empresaId).forEach(arco -> {
-            arco.setActivo(false);
-            arcoRepository.save(arco);
-        });
-        arcoRepository.findAllByDestinoIdAndEmpresaId(eventoId, empresaId).forEach(arco -> {
-            arco.setActivo(false);
-            arcoRepository.save(arco);
-        });
+        arcoService.desactivarPorNodo(empresaId, eventoId);
         evento.setActivo(false);
         nodoFlujoRepository.save(evento);
         auditoriaModeladoService.registrar(proceso, "Evento de mensaje eliminado (baja logica): " + nombre + ".");
@@ -110,9 +100,7 @@ public class EventoMensajeService {
     }
 
     public List<EventoMensaje> listarPorLane(Long empresaId, Long laneId) {
-        if (!laneRepository.existsByIdAndEmpresaId(laneId, empresaId)) {
-            throw new RecursoNoEncontradoException("Lane no encontrada.");
-        }
+        laneService.obtener(empresaId, laneId);
         return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .filter(EventoMensaje.class::isInstance)
