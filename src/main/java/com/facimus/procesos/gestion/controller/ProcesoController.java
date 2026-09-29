@@ -2,6 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -56,6 +57,7 @@ public class ProcesoController {
     private final ProcesoService procesoService;
     private final HistorialCambioService historialCambioService;
     private final ProcesoDiagramaService procesoDiagramaService;
+    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<PageResponse<ProcesoResponse>> listar(
@@ -68,7 +70,7 @@ public class ProcesoController {
         Long empresaId = principal.empresaId();
         Page<ProcesoResponse> procesos = procesoService.buscar(empresaId, nombre, estado, categoria, activo,
                         PageRequest.of(pagina, TAMANO_PAGINA, Sort.by("fechaModificacion").descending()))
-                .map(ProcesoResponse::of);
+                .map(p -> modelMapper.map(p, ProcesoResponse.class));
         return ResponseEntity.ok(PageResponse.from(procesos));
     }
 
@@ -80,7 +82,7 @@ public class ProcesoController {
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
         return ResponseEntity.created(URI.create("/api/v1/procesos/" + proceso.getId()))
-                .body(ProcesoResponse.of(proceso));
+                .body(modelMapper.map(proceso, ProcesoResponse.class));
     }
 
     @GetMapping("/{id}")
@@ -89,9 +91,10 @@ public class ProcesoController {
         Long empresaId = principal.empresaId();
         Proceso proceso = procesoService.obtener(empresaId, id);
         List<HistorialCambioResponse> historial = historialCambioService.listarPorProceso(empresaId, id).stream()
-                .map(HistorialCambioResponse::of)
+                .map(h -> modelMapper.map(h, HistorialCambioResponse.class))
                 .toList();
-        return ResponseEntity.ok(new ProcesoDetalleResponse(ProcesoResponse.of(proceso), historial));
+        return ResponseEntity.ok(new ProcesoDetalleResponse(
+                modelMapper.map(proceso, ProcesoResponse.class), historial));
     }
 
     @PutMapping("/{id}")
@@ -101,7 +104,7 @@ public class ProcesoController {
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.editarDatos(empresaId, id, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
-        return ResponseEntity.ok(ProcesoResponse.of(proceso));
+        return ResponseEntity.ok(modelMapper.map(proceso, ProcesoResponse.class));
     }
 
     @PatchMapping("/{id}")
@@ -111,7 +114,7 @@ public class ProcesoController {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
-        return ResponseEntity.ok(ProcesoResponse.of(proceso));
+        return ResponseEntity.ok(modelMapper.map(proceso, ProcesoResponse.class));
     }
 
     @GetMapping("/{id}/diagrama")
@@ -119,14 +122,14 @@ public class ProcesoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         var diagrama = procesoDiagramaService.obtener(principal.empresaId(), id);
         return ResponseEntity.ok(new ProcesoDiagramaResponse(
-                ProcesoResponse.of(diagrama.proceso()),
-                diagrama.pools().stream().map(PoolResponse::of).toList(),
-                diagrama.lanes().stream().map(LaneResponse::of).toList(),
-                diagrama.actividades().stream().map(ActividadResponse::of).toList(),
-                diagrama.gateways().stream().map(GatewayResponse::of).toList(),
-                diagrama.eventos().stream().map(EventoMensajeResponse::of).toList(),
-                diagrama.arcos().stream().map(ArcoResponse::of).toList(),
-                diagrama.mensajes().stream().map(MensajeResponse::of).toList()));
+                modelMapper.map(diagrama.proceso(), ProcesoResponse.class),
+                diagrama.pools().stream().map(p -> modelMapper.map(p, PoolResponse.class)).toList(),
+                diagrama.lanes().stream().map(l -> modelMapper.map(l, LaneResponse.class)).toList(),
+                diagrama.actividades().stream().map(a -> modelMapper.map(a, ActividadResponse.class)).toList(),
+                diagrama.gateways().stream().map(g -> modelMapper.map(g, GatewayResponse.class)).toList(),
+                diagrama.eventos().stream().map(e -> modelMapper.map(e, EventoMensajeResponse.class)).toList(),
+                diagrama.arcos().stream().map(a -> modelMapper.map(a, ArcoResponse.class)).toList(),
+                diagrama.mensajes().stream().map(m -> modelMapper.map(m, MensajeResponse.class)).toList()));
     }
 
     @GetMapping("/{id}/historial")
@@ -135,7 +138,7 @@ public class ProcesoController {
         Long empresaId = principal.empresaId();
         procesoService.obtener(empresaId, id);
         return ResponseEntity.ok(historialCambioService.listarPorProceso(empresaId, id).stream()
-                .map(HistorialCambioResponse::of)
+                .map(h -> modelMapper.map(h, HistorialCambioResponse.class))
                 .toList());
     }
 
