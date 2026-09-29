@@ -2,6 +2,8 @@ package com.facimus.procesos.modelado.controller;
 
 import java.net.URI;
 import java.util.List;
+
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class GatewayController {
 
     private final GatewayService gatewayService;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/lanes/{laneId}/gateways")
     public ResponseEntity<GatewayResponse> crear(@PathVariable Long laneId,
@@ -38,7 +41,7 @@ public class GatewayController {
         Gateway gateway = gatewayService.crear(empresaId, laneId, request.nombre(), request.tipoGateway(),
                 request.posicionX(), request.posicionY());
         return ResponseEntity.created(URI.create("/api/v1/gateways/" + gateway.getId()))
-                .body(GatewayResponse.of(gateway));
+                .body(modelMapper.map(gateway, GatewayResponse.class));
     }
 
     @GetMapping("/gateways/{id}")
@@ -46,7 +49,7 @@ public class GatewayController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Gateway gateway = gatewayService.obtener(empresaId, id);
-        return ResponseEntity.ok(GatewayResponse.of(gateway));
+        return ResponseEntity.ok(modelMapper.map(gateway, GatewayResponse.class));
     }
 
     @GetMapping("/lanes/{laneId}/gateways")
@@ -54,7 +57,7 @@ public class GatewayController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         List<GatewayResponse> gateways = gatewayService.listarPorLane(empresaId, laneId).stream()
-                .map(GatewayResponse::of).toList();
+                .map(g -> modelMapper.map(g, GatewayResponse.class)).toList();
         return ResponseEntity.ok(gateways);
     }
 
@@ -64,7 +67,7 @@ public class GatewayController {
         Long empresaId = principal.empresaId();
         Gateway gateway = gatewayService.editar(empresaId, id, request.nombre(), request.tipoGateway(),
                 request.posicionX(), request.posicionY());
-        return ResponseEntity.ok(GatewayResponse.of(gateway));
+        return ResponseEntity.ok(modelMapper.map(gateway, GatewayResponse.class));
     }
 
     @GetMapping("/gateways/{id}/impacto-eliminacion")
