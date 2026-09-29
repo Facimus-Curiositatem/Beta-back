@@ -21,7 +21,6 @@ import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.repository.CorrelacionRepository;
-import com.facimus.procesos.modelado.repository.MensajeRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CorrelacionServiceTest {
@@ -29,7 +28,7 @@ class CorrelacionServiceTest {
     @Mock
     private CorrelacionRepository correlacionRepository;
     @Mock
-    private MensajeRepository mensajeRepository;
+    private MensajeService mensajeService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
@@ -50,8 +49,8 @@ class CorrelacionServiceTest {
         mensaje.setEmpresa(empresa);
         mensaje.setProceso(proceso);
 
-        when(mensajeRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(mensaje));
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
+        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
         when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.empty());
         when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -59,7 +58,7 @@ class CorrelacionServiceTest {
 
         assertEquals("pedidoId", resultado.getCriterio());
         assertEquals("pedidoId", mensaje.getClaveCorrelacion());
-        verify(mensajeRepository).save(mensaje);
+        verify(mensajeService).guardar(mensaje);
         verify(auditoriaModeladoService).registrar(eq(proceso), contains("Correlacion actualizada"));
     }
 
@@ -76,8 +75,8 @@ class CorrelacionServiceTest {
         eventoThrow.setClaveCorrelacion("pedidoId");
         mensaje.setEventoThrow(eventoThrow);
 
-        when(mensajeRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(mensaje));
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
+        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
 
         assertThrows(ReglaNegocioException.class,
                 () -> correlacionService.definir(1L, 5L, "otraClave"));
@@ -99,8 +98,8 @@ class CorrelacionServiceTest {
         otro.setClaveCorrelacion("pedidoId");
         otro.setProceso(proceso);
 
-        when(mensajeRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(mensaje));
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(mensaje, otro));
+        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
+        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje, otro));
 
         assertThrows(ReglaNegocioException.class,
                 () -> correlacionService.definir(1L, 5L, "pedidoId"));
@@ -128,12 +127,12 @@ class CorrelacionServiceTest {
         correlacion.setId(1L);
 
         when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(correlacion));
-        when(mensajeRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(mensaje));
+        when(mensajeService.buscar(1L, 5L)).thenReturn(Optional.of(mensaje));
 
         correlacionService.eliminar(1L, 5L);
 
         assertNull(mensaje.getClaveCorrelacion());
-        verify(mensajeRepository).save(mensaje);
+        verify(mensajeService).guardar(mensaje);
         verify(auditoriaModeladoService).registrar(eq(proceso), contains("Correlacion eliminada"));
     }
 
