@@ -16,17 +16,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.*;
-import com.facimus.procesos.modelado.repository.*;
 
 @ExtendWith(MockitoExtension.class)
 class ValidacionModeloServiceTest {
 
-    @Mock private PoolRepository poolRepository;
-    @Mock private LaneRepository laneRepository;
-    @Mock private NodoFlujoRepository nodoFlujoRepository;
-    @Mock private ArcoRepository arcoRepository;
-    @Mock private MensajeRepository mensajeRepository;
-    @Mock private CorrelacionRepository correlacionRepository;
+    @Mock private PoolService poolService;
+    @Mock private LaneService laneService;
+    @Mock private NodoFlujoService nodoFlujoService;
+    @Mock private ArcoService arcoService;
+    @Mock private MensajeService mensajeService;
+    @Mock private CorrelacionService correlacionService;
 
     @InjectMocks
     private ValidacionModeloService service;
@@ -52,11 +51,11 @@ class ValidacionModeloServiceTest {
 
     @Test
     void modelo_vacio_es_valido() {
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
     }
@@ -64,8 +63,8 @@ class ValidacionModeloServiceTest {
     @Test
     void caja_negra_con_lane_falla() {
         pool.setCajaNegra(true);
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(lane));
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of(lane));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -78,10 +77,10 @@ class ValidacionModeloServiceTest {
         gateway.setTipoGateway(TipoGateway.EXCLUSIVO);
         gateway.setActivo(true);
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(gateway));
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(gateway));
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -99,10 +98,10 @@ class ValidacionModeloServiceTest {
         Arco ab = arco(11L, gateway, a, "");
         Arco ac = arco(12L, gateway, b, "x > 0");
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(gateway,a,b));
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(ab,ac));
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(gateway, a, b));
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(ab, ac));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -117,10 +116,10 @@ class ValidacionModeloServiceTest {
         Actividad origen = actividad(6L);
         Arco entrada = arco(20L, origen, evento, null);
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(evento,origen));
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(entrada));
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(evento, origen));
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(entrada));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -132,11 +131,11 @@ class ValidacionModeloServiceTest {
         mensaje.setNombre("Orden");
         mensaje.setActivo(true);
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -149,7 +148,7 @@ class ValidacionModeloServiceTest {
         mensaje.setClaveCorrelacion("pedidoId");
 
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -161,7 +160,7 @@ class ValidacionModeloServiceTest {
         mensaje.setEventoCatch(new EventoMensaje());
 
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -174,8 +173,8 @@ class ValidacionModeloServiceTest {
         mensaje.setClaveCorrelacion("pedidoId");
 
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
+        when(correlacionService.buscarPorMensaje(1L, 1L)).thenReturn(Optional.empty());
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -196,8 +195,8 @@ class ValidacionModeloServiceTest {
 
         Correlacion correlacion = new Correlacion();
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(a, b));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(anyLong(), eq(1L)))
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(a, b));
+        when(correlacionService.buscarPorMensaje(eq(1L), anyLong()))
                 .thenReturn(Optional.of(correlacion));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
@@ -214,8 +213,8 @@ class ValidacionModeloServiceTest {
 
         Correlacion correlacion = new Correlacion();
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
+        when(correlacionService.buscarPorMensaje(1L, 1L)).thenReturn(Optional.of(correlacion));
 
         assertThrows(ReglaNegocioException.class, () -> service.validarParaPublicacion(1L, 10L));
     }
@@ -236,8 +235,8 @@ class ValidacionModeloServiceTest {
 
         Correlacion correlacion = new Correlacion();
         prepararEstructuraVacia();
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
+        when(correlacionService.buscarPorMensaje(1L, 1L)).thenReturn(Optional.of(correlacion));
 
         assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
     }
@@ -255,11 +254,11 @@ class ValidacionModeloServiceTest {
         Arco ab = arco(11L, gateway, a, null);
         Arco ac = arco(12L, gateway, b, null);
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(gateway,a,b));
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(ab,ac));
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(gateway, a, b));
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(ab, ac));
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
     }
@@ -282,22 +281,22 @@ class ValidacionModeloServiceTest {
         Correlacion correlacion = new Correlacion();
         correlacion.setId(4L);
 
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(mensajeService.listarPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
+        when(correlacionService.buscarPorMensaje(1L, 1L)).thenReturn(Optional.of(correlacion));
 
         assertDoesNotThrow(() -> service.validarParaPublicacion(1L, 10L));
     }
 
 
     private void prepararEstructuraVacia() {
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of());
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
+        when(arcoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
     }
 
     private Mensaje mensajeBase() {
