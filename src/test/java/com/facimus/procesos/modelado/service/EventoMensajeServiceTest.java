@@ -21,8 +21,6 @@ import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,9 +29,9 @@ class EventoMensajeServiceTest {
     @Mock
     private NodoFlujoRepository nodoFlujoRepository;
     @Mock
-    private LaneRepository laneRepository;
+    private LaneService laneService;
     @Mock
-    private ArcoRepository arcoRepository;
+    private ArcoService arcoService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
@@ -55,7 +53,7 @@ class EventoMensajeServiceTest {
         lane.setEmpresa(empresa);
         lane.setPool(pool);
 
-        when(laneRepository.findByIdAndEmpresaId(2L, 1L)).thenReturn(Optional.of(lane));
+        when(laneService.obtener(1L, 2L)).thenReturn(lane);
         when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
                 "Orden", 10L, 1L)).thenReturn(false);
         when(nodoFlujoRepository.save(any())).thenAnswer(inv -> {
@@ -83,7 +81,7 @@ class EventoMensajeServiceTest {
         Lane lane = new Lane();
         lane.setPool(pool);
 
-        when(laneRepository.findByIdAndEmpresaId(2L, 1L)).thenReturn(Optional.of(lane));
+        when(laneService.obtener(1L, 2L)).thenReturn(lane);
 
         assertThrows(com.facimus.procesos.common.ReglaNegocioException.class, () ->
                 eventoMensajeService.crear(1L, 2L, "Orden", TipoEventoMensaje.THROW,
@@ -108,22 +106,13 @@ class EventoMensajeServiceTest {
         evento.setLane(lane);
         evento.setActivo(true);
 
-        Arco saliente = new Arco();
-        saliente.setActivo(true);
-        Arco entrante = new Arco();
-        entrante.setActivo(true);
-
         when(nodoFlujoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(evento));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(5L, 1L)).thenReturn(List.of(saliente));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(entrante));
 
         eventoMensajeService.eliminar(1L, 5L);
 
         assertFalse(evento.isActivo());
-        assertFalse(saliente.isActivo());
-        assertFalse(entrante.isActivo());
+        verify(arcoService).desactivarPorNodo(1L, 5L);
         verify(nodoFlujoRepository).save(evento);
-        verify(arcoRepository, times(2)).save(any(Arco.class));
     }
 
     @Test
@@ -135,7 +124,8 @@ class EventoMensajeServiceTest {
         EventoMensaje inactivo = new EventoMensaje();
         inactivo.setActivo(false);
 
-        when(laneRepository.existsByIdAndEmpresaId(2L, 1L)).thenReturn(true);
+        Lane lane = new Lane();
+        when(laneService.obtener(1L, 2L)).thenReturn(lane);
         when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(2L, 1L))
                 .thenReturn(List.of(activo, actividad, inactivo));
 
@@ -169,7 +159,7 @@ class EventoMensajeServiceTest {
         arcoInactivo.setActivo(false);
 
         when(nodoFlujoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(evento));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(arcoInactivo));
+        when(arcoService.listarPorDestino(1L, 5L)).thenReturn(List.of(arcoInactivo));
         when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         EventoMensaje resultado = eventoMensajeService.editar(
