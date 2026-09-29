@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.common.api.PageResponse;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoConsultaResponse;
 import com.facimus.procesos.gestion.controller.dto.RolProcesoRequest;
@@ -35,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 public class RolProcesoController {
 
     private final RolProcesoService rolProcesoService;
+    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<List<RolProcesoVistaResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
