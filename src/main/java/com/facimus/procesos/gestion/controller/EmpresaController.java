@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.modelmapper.ModelMapper;
+
 import com.facimus.procesos.gestion.controller.dto.EmpresaResponse;
 import com.facimus.procesos.gestion.controller.dto.RegistroEmpresaRequest;
 import com.facimus.procesos.gestion.model.Empresa;
@@ -24,6 +26,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 public class EmpresaController {
 
     private final EmpresaService empresaService;
+    private final ModelMapper modelMapper;
 
     @SecurityRequirements()
     @PostMapping
@@ -31,6 +34,6 @@ public class EmpresaController {
         Empresa empresa = empresaService.registrar(request.nombreEmpresa(), request.nit(),
                 request.correoContacto(), request.nombreAdmin(), request.emailAdmin(), request.passwordAdmin());
         return ResponseEntity.created(URI.create("/api/v1/empresas/" + empresa.getId()))
-        .body(EmpresaResponse.of(empresa));
+        .body(modelMapper.map(empresa, EmpresaResponse.class));
     }
 }
