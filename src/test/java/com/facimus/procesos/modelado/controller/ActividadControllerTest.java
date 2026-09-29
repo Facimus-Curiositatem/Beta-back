@@ -16,6 +16,9 @@ import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.service.ActividadService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -26,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ActividadController.class)
+@Import(ModelMapperConfig.class)
 class ActividadControllerTest {
 
     @Autowired
