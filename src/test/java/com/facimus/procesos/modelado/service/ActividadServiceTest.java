@@ -24,8 +24,6 @@ import com.facimus.procesos.modelado.model.Arco;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
 import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,9 +32,9 @@ class ActividadServiceTest {
     @Mock
     private NodoFlujoRepository nodoFlujoRepository;
     @Mock
-    private LaneRepository laneRepository;
+    private LaneService laneService;
     @Mock
-    private ArcoRepository arcoRepository;
+    private ArcoService arcoService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
@@ -99,7 +97,7 @@ class ActividadServiceTest {
 
     @Test
     void crear_actividad_exitosamente() {
-        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
         when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
                 "Nueva", 10L, 1L)).thenReturn(false);
         when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -114,7 +112,7 @@ class ActividadServiceTest {
     @Test
     void crear_en_pool_caja_negra_falla() {
         pool1.setCajaNegra(true);
-        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
 
         assertThrows(ReglaNegocioException.class,
                 () -> actividadService.crear(1L, 1000L, "Nueva", "Desc", 0, 0));
@@ -122,7 +120,7 @@ class ActividadServiceTest {
 
     @Test
     void crear_con_nombre_duplicado_falla() {
-        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane1));
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
         when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
                 "Nueva", 10L, 1L)).thenReturn(true);
 
@@ -152,10 +150,10 @@ class ActividadServiceTest {
         salida.setActivo(true);
 
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(20L, 1L)).thenReturn(List.of(entrada));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(30L, 1L)).thenReturn(List.of(salida));
+        when(arcoService.listarPorDestino(1L, 1L)).thenReturn(List.of(entrada));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(salida));
+        when(arcoService.listarPorOrigen(1L, 20L)).thenReturn(List.of(entrada));
+        when(arcoService.listarPorDestino(1L, 30L)).thenReturn(List.of(salida));
 
         var impacto = actividadService.evaluarImpactoEliminacion(1L, 1L);
 
@@ -165,17 +163,12 @@ class ActividadServiceTest {
 
     @Test
     void eliminar_hace_baja_logica_y_desactiva_arcos() {
-        Arco salida = new Arco(); salida.setActivo(true);
-        Arco entrada = new Arco(); entrada.setActivo(true);
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
 
         actividadService.eliminar(1L, 1L);
 
         assertFalse(actividad.isActivo());
-        assertFalse(salida.isActivo());
-        assertFalse(entrada.isActivo());
+        verify(arcoService).desactivarPorNodo(1L, 1L);
         verify(auditoriaModeladoService).registrar(eq(proceso), contains("eliminada"));
     }
 
@@ -184,7 +177,7 @@ class ActividadServiceTest {
         Actividad activa = new Actividad(); activa.setActivo(true);
         Actividad inactiva = new Actividad(); inactiva.setActivo(false);
         Gateway gateway = new Gateway(); gateway.setActivo(true);
-        when(laneRepository.existsByIdAndEmpresaId(1000L, 1L)).thenReturn(true);
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
         when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(1000L, 1L))
                 .thenReturn(List.of(activa, inactiva, gateway));
 
@@ -222,7 +215,7 @@ class ActividadServiceTest {
     @DisplayName("Mover actividad a lane del mismo pool funciona")
     void mover_a_lane_mismo_pool() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(laneRepository.findByIdAndEmpresaId(2000L, 1L)).thenReturn(Optional.of(lane2));
+        when(laneService.obtener(1L, 2000L)).thenReturn(lane2);
         when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 2000L);
@@ -234,9 +227,9 @@ class ActividadServiceTest {
     @DisplayName("Mover actividad a lane de otro pool sin arcos funciona")
     void mover_a_otro_pool_sin_arcos() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(laneRepository.findByIdAndEmpresaId(3000L, 1L)).thenReturn(Optional.of(lane3));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(Collections.emptyList());
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(Collections.emptyList());
+        when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(Collections.emptyList());
+        when(arcoService.listarPorDestino(1L, 1L)).thenReturn(Collections.emptyList());
         when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 3000L);
@@ -248,8 +241,8 @@ class ActividadServiceTest {
     @DisplayName("Mover actividad a lane de otro pool con arcos lanza excepcion")
     void mover_a_otro_pool_con_arcos() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(laneRepository.findByIdAndEmpresaId(3000L, 1L)).thenReturn(Optional.of(lane3));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(new Arco()));
+        when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(new Arco()));
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
                 () -> actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 3000L));
@@ -267,16 +260,16 @@ class ActividadServiceTest {
 
         assertEquals(lane1, resultado.getLane());
         assertEquals(5, resultado.getPosicionX());
-        verify(laneRepository, never()).findByIdAndEmpresaId(anyLong(), anyLong());
+        verify(laneService, never()).obtener(anyLong(), anyLong());
     }
 
     @Test
     @DisplayName("Mover a otro pool con arcos como destino lanza excepcion")
     void mover_a_otro_pool_con_arcos_destino() {
         when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(laneRepository.findByIdAndEmpresaId(3000L, 1L)).thenReturn(Optional.of(lane3));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(Collections.emptyList());
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(new Arco()));
+        when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(Collections.emptyList());
+        when(arcoService.listarPorDestino(1L, 1L)).thenReturn(List.of(new Arco()));
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
                 () -> actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 3000L));
