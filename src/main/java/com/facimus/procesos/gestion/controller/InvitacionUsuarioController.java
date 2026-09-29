@@ -2,6 +2,7 @@ package com.facimus.procesos.gestion.controller;
 
 import java.net.URI;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -27,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class InvitacionUsuarioController {
 
     private final InvitacionUsuarioService invitacionUsuarioService;
+    private final ModelMapper modelMapper;
 
     @PostMapping
     public ResponseEntity<InvitacionUsuarioResponse> crear(
@@ -34,13 +36,14 @@ public class InvitacionUsuarioController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         var invitacion = invitacionUsuarioService.crear(principal.empresaId(), request.email(), request.rolAcceso());
         return ResponseEntity.created(URI.create("/api/v1/usuarios/invitaciones/" + invitacion.getId()))
-                .body(InvitacionUsuarioResponse.of(invitacion));
+                .body(modelMapper.map(invitacion, InvitacionUsuarioResponse.class));
     }
 
     @PostMapping("/{token}/aceptar")
     public ResponseEntity<UsuarioResponse> aceptar(@PathVariable String token,
             @Validated @RequestBody AceptarInvitacionRequest request) {
-        return ResponseEntity.ok(UsuarioResponse.of(
-                invitacionUsuarioService.aceptar(token, request.nombre(), request.password())));
+        return ResponseEntity.ok(modelMapper.map(
+                invitacionUsuarioService.aceptar(token, request.nombre(), request.password()),
+                UsuarioResponse.class));
     }
 }
