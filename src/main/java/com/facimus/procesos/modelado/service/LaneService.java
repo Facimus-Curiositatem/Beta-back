@@ -2,40 +2,44 @@ package com.facimus.procesos.modelado.service;
 
 import java.util.List;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.RolProceso;
-import com.facimus.procesos.gestion.repository.RolProcesoRepository;
+import com.facimus.procesos.gestion.service.RolProcesoService;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.repository.LaneRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class LaneService {
 
     private final LaneRepository laneRepository;
-    private final PoolRepository poolRepository;
-    private final RolProcesoRepository rolProcesoRepository;
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final PoolService poolService;
+    private final RolProcesoService rolProcesoService;
+    private final NodoFlujoService nodoFlujoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
+
+    public LaneService(LaneRepository laneRepository, @Lazy PoolService poolService,
+            RolProcesoService rolProcesoService, NodoFlujoService nodoFlujoService,
+            AuditoriaModeladoService auditoriaModeladoService) {
+        this.laneRepository = laneRepository;
+        this.poolService = poolService;
+        this.rolProcesoService = rolProcesoService;
+        this.nodoFlujoService = nodoFlujoService;
+        this.auditoriaModeladoService = auditoriaModeladoService;
+    }
 
     @Transactional
     public Lane crear(Long empresaId, Long poolId, String nombre, Long rolProcesoId) {
-        Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
+        Pool pool = poolService.obtener(empresaId, poolId);
         if (pool.isCajaNegra()) {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener lanes.");
         }
-        RolProceso rolProceso = rolProcesoRepository.findByIdAndEmpresaId(rolProcesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
+        RolProceso rolProceso = rolProcesoService.obtener(empresaId, rolProcesoId);
         int orden = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId).size();
 
         Lane lane = new Lane();
@@ -52,8 +56,7 @@ public class LaneService {
     @Transactional
     public Lane editar(Long empresaId, Long laneId, String nombre, Long rolProcesoId) {
         Lane lane = obtener(empresaId, laneId);
-        RolProceso rolProceso = rolProcesoRepository.findByIdAndEmpresaId(rolProcesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
+        RolProceso rolProceso = rolProcesoService.obtener(empresaId, rolProcesoId);
         lane.setNombre(nombre);
         lane.setRolProceso(rolProceso);
         lane = laneRepository.save(lane);
@@ -64,7 +67,7 @@ public class LaneService {
     @Transactional
     public void eliminar(Long empresaId, Long laneId) {
         Lane lane = obtener(empresaId, laneId);
-        if (nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream().anyMatch(nodo -> nodo.isActivo())) {
+        if (nodoFlujoService.tieneNodosActivos(empresaId, laneId)) {
             throw new ReglaNegocioException("La lane \"" + lane.getNombre()
                     + "\" contiene elementos activos; primero deben reasignarse.");
         }
@@ -76,10 +79,7 @@ public class LaneService {
 
     @Transactional
     public List<Lane> reordenar(Long empresaId, Long poolId, List<Long> laneIds) {
-        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
-            throw new RecursoNoEncontradoException("Pool no encontrado.");
-        }
-        Pool pool = poolRepository.findByIdAndEmpresaId(poolId, empresaId).orElse(null);
+        Pool pool = poolService.obtener(empresaId, poolId);
         List<Lane> lanes = laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
         java.util.Set<Long> idsUnicos = new java.util.LinkedHashSet<>(laneIds);
         if (idsUnicos.size() != laneIds.size()) {
@@ -100,21 +100,38 @@ public class LaneService {
             lane.setOrden(i);
             laneRepository.save(lane);
         }
-        if (pool != null) {
-            auditoriaModeladoService.registrar(pool.getProceso(), "Lanes reordenadas en el pool " + pool.getNombre() + ".");
-        }
+        auditoriaModeladoService.registrar(pool.getProceso(), "Lanes reordenadas en el pool " + pool.getNombre() + ".");
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
     public List<Lane> listarPorPool(Long empresaId, Long poolId) {
-        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
-            throw new RecursoNoEncontradoException("Pool no encontrado.");
-        }
+        poolService.obtener(empresaId, poolId);
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
     public Lane obtener(Long empresaId, Long laneId) {
         return laneRepository.findByIdAndEmpresaId(laneId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
+    }
+
+    public List<Lane> listarPorProceso(Long empresaId, Long procesoId) {
+        return laneRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId);
+    }
+
+    public List<Lane> listarPorRolProceso(Long empresaId, Long rolProcesoId) {
+        return laneRepository.findAllByRolProcesoIdAndEmpresaId(rolProcesoId, empresaId);
+    }
+
+    public long contarPorRolProceso(Long empresaId, Long rolProcesoId) {
+        return laneRepository.countByRolProcesoIdAndEmpresaId(rolProcesoId, empresaId);
+    }
+
+    @Transactional
+    public void eliminarPorPool(Long empresaId, Long poolId) {
+        laneRepository.deleteAll(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId));
+    }
+
+    public boolean existe(Long empresaId, Long laneId) {
+        return laneRepository.existsByIdAndEmpresaId(laneId, empresaId);
     }
 }
