@@ -6,18 +6,16 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.repository.PoolRepository;
+import com.facimus.procesos.modelado.model.TipoParticipante;
+import com.facimus.procesos.modelado.service.PoolService;
 import com.facimus.procesos.modelado.service.ValidacionModeloService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,11 +32,11 @@ class ProcesoServiceTest {
     @Mock
     private ProcesoRepository procesoRepository;
     @Mock
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
     @Mock
-    private PoolRepository poolRepository;
+    private PoolService poolService;
     @Mock
     private HistorialCambioService historialCambioService;
     @Mock
@@ -73,25 +71,24 @@ class ProcesoServiceTest {
     @DisplayName("HU-04: crear proceso en BORRADOR con pool inicial")
     void crear_exitoso() {
         when(procesoRepository.existsByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(1L, "Compras")).thenReturn(false);
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
-        when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
+        when(empresaService.obtener(1L)).thenReturn(empresa);
+        when(usuarioService.obtener(1L, 10L)).thenReturn(usuario);
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> {
             Proceso p = inv.getArgument(0);
             p.setId(100L);
             return p;
         });
-        when(poolRepository.save(any(Pool.class))).thenAnswer(inv -> inv.getArgument(0));
+        Pool poolCreado = new Pool();
+        poolCreado.setNombre(empresa.getNombre());
+        when(poolService.crear(eq(1L), eq(100L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false)))
+                .thenReturn(poolCreado);
 
         Proceso result = procesoService.crear(1L, 10L, "Compras", "Proceso de compras", "Operativo");
 
         assertEquals(EstadoProceso.BORRADOR, result.getEstado());
         assertTrue(result.isActivo());
 
-        ArgumentCaptor<Pool> poolCaptor = ArgumentCaptor.forClass(Pool.class);
-        verify(poolRepository).save(poolCaptor.capture());
-        Pool pool = poolCaptor.getValue();
-        assertEquals(empresa.getNombre(), pool.getNombre());
-
+        verify(poolService).crear(eq(1L), eq(100L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false));
         verify(historialCambioService).registrar(eq(result), eq(usuario), anyString());
     }
 
@@ -110,7 +107,7 @@ class ProcesoServiceTest {
     @DisplayName("HU-05: publicar cambia estado a PUBLICADO")
     void publicar_exitoso() {
         when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 1L)).thenReturn(Optional.of(proceso));
-        when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
+        when(usuarioService.obtener(1L, 10L)).thenReturn(usuario);
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Proceso result = procesoService.cambiarEstado(1L, 100L, 10L, EstadoProceso.PUBLICADO);
@@ -123,7 +120,7 @@ class ProcesoServiceTest {
     @DisplayName("HU-06: eliminar logico pone activo=false sin DELETE fisico")
     void eliminarLogico_exitoso() {
         when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(100L, 1L)).thenReturn(Optional.of(proceso));
-        when(usuarioRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(usuario));
+        when(usuarioService.obtener(1L, 10L)).thenReturn(usuario);
         when(procesoRepository.save(any(Proceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
         procesoService.eliminarLogico(1L, 100L, 10L);
