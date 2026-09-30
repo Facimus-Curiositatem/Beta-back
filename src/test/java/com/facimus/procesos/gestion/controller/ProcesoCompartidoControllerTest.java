@@ -54,7 +54,7 @@ class ProcesoCompartidoControllerTest {
                     {"empresaInvitadaId":2}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos-compartidos/10"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/procesos-compartidos/10"))
                 .andExpect(jsonPath("$.empresaInvitada").value("Aliada"));
     }
 

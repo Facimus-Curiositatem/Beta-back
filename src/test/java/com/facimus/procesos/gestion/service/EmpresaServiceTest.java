@@ -2,8 +2,6 @@ package com.facimus.procesos.gestion.service;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.gestion.model.Empresa;
-import com.facimus.procesos.gestion.model.RolAcceso;
-import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.repository.EmpresaRepository;
 
 import org.junit.jupiter.api.DisplayName;
@@ -17,20 +15,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * EmpresaService ya no depende de UsuarioService (para evitar el ciclo
+ * EmpresaService<->UsuarioService): la creacion del usuario administrador inicial la
+ * orquesta EmpresaController despues de llamar a registrar(). Esa orquestacion se prueba
+ * en EmpresaControllerTest.
+ */
 @ExtendWith(MockitoExtension.class)
 class EmpresaServiceTest {
 
     @Mock
     private EmpresaRepository empresaRepository;
-    @Mock
-    private UsuarioService usuarioService;
 
     @InjectMocks
     private EmpresaService empresaService;
 
     @Test
-    @DisplayName("HU-01: registrar empresa crea empresa + usuario admin")
-    void registrar_crea_empresa_y_admin() {
+    @DisplayName("HU-01: registrar crea la empresa")
+    void registrar_crea_empresa() {
         when(empresaRepository.existsByNit("900123456")).thenReturn(false);
         when(empresaRepository.save(any(Empresa.class))).thenAnswer(inv -> {
             Empresa e = inv.getArgument(0);
@@ -38,22 +40,12 @@ class EmpresaServiceTest {
             return e;
         });
 
-        Usuario admin = new Usuario();
-        admin.setRolAcceso(RolAcceso.ADMINISTRADOR);
-        admin.setEmail("admin@acme.com");
-        admin.setActivo(true);
-        when(usuarioService.crearColaborador(eq(1L), eq("Admin"), eq("admin@acme.com"),
-                eq("secret123"), eq(RolAcceso.ADMINISTRADOR))).thenReturn(admin);
-
-        Empresa resultado = empresaService.registrar("Acme", "900123456", "info@acme.com",
-                "Admin", "admin@acme.com", "secret123");
+        Empresa resultado = empresaService.registrar("Acme", "900123456", "info@acme.com");
 
         assertNotNull(resultado);
         assertEquals("Acme", resultado.getNombre());
         assertEquals("900123456", resultado.getNit());
-
-        verify(usuarioService).crearColaborador(eq(1L), eq("Admin"), eq("admin@acme.com"),
-                eq("secret123"), eq(RolAcceso.ADMINISTRADOR));
+        assertEquals(1L, resultado.getId());
     }
 
     @Test
@@ -62,8 +54,7 @@ class EmpresaServiceTest {
         when(empresaRepository.existsByNit("900123456")).thenReturn(true);
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
-                () -> empresaService.registrar("Acme", "900123456", "info@acme.com",
-                        "Admin", "admin@acme.com", "secret123"));
+                () -> empresaService.registrar("Acme", "900123456", "info@acme.com"));
 
         assertTrue(ex.getMessage().contains("NIT"));
         verify(empresaRepository, never()).save(any());

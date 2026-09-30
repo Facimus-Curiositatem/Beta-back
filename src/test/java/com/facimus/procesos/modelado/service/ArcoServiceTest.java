@@ -230,7 +230,10 @@ class ArcoServiceTest {
 
         Arco resultado = arcoService.crear(1L, 10L, 30L, "entrada", null);
 
-        assertNotNull(resultado);
+        assertEquals(nodoA, resultado.getOrigen());
+        assertEquals(gatewayExclusivo, resultado.getDestino());
+        assertEquals("entrada", resultado.getEtiqueta());
+        assertNull(resultado.getCondicion());
     }
 
     @Test

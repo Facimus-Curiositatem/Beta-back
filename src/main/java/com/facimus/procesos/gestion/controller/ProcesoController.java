@@ -6,7 +6,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.facimus.procesos.common.api.PageResponse;
 import com.facimus.procesos.gestion.controller.dto.CambiarEstadoProcesoRequest;
@@ -41,12 +42,24 @@ import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
 import com.facimus.procesos.modelado.controller.dto.LaneResponse;
 import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
+import com.facimus.procesos.modelado.model.TipoParticipante;
+import com.facimus.procesos.modelado.service.PoolService;
+import com.facimus.procesos.modelado.service.ValidacionModeloService;
 import com.facimus.procesos.security.ApiPrincipal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ProblemDetail;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.constraints.Min;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
+@Tag(name = "Procesos", description = "Ciclo de vida y consulta de procesos (HU-04 a HU-07).")
 @RestController
 @RequestMapping("/api/v1/procesos")
 @RequiredArgsConstructor
@@ -57,9 +70,18 @@ public class ProcesoController {
     private final ProcesoService procesoService;
     private final HistorialCambioService historialCambioService;
     private final ProcesoDiagramaService procesoDiagramaService;
+    private final PoolService poolService;
+    private final ValidacionModeloService validacionModeloService;
     private final ModelMapper modelMapper;
 
     @GetMapping
+    @Operation(summary = "Buscar procesos de la empresa", description = "Soporta filtros por nombre, estado, categoria y activo, con paginacion.")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(schema = @Schema(implementation = PageResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Solicitud invalida (errores de validacion o JSON malformado).",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<PageResponse<ProcesoResponse>> listar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) EstadoProceso estado,
@@ -75,17 +97,36 @@ public class ProcesoController {
     }
 
     @PostMapping
+    @Operation(summary = "Crear un proceso", description = "Nace en estado BORRADOR; se crea automaticamente su pool inicial (la propia empresa).")
+    @ApiResponse(responseCode = "201", description = "Recurso creado.",
+            content = @Content(schema = @Schema(implementation = ProcesoResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Solicitud invalida (errores de validacion o JSON malformado).",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "Sin permisos para esta operacion.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
         Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
                 request.categoria());
-        return ResponseEntity.created(URI.create("/api/v1/procesos/" + proceso.getId()))
+        poolService.crear(empresaId, proceso.getId(), proceso.getEmpresa().getNombre(),
+                TipoParticipante.EMPRESA, false);
+        return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/v1/procesos/{id}").buildAndExpand(proceso.getId()).toUri())
                 .body(modelMapper.map(proceso, ProcesoResponse.class));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Ver el detalle de un proceso", description = "Incluye el proceso y su historial de cambios.")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(schema = @Schema(implementation = ProcesoDetalleResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
@@ -98,6 +139,17 @@ public class ProcesoController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Editar los datos de un proceso", description = "No cambia el estado; para eso usar el endpoint de cambio de estado.")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(schema = @Schema(implementation = ProcesoResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Solicitud invalida (errores de validacion o JSON malformado).",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "Sin permisos para esta operacion.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
@@ -108,16 +160,39 @@ public class ProcesoController {
     }
 
     @PatchMapping("/{id}")
+    @Operation(summary = "Cambiar el estado de un proceso", description = "Publicar valida el modelo completo (pools, nodos, mensajes) antes de aceptar el cambio.")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(schema = @Schema(implementation = ProcesoResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Solicitud invalida (errores de validacion o JSON malformado).",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "Sin permisos para esta operacion.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "Conflicto: la operacion viola una regla de negocio.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoResponse> cambiarEstado(@PathVariable Long id,
             @Validated @RequestBody CambiarEstadoProcesoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
+        if (request.estado() == EstadoProceso.PUBLICADO) {
+            validacionModeloService.validarParaPublicacion(empresaId, id);
+        }
         Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(modelMapper.map(proceso, ProcesoResponse.class));
     }
 
     @GetMapping("/{id}/diagrama")
+    @Operation(summary = "Obtener el diagrama completo del proceso", description = "Agrega pools, lanes, actividades, gateways, eventos, arcos y mensajes en una sola respuesta.")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(schema = @Schema(implementation = ProcesoDiagramaResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoDiagramaResponse> diagrama(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         var diagrama = procesoDiagramaService.obtener(principal.empresaId(), id);
@@ -133,6 +208,13 @@ public class ProcesoController {
     }
 
     @GetMapping("/{id}/historial")
+    @Operation(summary = "Consultar el historial de cambios del proceso")
+    @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = HistorialCambioResponse.class))))
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<List<HistorialCambioResponse>> historial(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
@@ -143,6 +225,14 @@ public class ProcesoController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar (baja logica) un proceso", description = "Solo administrador. El proceso deja de listarse por defecto pero no se borra de la base de datos.")
+    @ApiResponse(responseCode = "204", description = "Operacion exitosa, sin contenido.")
+    @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "Sin permisos para esta operacion.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El recurso solicitado no existe.",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();

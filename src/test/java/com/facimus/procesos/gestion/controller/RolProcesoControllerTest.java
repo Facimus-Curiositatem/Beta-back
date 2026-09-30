@@ -110,7 +110,7 @@ class RolProcesoControllerTest {
                                 {"nombre":"Supervisor","descripcion":"Supervisa"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/roles/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/roles/2"))
                 .andExpect(jsonPath("$.nombre").value("Supervisor"));
     }
 

@@ -37,6 +37,17 @@ import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoActividad;
 
+/**
+ * Registra el mapeo Entity -> DTO de respuesta para todos los casos de "una entidad
+ * mapea a un DTO" (usados por los controllers vía {@code modelMapper.map(entity, X.class)}).
+ * <p>
+ * Los DTOs que NO estan aqui (p. ej. {@code RolProcesoVistaResponse}, {@code LoginResponse},
+ * {@code ProcesoDetalleResponse}, {@code ImpactoEliminacionResponse}) se construyen a mano
+ * a proposito: no son el mapeo de una sola entidad, sino la composicion de una entidad con
+ * un valor calculado en el service (p. ej. cuantos Lanes usan un RolProceso) o de varios
+ * DTOs entre si. ModelMapper resuelve conversiones de un origen a un destino; forzar esos
+ * casos a un converter no simplifica nada.
+ */
 @Configuration
 public class ModelMapperConfig {
 
@@ -44,6 +55,10 @@ public class ModelMapperConfig {
     public ModelMapper modelMapper() {
         ModelMapper mapper = new ModelMapper();
 
+        // Estos 5 converters no tienen ningun campo derivado de una relacion: se probo
+        // quitarlos confiando en el matching automatico de ModelMapper por nombre, pero
+        // fallan en runtime (los DTO de respuesta son records sin setters, y ModelMapper
+        // 3.2.0 no los resuelve solo por coincidencia de nombre). Se mantienen explicitos.
         mapper.addConverter(new AbstractConverter<Empresa, EmpresaResponse>() {
             @Override
             protected EmpresaResponse convert(Empresa e) {
@@ -86,6 +101,8 @@ public class ModelMapperConfig {
             }
         });
 
+        // autorNombre se deriva de la relacion autor (Usuario), no de un campo propio de
+        // HistorialCambio: ModelMapper no puede inferir ese salto sin ayuda.
         mapper.addConverter(new AbstractConverter<HistorialCambio, HistorialCambioResponse>() {
             @Override
             protected HistorialCambioResponse convert(HistorialCambio h) {
@@ -94,6 +111,8 @@ public class ModelMapperConfig {
             }
         });
 
+        // Los 6 campos derivados de proceso/empresa/empresaInvitada requieren navegar sus
+        // relaciones; ModelMapper no puede resolverlos por coincidencia de nombre.
         mapper.addConverter(new AbstractConverter<ProcesoCompartido, ProcesoCompartidoResponse>() {
             @Override
             protected ProcesoCompartidoResponse convert(ProcesoCompartido c) {
@@ -104,6 +123,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // procesoId se deriva de la relacion proceso.
         mapper.addConverter(new AbstractConverter<Pool, PoolResponse>() {
             @Override
             protected PoolResponse convert(Pool p) {
@@ -112,6 +132,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // poolId, rolProcesoId y rolProcesoNombre se derivan de las relaciones pool/rolProceso.
         mapper.addConverter(new AbstractConverter<Lane, LaneResponse>() {
             @Override
             protected LaneResponse convert(Lane l) {
@@ -121,6 +142,8 @@ public class ModelMapperConfig {
             }
         });
 
+        // laneId se deriva de la relacion lane; tipoActividad ademas necesita un valor por
+        // defecto (TAREA) cuando es nulo en filas antiguas.
         mapper.addConverter(new AbstractConverter<Actividad, ActividadResponse>() {
             @Override
             protected ActividadResponse convert(Actividad a) {
@@ -131,6 +154,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // laneId se deriva de la relacion lane.
         mapper.addConverter(new AbstractConverter<Gateway, GatewayResponse>() {
             @Override
             protected GatewayResponse convert(Gateway g) {
@@ -139,6 +163,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // laneId se deriva de la relacion lane.
         mapper.addConverter(new AbstractConverter<EventoMensaje, EventoMensajeResponse>() {
             @Override
             protected EventoMensajeResponse convert(EventoMensaje e) {
@@ -148,6 +173,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // origenId, destinoId y poolId se derivan de las relaciones origen/destino/pool.
         mapper.addConverter(new AbstractConverter<Arco, ArcoResponse>() {
             @Override
             protected ArcoResponse convert(Arco a) {
@@ -156,6 +182,7 @@ public class ModelMapperConfig {
             }
         });
 
+        // mensajeId se deriva de la relacion mensaje.
         mapper.addConverter(new AbstractConverter<Correlacion, CorrelacionResponse>() {
             @Override
             protected CorrelacionResponse convert(Correlacion c) {
@@ -164,6 +191,8 @@ public class ModelMapperConfig {
             }
         });
 
+        // Varios IDs se derivan de relaciones (pools, eventos, actividad de error), y el
+        // ultimo campo (esExterno) es un valor calculado que no existe como campo propio.
         mapper.addConverter(new AbstractConverter<Mensaje, MensajeResponse>() {
             @Override
             protected MensajeResponse convert(Mensaje m) {

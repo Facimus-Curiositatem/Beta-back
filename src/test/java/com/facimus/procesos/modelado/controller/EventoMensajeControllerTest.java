@@ -45,7 +45,7 @@ class EventoMensajeControllerTest {
                      "claveCorrelacion":"pedidoId","posicionX":10,"posicionY":20,"origenExterno":false}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/eventos-mensaje/5"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/eventos-mensaje/5"))
                 .andExpect(jsonPath("$.tipoEvento").value("THROW"));
     }
 

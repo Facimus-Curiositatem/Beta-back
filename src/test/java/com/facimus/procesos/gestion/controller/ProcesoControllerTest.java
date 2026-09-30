@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
@@ -19,6 +20,10 @@ import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
+import com.facimus.procesos.modelado.model.Pool;
+import com.facimus.procesos.modelado.model.TipoParticipante;
+import com.facimus.procesos.modelado.service.PoolService;
+import com.facimus.procesos.modelado.service.ValidacionModeloService;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -29,6 +34,7 @@ import com.facimus.procesos.config.ModelMapperConfig;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -50,6 +56,12 @@ class ProcesoControllerTest {
 
     @MockitoBean
     private ProcesoDiagramaService procesoDiagramaService;
+
+    @MockitoBean
+    private PoolService poolService;
+
+    @MockitoBean
+    private ValidacionModeloService validacionModeloService;
 
     @Test
     @DisplayName("GET /api/v1/procesos - listar procesos (200)")
@@ -88,6 +100,8 @@ class ProcesoControllerTest {
     void crear_proceso() throws Exception {
         Proceso p = crearProceso(2L, "Compras");
         given(procesoService.crear(eq(1L), eq(1L), anyString(), anyString(), anyString())).willReturn(p);
+        given(poolService.crear(eq(1L), eq(2L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false)))
+                .willReturn(new Pool());
 
         mockMvc.perform(post("/api/v1/procesos")
                         .with(principal(RolAcceso.EDITOR))
@@ -96,8 +110,12 @@ class ProcesoControllerTest {
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/procesos/2"))
                 .andExpect(jsonPath("$.nombre").value("Compras"));
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(procesoService, poolService);
+        orden.verify(procesoService).crear(eq(1L), eq(1L), anyString(), anyString(), anyString());
+        orden.verify(poolService).crear(eq(1L), eq(2L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false));
     }
 
     @Test
@@ -147,6 +165,7 @@ class ProcesoControllerTest {
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
+        doNothing().when(validacionModeloService).validarParaPublicacion(1L, 1L);
         given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO)).willReturn(p);
         mockMvc.perform(patch("/api/v1/procesos/1")
                 .with(principal(RolAcceso.EDITOR))
@@ -156,6 +175,27 @@ class ProcesoControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(validacionModeloService, procesoService);
+        orden.verify(validacionModeloService).validarParaPublicacion(1L, 1L);
+        orden.verify(procesoService).cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO);
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/procesos/{id} - volver a BORRADOR no valida el modelo")
+    void cambiar_a_borrador_no_valida_modelo() throws Exception {
+        Proceso p = crearProceso(1L, "Ventas");
+        given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.BORRADOR)).willReturn(p);
+
+        mockMvc.perform(patch("/api/v1/procesos/1")
+                .with(principal(RolAcceso.EDITOR))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"estado":"BORRADOR"}
+                        """))
+                .andExpect(status().isOk());
+
+        verify(validacionModeloService, org.mockito.Mockito.never()).validarParaPublicacion(anyLong(), anyLong());
     }
 
 
@@ -233,6 +273,10 @@ class ProcesoControllerTest {
     }
 
     private Proceso crearProceso(Long id, String nombre) {
+        Empresa empresa = new Empresa();
+        empresa.setId(1L);
+        empresa.setNombre("Acme");
+
         Proceso p = new Proceso();
         p.setId(id);
         p.setNombre(nombre);
@@ -240,6 +284,7 @@ class ProcesoControllerTest {
         p.setCategoria("Operativo");
         p.setEstado(EstadoProceso.BORRADOR);
         p.setActivo(true);
+        p.setEmpresa(empresa);
         p.setFechaCreacion(LocalDateTime.now());
         p.setFechaModificacion(LocalDateTime.now());
         return p;

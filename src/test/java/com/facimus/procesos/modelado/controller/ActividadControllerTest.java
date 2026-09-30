@@ -51,7 +51,7 @@ class ActividadControllerTest {
                                 {"nombre":"Revisar solicitud","descripcion":"Verifica datos","posicionX":100,"posicionY":200}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/actividades/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/actividades/1"))
                 .andExpect(jsonPath("$.nombre").value("Revisar solicitud"))
                 .andExpect(jsonPath("$.posicionX").value(100));
     }

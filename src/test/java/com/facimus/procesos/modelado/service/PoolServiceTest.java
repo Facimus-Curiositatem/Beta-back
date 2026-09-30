@@ -21,7 +21,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.ProcesoService;
-import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.PoolRepository;
@@ -33,8 +32,6 @@ class PoolServiceTest {
     private PoolRepository poolRepository;
     @Mock
     private ProcesoService procesoService;
-    @Mock
-    private LaneService laneService;
     @Mock
     private NodoFlujoService nodoFlujoService;
     @Mock
@@ -100,31 +97,32 @@ class PoolServiceTest {
     }
 
     @Test
-    @DisplayName("Eliminar pool vacio elimina lanes y pool")
-    void eliminar_pool_vacio() {
-        Lane lane = new Lane();
-        lane.setId(1000L);
+    @DisplayName("verificarEliminable en pool vacio retorna el pool")
+    void verificarEliminable_pool_vacio() {
         when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(pool));
-        when(laneService.listarPorPool(1L, 100L)).thenReturn(List.of(lane));
-        when(nodoFlujoService.tieneNodosActivos(1L, 1000L)).thenReturn(false);
+        when(nodoFlujoService.tieneNodosActivosEnPool(1L, 100L)).thenReturn(false);
 
-        poolService.eliminar(1L, 100L);
+        Pool resultado = poolService.verificarEliminable(1L, 100L);
 
-        verify(laneService).eliminarPorPool(1L, 100L);
+        assertSame(pool, resultado);
+    }
+
+    @Test
+    @DisplayName("eliminarRegistro borra el pool y audita")
+    void eliminarRegistro_borra_pool() {
+        poolService.eliminarRegistro(pool);
+
         verify(poolRepository).delete(pool);
     }
 
     @Test
     @DisplayName("Eliminar pool con actividades lanza excepcion")
     void eliminar_pool_con_actividades() {
-        Lane lane = new Lane();
-        lane.setId(1000L);
         when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(pool));
-        when(laneService.listarPorPool(1L, 100L)).thenReturn(List.of(lane));
-        when(nodoFlujoService.tieneNodosActivos(1L, 1000L)).thenReturn(true);
+        when(nodoFlujoService.tieneNodosActivosEnPool(1L, 100L)).thenReturn(true);
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
-                () -> poolService.eliminar(1L, 100L));
+                () -> poolService.verificarEliminable(1L, 100L));
 
         assertTrue(ex.getMessage().contains("actividades") || ex.getMessage().contains("elementos activos"));
         verify(poolRepository, never()).delete(any());

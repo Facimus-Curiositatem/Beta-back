@@ -3,7 +3,6 @@ package com.facimus.procesos.modelado.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -25,7 +24,10 @@ import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.model.TipoParticipante;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class MensajeService {
 
     private final MensajeRepository mensajeRepository;
@@ -34,17 +36,6 @@ public class MensajeService {
     private final CorrelacionService correlacionService;
     private final NodoFlujoService nodoFlujoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
-
-    public MensajeService(MensajeRepository mensajeRepository, PoolService poolService,
-            @Lazy ProcesoService procesoService, @Lazy CorrelacionService correlacionService,
-            NodoFlujoService nodoFlujoService, AuditoriaModeladoService auditoriaModeladoService) {
-        this.mensajeRepository = mensajeRepository;
-        this.poolService = poolService;
-        this.procesoService = procesoService;
-        this.correlacionService = correlacionService;
-        this.nodoFlujoService = nodoFlujoService;
-        this.auditoriaModeladoService = auditoriaModeladoService;
-    }
 
     /** Compatibilidad con clientes que todavia modelan el mensaje en varias llamadas. */
     @Transactional
@@ -218,6 +209,7 @@ public class MensajeService {
         auditoriaModeladoService.registrar(proceso, "Mensaje eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public List<Mensaje> listarPorProceso(Long empresaId, Long procesoId) {
         if (!procesoService.existe(empresaId, procesoId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
@@ -225,6 +217,7 @@ public class MensajeService {
         return mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Mensaje obtener(Long empresaId, Long mensajeId) {
         return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId)
                 .filter(Mensaje::isActivo)
@@ -236,10 +229,12 @@ public class MensajeService {
         return mensajeRepository.save(mensaje);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Mensaje> buscar(Long empresaId, Long mensajeId) {
         return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public List<Mensaje> listarTodosPorProceso(Long empresaId, Long procesoId) {
         return mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
     }

@@ -7,10 +7,6 @@ import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
-import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.service.PoolService;
-import com.facimus.procesos.modelado.service.ValidacionModeloService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,11 +32,7 @@ class ProcesoServiceTest {
     @Mock
     private UsuarioService usuarioService;
     @Mock
-    private PoolService poolService;
-    @Mock
     private HistorialCambioService historialCambioService;
-    @Mock
-    private ValidacionModeloService validacionModeloService;
 
     @InjectMocks
     private ProcesoService procesoService;
@@ -68,8 +60,11 @@ class ProcesoServiceTest {
     }
 
     @Test
-    @DisplayName("HU-04: crear proceso en BORRADOR con pool inicial")
+    @DisplayName("HU-04: crear proceso en BORRADOR")
     void crear_exitoso() {
+        // La creacion del Pool inicial ya no la hace este servicio (se movio a
+        // ProcesoController, para evitar el ciclo ProcesoService<->PoolService); se
+        // prueba en ProcesoControllerTest.crear_proceso.
         when(procesoRepository.existsByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(1L, "Compras")).thenReturn(false);
         when(empresaService.obtener(1L)).thenReturn(empresa);
         when(usuarioService.obtener(1L, 10L)).thenReturn(usuario);
@@ -78,17 +73,13 @@ class ProcesoServiceTest {
             p.setId(100L);
             return p;
         });
-        Pool poolCreado = new Pool();
-        poolCreado.setNombre(empresa.getNombre());
-        when(poolService.crear(eq(1L), eq(100L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false)))
-                .thenReturn(poolCreado);
 
         Proceso result = procesoService.crear(1L, 10L, "Compras", "Proceso de compras", "Operativo");
 
         assertEquals(EstadoProceso.BORRADOR, result.getEstado());
         assertTrue(result.isActivo());
+        assertSame(empresa, result.getEmpresa());
 
-        verify(poolService).crear(eq(1L), eq(100L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false));
         verify(historialCambioService).registrar(eq(result), eq(usuario), anyString());
     }
 

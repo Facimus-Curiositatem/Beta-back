@@ -10,7 +10,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.TipoGateway;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GatewayService {
 
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final NodoFlujoService nodoFlujoService;
     private final LaneService laneService;
     private final ArcoService arcoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
@@ -31,7 +30,7 @@ public class GatewayService {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener gateways.");
         }
         Long procesoId = lane.getPool().getProceso().getId();
-        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(nombre, procesoId, empresaId)) {
+        if (nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
 
@@ -42,7 +41,7 @@ public class GatewayService {
         gateway.setTipoGateway(tipoGateway);
         gateway.setPosicionX(posX);
         gateway.setPosicionY(posY);
-        gateway = (Gateway) nodoFlujoRepository.save(gateway);
+        gateway = (Gateway) nodoFlujoService.guardar(gateway);
         auditoriaModeladoService.registrar(lane.getPool().getProceso(),
                 "Gateway creado: " + gateway.getNombre() + " (" + gateway.getTipoGateway() + ").");
         return gateway;
@@ -53,8 +52,7 @@ public class GatewayService {
         Gateway gateway = obtener(empresaId, gatewayId);
         Long procesoId = gateway.getLane().getPool().getProceso().getId();
         if (!gateway.getNombre().equalsIgnoreCase(nombre)
-                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
-                        nombre, procesoId, empresaId)) {
+                && nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoGateway == TipoGateway.PARALELO && gateway.getTipoGateway() != TipoGateway.PARALELO) {
@@ -79,12 +77,13 @@ public class GatewayService {
         gateway.setTipoGateway(tipoGateway);
         gateway.setPosicionX(posX);
         gateway.setPosicionY(posY);
-        gateway = (Gateway) nodoFlujoRepository.save(gateway);
+        gateway = (Gateway) nodoFlujoService.guardar(gateway);
         auditoriaModeladoService.registrar(gateway.getLane().getPool().getProceso(),
                 "Gateway editado: " + gateway.getNombre() + ".");
         return gateway;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long gatewayId) {
         Gateway gateway = obtener(empresaId, gatewayId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -110,21 +109,23 @@ public class GatewayService {
         String nombre = gateway.getNombre();
         arcoService.desactivarPorNodo(empresaId, gatewayId);
         gateway.setActivo(false);
-        nodoFlujoRepository.save(gateway);
+        nodoFlujoService.guardar(gateway);
         auditoriaModeladoService.registrar(proceso, "Gateway eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public Gateway obtener(Long empresaId, Long gatewayId) {
-        return nodoFlujoRepository.findByIdAndEmpresaId(gatewayId, empresaId)
+        return nodoFlujoService.buscar(empresaId, gatewayId)
                 .filter(nodo -> nodo.isActivo())
                 .filter(Gateway.class::isInstance)
                 .map(Gateway.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Gateway no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<Gateway> listarPorLane(Long empresaId, Long laneId) {
         laneService.obtener(empresaId, laneId);
-        return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+        return nodoFlujoService.listarPorLane(empresaId, laneId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .filter(Gateway.class::isInstance)
                 .map(Gateway.class::cast)

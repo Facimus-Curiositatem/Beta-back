@@ -53,7 +53,7 @@ class ArcoControllerTest {
                                 {"origenId":10,"destinoId":20,"etiqueta":"si","condicion":"aprobado"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/arcos/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/arcos/1"))
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.etiqueta").value("si"));
     }

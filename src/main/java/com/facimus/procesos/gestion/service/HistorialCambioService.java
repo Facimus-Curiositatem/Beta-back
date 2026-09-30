@@ -31,6 +31,7 @@ public class HistorialCambioService {
         historialCambioRepository.save(historial);
     }
 
+    @Transactional(readOnly = true)
     public List<HistorialCambio> listarPorProceso(Long empresaId, Long procesoId) {
         return historialCambioRepository.findAllByProcesoIdAndEmpresaIdOrderByFechaCambioDesc(procesoId, empresaId);
     }

@@ -24,13 +24,12 @@ import com.facimus.procesos.modelado.model.Arco;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ActividadServiceTest {
 
     @Mock
-    private NodoFlujoRepository nodoFlujoRepository;
+    private NodoFlujoService nodoFlujoService;
     @Mock
     private LaneService laneService;
     @Mock
@@ -98,9 +97,9 @@ class ActividadServiceTest {
     @Test
     void crear_actividad_exitosamente() {
         when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Nueva", 10L, 1L)).thenReturn(false);
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.crear(1L, 1000L, "Nueva", "Desc", 10, 20);
 
@@ -121,7 +120,7 @@ class ActividadServiceTest {
     @Test
     void crear_con_nombre_duplicado_falla() {
         when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Nueva", 10L, 1L)).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
@@ -149,7 +148,7 @@ class ActividadServiceTest {
         salida.setDestino(destino);
         salida.setActivo(true);
 
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
         when(arcoService.listarPorDestino(1L, 1L)).thenReturn(List.of(entrada));
         when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(salida));
         when(arcoService.listarPorOrigen(1L, 20L)).thenReturn(List.of(entrada));
@@ -163,7 +162,7 @@ class ActividadServiceTest {
 
     @Test
     void eliminar_hace_baja_logica_y_desactiva_arcos() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
 
         actividadService.eliminar(1L, 1L);
 
@@ -178,7 +177,7 @@ class ActividadServiceTest {
         Actividad inactiva = new Actividad(); inactiva.setActivo(false);
         Gateway gateway = new Gateway(); gateway.setActivo(true);
         when(laneService.obtener(1L, 1000L)).thenReturn(lane1);
-        when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(1000L, 1L))
+        when(nodoFlujoService.listarPorLane(1L, 1000L))
                 .thenReturn(List.of(activa, inactiva, gateway));
 
         var resultado = actividadService.listarPorLane(1L, 1000L);
@@ -190,8 +189,8 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Editar con nombre duplicado en el proceso lanza excepcion")
     void editar_nombre_duplicado() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Tarea B", 10L, 1L)).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
@@ -201,22 +200,22 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Editar conservando el mismo nombre no lanza excepcion")
     void editar_mismo_nombre() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc2", 10, 20, null);
 
         assertEquals("Tarea A", resultado.getNombre());
-        verify(nodoFlujoRepository, never())
-                .existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(anyString(), anyLong(), anyLong());
+        verify(nodoFlujoService, never())
+                .existeNombreEnProceso(anyString(), anyLong(), anyLong());
     }
 
     @Test
     @DisplayName("Mover actividad a lane del mismo pool funciona")
     void mover_a_lane_mismo_pool() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
         when(laneService.obtener(1L, 2000L)).thenReturn(lane2);
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 2000L);
 
@@ -226,11 +225,11 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Mover actividad a lane de otro pool sin arcos funciona")
     void mover_a_otro_pool_sin_arcos() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
         when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
         when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(Collections.emptyList());
         when(arcoService.listarPorDestino(1L, 1L)).thenReturn(Collections.emptyList());
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 0, 0, 3000L);
 
@@ -240,7 +239,7 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Mover actividad a lane de otro pool con arcos lanza excepcion")
     void mover_a_otro_pool_con_arcos() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
         when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
         when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(new Arco()));
 
@@ -253,8 +252,8 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Editar con laneId igual al actual no intenta mover")
     void editar_lane_igual_al_actual() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Actividad resultado = actividadService.editar(1L, 1L, "Tarea A", "Desc", 5, 10, 1000L);
 
@@ -266,7 +265,7 @@ class ActividadServiceTest {
     @Test
     @DisplayName("Mover a otro pool con arcos como destino lanza excepcion")
     void mover_a_otro_pool_con_arcos_destino() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(actividad));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(actividad));
         when(laneService.obtener(1L, 3000L)).thenReturn(lane3);
         when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(Collections.emptyList());
         when(arcoService.listarPorDestino(1L, 1L)).thenReturn(List.of(new Arco()));

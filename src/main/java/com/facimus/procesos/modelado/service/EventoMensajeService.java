@@ -10,7 +10,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EventoMensajeService {
 
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final NodoFlujoService nodoFlujoService;
     private final LaneService laneService;
     private final ArcoService arcoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
@@ -31,8 +30,7 @@ public class EventoMensajeService {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener eventos internos.");
         }
         Long procesoId = lane.getPool().getProceso().getId();
-        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
-                nombre, procesoId, empresaId)) {
+        if (nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
 
@@ -46,7 +44,7 @@ public class EventoMensajeService {
         evento.setPosicionX(posX);
         evento.setPosicionY(posY);
         evento.setOrigenExterno(origenExterno);
-        evento = (EventoMensaje) nodoFlujoRepository.save(evento);
+        evento = (EventoMensaje) nodoFlujoService.guardar(evento);
         auditoriaModeladoService.registrar(lane.getPool().getProceso(),
                 "Evento de mensaje creado: " + evento.getNombre() + " (" + evento.getTipoEvento() + ").");
         return evento;
@@ -58,8 +56,7 @@ public class EventoMensajeService {
         EventoMensaje evento = obtener(empresaId, eventoId);
         Long procesoId = evento.getLane().getPool().getProceso().getId();
         if (!evento.getNombre().equalsIgnoreCase(nombre)
-                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
-                        nombre, procesoId, empresaId)) {
+                && nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoEvento == TipoEventoMensaje.CATCH_INICIO
@@ -74,7 +71,7 @@ public class EventoMensajeService {
         evento.setPosicionX(posX);
         evento.setPosicionY(posY);
         evento.setOrigenExterno(origenExterno);
-        evento = (EventoMensaje) nodoFlujoRepository.save(evento);
+        evento = (EventoMensaje) nodoFlujoService.guardar(evento);
         auditoriaModeladoService.registrar(evento.getLane().getPool().getProceso(),
                 "Evento de mensaje editado: " + evento.getNombre() + ".");
         return evento;
@@ -87,21 +84,23 @@ public class EventoMensajeService {
         String nombre = evento.getNombre();
         arcoService.desactivarPorNodo(empresaId, eventoId);
         evento.setActivo(false);
-        nodoFlujoRepository.save(evento);
+        nodoFlujoService.guardar(evento);
         auditoriaModeladoService.registrar(proceso, "Evento de mensaje eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public EventoMensaje obtener(Long empresaId, Long eventoId) {
-        return nodoFlujoRepository.findByIdAndEmpresaId(eventoId, empresaId)
+        return nodoFlujoService.buscar(empresaId, eventoId)
                 .filter(nodo -> nodo.isActivo())
                 .filter(EventoMensaje.class::isInstance)
                 .map(EventoMensaje.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Evento de mensaje no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<EventoMensaje> listarPorLane(Long empresaId, Long laneId) {
         laneService.obtener(empresaId, laneId);
-        return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+        return nodoFlujoService.listarPorLane(empresaId, laneId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .filter(EventoMensaje.class::isInstance)
                 .map(EventoMensaje.class::cast)

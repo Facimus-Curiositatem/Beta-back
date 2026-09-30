@@ -22,22 +22,25 @@ import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 
+/**
+ * CorrelacionService ya no depende de MensajeService (para evitar el ciclo
+ * MensajeService<->CorrelacionService): el llamador resuelve el Mensaje y la lista de
+ * mensajes del proceso, y actualiza/persiste Mensaje.claveCorrelacion. Esos pasos de
+ * orquestacion se prueban en CorrelacionControllerTest.
+ */
 @ExtendWith(MockitoExtension.class)
 class CorrelacionServiceTest {
 
     @Mock
     private CorrelacionRepository correlacionRepository;
     @Mock
-    private MensajeService mensajeService;
-    @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
     @InjectMocks
     private CorrelacionService correlacionService;
 
-
     @Test
-    void definir_crea_correlacion_y_actualiza_mensaje() {
+    void definir_crea_correlacion() {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
         Proceso proceso = new Proceso();
@@ -49,16 +52,12 @@ class CorrelacionServiceTest {
         mensaje.setEmpresa(empresa);
         mensaje.setProceso(proceso);
 
-        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
-        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
         when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.empty());
         when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Correlacion resultado = correlacionService.definir(1L, 5L, "pedidoId");
+        Correlacion resultado = correlacionService.definir(mensaje, List.of(mensaje), "pedidoId");
 
         assertEquals("pedidoId", resultado.getCriterio());
-        assertEquals("pedidoId", mensaje.getClaveCorrelacion());
-        verify(mensajeService).guardar(mensaje);
         verify(auditoriaModeladoService).registrar(eq(proceso), contains("Correlacion actualizada"));
     }
 
@@ -75,11 +74,8 @@ class CorrelacionServiceTest {
         eventoThrow.setClaveCorrelacion("pedidoId");
         mensaje.setEventoThrow(eventoThrow);
 
-        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
-        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje));
-
         assertThrows(ReglaNegocioException.class,
-                () -> correlacionService.definir(1L, 5L, "otraClave"));
+                () -> correlacionService.definir(mensaje, List.of(mensaje), "otraClave"));
     }
 
     @Test
@@ -98,11 +94,8 @@ class CorrelacionServiceTest {
         otro.setClaveCorrelacion("pedidoId");
         otro.setProceso(proceso);
 
-        when(mensajeService.obtener(1L, 5L)).thenReturn(mensaje);
-        when(mensajeService.listarTodosPorProceso(1L, 10L)).thenReturn(List.of(mensaje, otro));
-
         assertThrows(ReglaNegocioException.class,
-                () -> correlacionService.definir(1L, 5L, "pedidoId"));
+                () -> correlacionService.definir(mensaje, List.of(mensaje, otro), "pedidoId"));
     }
 
     @Test
@@ -115,45 +108,32 @@ class CorrelacionServiceTest {
     }
 
     @Test
-    void eliminar_tambien_limpia_clave_del_mensaje() {
+    @DisplayName("Eliminar correlacion existente la borra y audita")
+    void eliminar_existente() {
         Proceso proceso = new Proceso();
         Mensaje mensaje = new Mensaje();
         mensaje.setId(5L);
         mensaje.setNombre("Orden");
         mensaje.setProceso(proceso);
-        mensaje.setClaveCorrelacion("pedidoId");
 
-        Correlacion correlacion = new Correlacion();
-        correlacion.setId(1L);
-
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(correlacion));
-        when(mensajeService.buscar(1L, 5L)).thenReturn(Optional.of(mensaje));
-
-        correlacionService.eliminar(1L, 5L);
-
-        assertNull(mensaje.getClaveCorrelacion());
-        verify(mensajeService).guardar(mensaje);
-        verify(auditoriaModeladoService).registrar(eq(proceso), contains("Correlacion eliminada"));
-    }
-
-    @Test
-    @DisplayName("Eliminar correlacion existente la borra")
-    void eliminar_existente() {
         Correlacion correlacion = new Correlacion();
         correlacion.setId(1L);
         when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(correlacion));
 
-        correlacionService.eliminar(1L, 5L);
+        correlacionService.eliminar(1L, mensaje);
 
         verify(correlacionRepository).delete(correlacion);
+        verify(auditoriaModeladoService).registrar(eq(proceso), contains("Correlacion eliminada"));
     }
 
     @Test
     @DisplayName("Eliminar correlacion inexistente lanza excepcion")
     void eliminar_inexistente() {
+        Mensaje mensaje = new Mensaje();
+        mensaje.setId(5L);
         when(correlacionRepository.findByMensajeIdAndEmpresaId(5L, 1L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNoEncontradoException.class,
-                () -> correlacionService.eliminar(1L, 5L));
+                () -> correlacionService.eliminar(1L, mensaje));
     }
 }

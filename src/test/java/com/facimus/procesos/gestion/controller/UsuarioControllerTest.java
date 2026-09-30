@@ -84,7 +84,7 @@ class UsuarioControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/usuarios/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/usuarios/2"))
                 .andExpect(jsonPath("$.nombre").value("Pedro"));
     }
 

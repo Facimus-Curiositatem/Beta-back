@@ -52,7 +52,7 @@ class GatewayControllerTest {
                                 {"nombre":"Decision pago","tipoGateway":"EXCLUSIVO","posicionX":300,"posicionY":150}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/gateways/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/gateways/1"))
                 .andExpect(jsonPath("$.nombre").value("Decision pago"))
                 .andExpect(jsonPath("$.tipoGateway").value("EXCLUSIVO"));
     }

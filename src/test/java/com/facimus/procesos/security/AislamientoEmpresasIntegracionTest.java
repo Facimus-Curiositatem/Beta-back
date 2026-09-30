@@ -144,13 +144,14 @@ class AislamientoEmpresasIntegracionTest {
 
     @BeforeAll
     void crearDosEmpresas() throws Exception {
-        empresaA = empresaService
-                .registrar("Empresa A", "900100200", "contacto@empresa-a.com", "Admin A", ADMIN_A, CLAVE).getId();
+        empresaA = empresaService.registrar("Empresa A", "900100200", "contacto@empresa-a.com").getId();
+        usuarioService.crearColaborador(empresaA, "Admin A", ADMIN_A, CLAVE, RolAcceso.ADMINISTRADOR);
         Long adminA = usuarioService.autenticar(ADMIN_A, CLAVE).getId();
         procesoA = procesoService.crear(empresaA, adminA, "Ventas", "Proceso de ventas", "Comercial").getId();
-        poolA = poolService.listarPorProceso(empresaA, procesoA).getFirst().getId();
-        rolA = rolProcesoService.crear(empresaA, "Vendedor", "Atiende a los clientes").getId();
-        laneA = laneService.crear(empresaA, poolA, "Ventas", rolA).getId();
+        poolA = poolService.crear(empresaA, procesoA, "Empresa A", TipoParticipante.EMPRESA, false).getId();
+        RolProceso rolProcesoA = rolProcesoService.crear(empresaA, "Vendedor", "Atiende a los clientes");
+        rolA = rolProcesoA.getId();
+        laneA = laneService.crear(empresaA, poolA, "Ventas", rolProcesoA).getId();
         gatewayA = gatewayService.crear(empresaA, laneA, "Revisar venta", TipoGateway.PARALELO, 100, 100).getId();
         // Quien ataca tiene un usuarioId distinto del empresaId de su empresa: si un controller
         // confundiera los dos ids, estas pruebas lo notarian.
@@ -158,22 +159,28 @@ class AislamientoEmpresasIntegracionTest {
                 .crearColaborador(empresaA, "Auditor A", AUDITOR_A, CLAVE, RolAcceso.ADMINISTRADOR).getId();
         assertThat(auditorA).isNotEqualTo(empresaA);
 
-        empresaB = empresaService
-                .registrar("Empresa B", "900300400", "contacto@empresa-b.com", "Admin B", ADMIN_B, CLAVE).getId();
+        empresaB = empresaService.registrar("Empresa B", "900300400", "contacto@empresa-b.com").getId();
+        usuarioService.crearColaborador(empresaB, "Admin B", ADMIN_B, CLAVE, RolAcceso.ADMINISTRADOR);
         adminB = usuarioService.autenticar(ADMIN_B, CLAVE).getId();
         procesoB = procesoService.crear(empresaB, adminB, "Compras", "Proceso de compras", "Logistica").getId();
-        poolB = poolService.listarPorProceso(empresaB, procesoB).getFirst().getId();
+        poolB = poolService.crear(empresaB, procesoB, "Empresa B", TipoParticipante.EMPRESA, false).getId();
         Long poolProveedorB = poolService
                 .crear(empresaB, procesoB, "Proveedor", TipoParticipante.PROVEEDOR, true).getId();
-        rolB = rolProcesoService.crear(empresaB, "Comprador", "Gestiona las compras").getId();
-        laneB = laneService.crear(empresaB, poolB, "Compras", rolB).getId();
+        RolProceso rolProcesoB = rolProcesoService.crear(empresaB, "Comprador", "Gestiona las compras");
+        rolB = rolProcesoB.getId();
+        laneB = laneService.crear(empresaB, poolB, "Compras", rolProcesoB).getId();
         actividadB = actividadService.crear(empresaB, laneB, "Solicitar cotizacion", "Pide precios", 100, 300).getId();
         gatewayB =gatewayService.crear(empresaB, laneB, "Aprobar compra", TipoGateway.PARALELO, 100, 100).getId();
         gatewayCierreB = gatewayService
                 .crear(empresaB, laneB, "Cerrar compra", TipoGateway.PARALELO, 300, 100).getId();
         arcoB = arcoService.crear(empresaB, gatewayB, gatewayCierreB, "Continuar", null).getId();
-        mensajeB = mensajeService.crear(empresaB, procesoB, "Orden de compra", "Pedido", poolB, poolProveedorB).getId();
-        correlacionService.definir(empresaB, mensajeB, "numeroPedido");
+        Mensaje mensajeCreadoB = mensajeService.crear(empresaB, procesoB, "Orden de compra", "Pedido",
+                poolB, poolProveedorB);
+        mensajeB = mensajeCreadoB.getId();
+        correlacionService.definir(mensajeCreadoB,
+                mensajeService.listarTodosPorProceso(empresaB, procesoB), "numeroPedido");
+        mensajeCreadoB.setClaveCorrelacion("numeroPedido");
+        mensajeService.guardar(mensajeCreadoB);
 
         tokenA = login(AUDITOR_A);
         tokenB = login(ADMIN_B);

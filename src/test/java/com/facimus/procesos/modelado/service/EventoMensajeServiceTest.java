@@ -21,13 +21,12 @@ import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 @ExtendWith(MockitoExtension.class)
 class EventoMensajeServiceTest {
 
     @Mock
-    private NodoFlujoRepository nodoFlujoRepository;
+    private NodoFlujoService nodoFlujoService;
     @Mock
     private LaneService laneService;
     @Mock
@@ -54,9 +53,9 @@ class EventoMensajeServiceTest {
         lane.setPool(pool);
 
         when(laneService.obtener(1L, 2L)).thenReturn(lane);
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Orden", 10L, 1L)).thenReturn(false);
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> {
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> {
             EventoMensaje e = inv.getArgument(0);
             e.setId(5L);
             return e;
@@ -106,13 +105,13 @@ class EventoMensajeServiceTest {
         evento.setLane(lane);
         evento.setActivo(true);
 
-        when(nodoFlujoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(evento));
+        when(nodoFlujoService.buscar(1L, 5L)).thenReturn(Optional.of(evento));
 
         eventoMensajeService.eliminar(1L, 5L);
 
         assertFalse(evento.isActivo());
         verify(arcoService).desactivarPorNodo(1L, 5L);
-        verify(nodoFlujoRepository).save(evento);
+        verify(nodoFlujoService).guardar(evento);
     }
 
     @Test
@@ -126,7 +125,7 @@ class EventoMensajeServiceTest {
 
         Lane lane = new Lane();
         when(laneService.obtener(1L, 2L)).thenReturn(lane);
-        when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(2L, 1L))
+        when(nodoFlujoService.listarPorLane(1L, 2L))
                 .thenReturn(List.of(activo, actividad, inactivo));
 
         List<EventoMensaje> resultado = eventoMensajeService.listarPorLane(1L, 2L);
@@ -158,9 +157,9 @@ class EventoMensajeServiceTest {
         Arco arcoInactivo = new Arco();
         arcoInactivo.setActivo(false);
 
-        when(nodoFlujoRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(evento));
+        when(nodoFlujoService.buscar(1L, 5L)).thenReturn(Optional.of(evento));
         when(arcoService.listarPorDestino(1L, 5L)).thenReturn(List.of(arcoInactivo));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         EventoMensaje resultado = eventoMensajeService.editar(
                 1L, 5L, "Recepcion", TipoEventoMensaje.CATCH_INICIO,

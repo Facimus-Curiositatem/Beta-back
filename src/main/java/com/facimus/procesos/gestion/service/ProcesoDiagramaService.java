@@ -1,5 +1,7 @@
 package com.facimus.procesos.gestion.service;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class ProcesoDiagramaService {
     private final ArcoService arcoService;
     private final MensajeService mensajeService;
 
+    @Transactional(readOnly = true)
     public ProcesoDiagrama obtener(Long empresaId, Long procesoId) {
         Proceso proceso = procesoService.obtener(empresaId, procesoId);
         List<Pool> pools = poolService.listarPorProceso(empresaId, procesoId);

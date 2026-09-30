@@ -37,11 +37,13 @@ public class PermisoEstructuraService {
         }
     }
 
+    @Transactional(readOnly = true)
     public PermisoEstructura obtener(Long empresaId, RolAcceso rol) {
         return permisoEstructuraRepository.findByEmpresaIdAndRolAcceso(empresaId, rol)
                 .orElseGet(() -> permisoPorDefecto(empresaId, rol));
     }
 
+    @Transactional(readOnly = true)
     public List<PermisoEstructura> listar(Long empresaId) {
         return Arrays.stream(RolAcceso.values()).map(rol -> obtener(empresaId, rol)).toList();
     }

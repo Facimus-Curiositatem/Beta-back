@@ -2,7 +2,6 @@ package com.facimus.procesos.gestion.service;
 
 import java.time.LocalDateTime;
 
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,31 +15,23 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.repository.ProcesoRepository;
 import com.facimus.procesos.gestion.repository.ProcesoSpecifications;
-import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.service.PoolService;
-import com.facimus.procesos.modelado.service.ValidacionModeloService;
 
-/** HU-04 a HU-07: ciclo de vida y consulta de procesos. */
+import lombok.RequiredArgsConstructor;
+
+/**
+ * HU-04 a HU-07: ciclo de vida y consulta de procesos.
+ * La creacion del Pool inicial (PoolService) y la validacion previa a publicar
+ * (ValidacionModeloService) las orquesta ProcesoController despues de llamar a este
+ * servicio, para no crear dependencias circulares entre servicios.
+ */
 @Service
+@RequiredArgsConstructor
 public class ProcesoService {
 
     private final ProcesoRepository procesoRepository;
     private final EmpresaService empresaService;
     private final UsuarioService usuarioService;
-    private final PoolService poolService;
     private final HistorialCambioService historialCambioService;
-    private final ValidacionModeloService validacionModeloService;
-
-    public ProcesoService(ProcesoRepository procesoRepository, EmpresaService empresaService,
-            UsuarioService usuarioService, @Lazy PoolService poolService,
-            HistorialCambioService historialCambioService, @Lazy ValidacionModeloService validacionModeloService) {
-        this.procesoRepository = procesoRepository;
-        this.empresaService = empresaService;
-        this.usuarioService = usuarioService;
-        this.poolService = poolService;
-        this.historialCambioService = historialCambioService;
-        this.validacionModeloService = validacionModeloService;
-    }
 
     @Transactional
     public Proceso crear(Long empresaId, Long usuarioId, String nombre, String descripcion, String categoria) {
@@ -61,8 +52,6 @@ public class ProcesoService {
         proceso.setFechaCreacion(ahora);
         proceso.setFechaModificacion(ahora);
         proceso = procesoRepository.save(proceso);
-
-        poolService.crear(empresaId, proceso.getId(), empresa.getNombre(), TipoParticipante.EMPRESA, false);
 
         historialCambioService.registrar(proceso, autor, "Proceso creado.");
         return proceso;
@@ -103,9 +92,6 @@ public class ProcesoService {
         if (proceso.getEstado() == EstadoProceso.PUBLICADO && nuevoEstado == EstadoProceso.BORRADOR) {
             throw new ReglaNegocioException("Un proceso publicado no puede volver a borrador.");
         }
-        if (nuevoEstado == EstadoProceso.PUBLICADO) {
-            validacionModeloService.validarParaPublicacion(empresaId, procesoId);
-        }
         Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 
         proceso.setEstado(nuevoEstado);
@@ -129,21 +115,25 @@ public class ProcesoService {
         historialCambioService.registrar(proceso, autor, "Proceso eliminado (baja logica).");
     }
 
+    @Transactional(readOnly = true)
     public Page<Proceso> buscar(Long empresaId, String nombre, EstadoProceso estado, String categoria,
             Boolean activo, Pageable pageable) {
         return procesoRepository.findAll(
                 ProcesoSpecifications.conFiltros(empresaId, nombre, estado, categoria, activo), pageable);
     }
 
+    @Transactional(readOnly = true)
     public boolean existe(Long empresaId, Long procesoId) {
         return procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Proceso obtenerPorId(Long empresaId, Long procesoId) {
         return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public Proceso obtener(Long empresaId, Long procesoId) {
         return procesoRepository.findByIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));

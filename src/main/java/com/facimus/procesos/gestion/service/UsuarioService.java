@@ -68,6 +68,7 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional(readOnly = true)
     public Usuario autenticar(String email, String password) {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .filter(Usuario::isActivo)
@@ -78,19 +79,23 @@ public class UsuarioService {
         return usuario;
     }
 
+    @Transactional(readOnly = true)
     public List<Usuario> listarPorEmpresa(Long empresaId) {
         return usuarioRepository.findAllByEmpresaIdAndActivoTrue(empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Usuario obtener(Long empresaId, Long usuarioId) {
         return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public boolean existePorEmail(Long empresaId, String email) {
         return usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email);
     }
 
+    @Transactional(readOnly = true)
     public java.util.Optional<Usuario> buscar(Long empresaId, Long usuarioId) {
         return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId);
     }

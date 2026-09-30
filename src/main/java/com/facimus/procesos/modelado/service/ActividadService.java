@@ -10,7 +10,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.TipoActividad;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ActividadService {
 
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final NodoFlujoService nodoFlujoService;
     private final LaneService laneService;
     private final ArcoService arcoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
@@ -38,7 +37,7 @@ public class ActividadService {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener actividades.");
         }
         Long procesoId = lane.getPool().getProceso().getId();
-        if (nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(nombre, procesoId, empresaId)) {
+        if (nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
 
@@ -50,7 +49,7 @@ public class ActividadService {
         actividad.setTipoActividad(tipoActividad != null ? tipoActividad : TipoActividad.TAREA);
         actividad.setPosicionX(posX);
         actividad.setPosicionY(posY);
-        actividad = (Actividad) nodoFlujoRepository.save(actividad);
+        actividad = (Actividad) nodoFlujoService.guardar(actividad);
         auditoriaModeladoService.registrar(lane.getPool().getProceso(), "Actividad creada: " + actividad.getNombre() + ".");
         return actividad;
     }
@@ -89,8 +88,7 @@ public class ActividadService {
         }
         Long procesoId = actividad.getLane().getPool().getProceso().getId();
         if (!actividad.getNombre().equalsIgnoreCase(nombre)
-                && nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
-                        nombre, procesoId, empresaId)) {
+                && nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         actividad.setNombre(nombre);
@@ -100,12 +98,13 @@ public class ActividadService {
         }
         actividad.setPosicionX(posX);
         actividad.setPosicionY(posY);
-        actividad = (Actividad) nodoFlujoRepository.save(actividad);
+        actividad = (Actividad) nodoFlujoService.guardar(actividad);
         auditoriaModeladoService.registrar(actividad.getLane().getPool().getProceso(),
                 "Actividad editada: " + actividad.getNombre() + ".");
         return actividad;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long actividadId) {
         Actividad actividad = obtener(empresaId, actividadId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -143,21 +142,23 @@ public class ActividadService {
         String nombre = actividad.getNombre();
         arcoService.desactivarPorNodo(empresaId, actividadId);
         actividad.setActivo(false);
-        nodoFlujoRepository.save(actividad);
+        nodoFlujoService.guardar(actividad);
         auditoriaModeladoService.registrar(proceso, "Actividad eliminada (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public Actividad obtener(Long empresaId, Long actividadId) {
-        return nodoFlujoRepository.findByIdAndEmpresaId(actividadId, empresaId)
+        return nodoFlujoService.buscar(empresaId, actividadId)
                 .filter(nodo -> nodo.isActivo())
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
     }
 
+    @Transactional(readOnly = true)
     public List<Actividad> listarPorLane(Long empresaId, Long laneId) {
         laneService.obtener(empresaId, laneId);
-        return nodoFlujoRepository.findAllByLaneIdAndEmpresaId(laneId, empresaId).stream()
+        return nodoFlujoService.listarPorLane(empresaId, laneId).stream()
                 .filter(nodo -> nodo.isActivo())
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)

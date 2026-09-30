@@ -21,10 +21,11 @@ import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.service.LaneService;
 import com.facimus.procesos.security.ApiPrincipal;
 
-import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 
 /** HU-17 a HU-20: roles de proceso (funciones, no personas, asignables a Lanes). */
 @Service
+@RequiredArgsConstructor
 public class RolProcesoService {
 
     private final RolProcesoRepository rolProcesoRepository;
@@ -32,16 +33,6 @@ public class RolProcesoService {
     private final LaneService laneService;
     private final UsuarioService usuarioService;
     private final HistorialCambioService historialCambioService;
-
-    public RolProcesoService(RolProcesoRepository rolProcesoRepository, EmpresaService empresaService,
-            @Lazy LaneService laneService, UsuarioService usuarioService,
-            HistorialCambioService historialCambioService) {
-        this.rolProcesoRepository = rolProcesoRepository;
-        this.empresaService = empresaService;
-        this.laneService = laneService;
-        this.usuarioService = usuarioService;
-        this.historialCambioService = historialCambioService;
-    }
 
     @Transactional
     public RolProceso crear(Long empresaId, String nombre, String descripcion) {
@@ -84,6 +75,7 @@ public class RolProcesoService {
         rolProcesoRepository.save(rol);
     }
 
+    @Transactional(readOnly = true)
     public List<RolProcesoVista> listarConUso(Long empresaId) {
         return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
                 .map(rol -> {
@@ -93,6 +85,7 @@ public class RolProcesoService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Page<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre, Pageable pageable) {
         Page<RolProceso> pagina = (nombre == null || nombre.isBlank())
                 ? rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId, pageable)
@@ -122,11 +115,13 @@ public class RolProcesoService {
                         .forEach(proceso -> historialCambioService.registrar(proceso, usuario, descripcion)));
     }
 
+    @Transactional(readOnly = true)
     public long contarUsos(Long empresaId, Long rolId) {
         obtener(empresaId, rolId);
         return laneService.contarPorRolProceso(empresaId, rolId);
     }
 
+    @Transactional(readOnly = true)
     public RolProceso obtener(Long empresaId, Long rolId) {
         return rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(rolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));

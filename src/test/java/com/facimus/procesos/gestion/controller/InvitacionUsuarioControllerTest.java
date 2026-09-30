@@ -50,7 +50,7 @@ class InvitacionUsuarioControllerTest {
                     {"email":"nuevo@demo.com","rolAcceso":"EDITOR"}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/usuarios/invitaciones/7"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/usuarios/invitaciones/7"))
                 .andExpect(jsonPath("$.email").value("nuevo@demo.com"))
                 .andExpect(jsonPath("$.token").value("abc"));
     }
