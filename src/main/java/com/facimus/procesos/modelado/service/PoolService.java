@@ -2,11 +2,13 @@ package com.facimus.procesos.modelado.service;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.common.event.PoolMarcadoCajaNegraEvent;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.modelado.model.Pool;
@@ -16,10 +18,12 @@ import com.facimus.procesos.modelado.repository.PoolRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * La cascada de borrado de lanes (LaneService) y la validacion de "pool sin lanes antes
- * de marcarlo caja negra" las orquesta PoolController, para no crear una dependencia
- * circular PoolService<->LaneService. LaneService si depende de PoolService (direccion
- * unica: una lane siempre necesita validar/leer su pool padre).
+ * La cascada de borrado de lanes (LaneService) la orquesta PoolOrquestadorService, para no
+ * crear una dependencia circular PoolService<->LaneService. La validacion de "pool sin lanes
+ * antes de marcarlo caja negra" no depende de LaneService directamente (eso si seria un ciclo,
+ * ya que LaneService depende de PoolService): en vez de eso, editar() publica
+ * PoolMarcadoCajaNegraEvent y LaneService lo escucha, para que la regla se cumpla incluso si
+ * algo llama a este metodo directamente, sin pasar por un Controller u orquestador.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,7 @@ public class PoolService {
     private final ProcesoService procesoService;
     private final NodoFlujoService nodoFlujoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Pool crear(Long empresaId, Long procesoId, String nombre, TipoParticipante tipoParticipante,
@@ -55,13 +60,16 @@ public class PoolService {
     }
 
     /**
-     * Si se pide activar cajaNegra, el llamador (PoolController) debe validar antes con
-     * LaneService que el pool no tenga lanes, ya que ese chequeo cruza a otro servicio.
+     * Si se pide activar cajaNegra, publica PoolMarcadoCajaNegraEvent antes de guardar;
+     * LaneService lo escucha y rechaza la operacion si el pool tiene lanes.
      */
     @Transactional
     public Pool editar(Long empresaId, Long poolId, String nombre, TipoParticipante tipoParticipante,
             boolean cajaNegra) {
         Pool pool = obtener(empresaId, poolId);
+        if (cajaNegra) {
+            eventPublisher.publishEvent(new PoolMarcadoCajaNegraEvent(empresaId, poolId));
+        }
         pool.setNombre(nombre);
         pool.setTipoParticipante(tipoParticipante);
         pool.setCajaNegra(cajaNegra);

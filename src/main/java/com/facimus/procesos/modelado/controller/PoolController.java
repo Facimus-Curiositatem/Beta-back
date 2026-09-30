@@ -18,14 +18,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import org.modelmapper.ModelMapper;
 
-import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.modelado.controller.dto.EditarPoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolRequest;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.gestion.service.OperacionEstructura;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
-import com.facimus.procesos.modelado.service.LaneService;
+import com.facimus.procesos.modelado.service.PoolOrquestadorService;
 import com.facimus.procesos.modelado.service.PoolService;
 import com.facimus.procesos.security.ApiPrincipal;
 
@@ -46,7 +45,7 @@ import lombok.RequiredArgsConstructor;
 public class PoolController {
 
     private final PoolService poolService;
-    private final LaneService laneService;
+    private final PoolOrquestadorService poolOrquestadorService;
     private final PermisoEstructuraService permisoEstructuraService;
     private final ModelMapper modelMapper;
 
@@ -117,15 +116,9 @@ public class PoolController {
             @Validated @RequestBody EditarPoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.EDITAR_POOL);
-        Pool pool;
-        if (request.cajaNegra() == null) {
-            pool = poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante());
-        } else {
-            if (request.cajaNegra() && !laneService.listarPorPool(empresaId, id).isEmpty()) {
-                throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
-            }
-            pool = poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante(), request.cajaNegra());
-        }
+        Pool pool = request.cajaNegra() == null
+                ? poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante())
+                : poolService.editar(empresaId, id, request.nombre(), request.tipoParticipante(), request.cajaNegra());
         return ResponseEntity.ok(modelMapper.map(pool, PoolResponse.class));
     }
 
@@ -143,9 +136,7 @@ public class PoolController {
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         permisoEstructuraService.validar(empresaId, principal.rol(), OperacionEstructura.ELIMINAR_POOL);
-        Pool pool = poolService.verificarEliminable(empresaId, id);
-        laneService.eliminarPorPool(empresaId, id);
-        poolService.eliminarRegistro(pool);
+        poolOrquestadorService.eliminar(empresaId, id);
         return ResponseEntity.noContent().build();
     }
 }

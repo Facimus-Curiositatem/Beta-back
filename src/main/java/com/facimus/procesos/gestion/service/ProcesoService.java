@@ -2,6 +2,7 @@ package com.facimus.procesos.gestion.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.common.event.ProcesoPublicacionEvent;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
@@ -20,9 +22,12 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * HU-04 a HU-07: ciclo de vida y consulta de procesos.
- * La creacion del Pool inicial (PoolService) y la validacion previa a publicar
- * (ValidacionModeloService) las orquesta ProcesoController despues de llamar a este
- * servicio, para no crear dependencias circulares entre servicios.
+ * La creacion del Pool inicial (PoolService) la orquesta ProcesoOrquestadorService despues de
+ * llamar a este servicio, para no crear una dependencia circular ProcesoService<->PoolService.
+ * La validacion previa a publicar no depende de ValidacionModeloService directamente (eso si
+ * seria un ciclo, via PoolService/MensajeService): en vez de eso, cambiarEstado publica
+ * ProcesoPublicacionEvent y ValidacionModeloService lo escucha, para que la regla se cumpla
+ * incluso si algo llama a este metodo directamente, sin pasar por un Controller u orquestador.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +37,7 @@ public class ProcesoService {
     private final EmpresaService empresaService;
     private final UsuarioService usuarioService;
     private final HistorialCambioService historialCambioService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Proceso crear(Long empresaId, Long usuarioId, String nombre, String descripcion, String categoria) {
@@ -91,6 +97,9 @@ public class ProcesoService {
         }
         if (proceso.getEstado() == EstadoProceso.PUBLICADO && nuevoEstado == EstadoProceso.BORRADOR) {
             throw new ReglaNegocioException("Un proceso publicado no puede volver a borrador.");
+        }
+        if (nuevoEstado == EstadoProceso.PUBLICADO) {
+            eventPublisher.publishEvent(new ProcesoPublicacionEvent(empresaId, procesoId));
         }
         Usuario autor = usuarioService.obtener(empresaId, usuarioId);
 

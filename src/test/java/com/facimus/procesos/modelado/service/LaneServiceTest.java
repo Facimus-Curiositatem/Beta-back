@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.common.event.PoolMarcadoCajaNegraEvent;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.service.RolProcesoService;
 import com.facimus.procesos.modelado.model.Lane;
@@ -126,5 +127,24 @@ class LaneServiceTest {
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> laneService.reordenar(1L, 999L, List.of(1L, 2L)));
+    }
+
+    @Test
+    @DisplayName("alMarcarPoolCajaNegra rechaza si el pool tiene lanes")
+    void alMarcarPoolCajaNegra_con_lanes_lanza_excepcion() {
+        when(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(100L, 1L))
+                .thenReturn(List.of(lane1));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> laneService.alMarcarPoolCajaNegra(new PoolMarcadoCajaNegraEvent(1L, 100L)));
+    }
+
+    @Test
+    @DisplayName("alMarcarPoolCajaNegra no hace nada si el pool no tiene lanes")
+    void alMarcarPoolCajaNegra_sin_lanes_no_lanza() {
+        when(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(100L, 1L))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> laneService.alMarcarPoolCajaNegra(new PoolMarcadoCajaNegraEvent(1L, 100L)));
     }
 }

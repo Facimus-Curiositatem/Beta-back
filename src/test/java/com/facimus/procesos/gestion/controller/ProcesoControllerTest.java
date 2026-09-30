@@ -18,12 +18,9 @@ import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
+import com.facimus.procesos.gestion.service.ProcesoOrquestadorService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
-import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.service.PoolService;
-import com.facimus.procesos.modelado.service.ValidacionModeloService;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -52,16 +49,13 @@ class ProcesoControllerTest {
     private ProcesoService procesoService;
 
     @MockitoBean
+    private ProcesoOrquestadorService procesoOrquestadorService;
+
+    @MockitoBean
     private HistorialCambioService historialCambioService;
 
     @MockitoBean
     private ProcesoDiagramaService procesoDiagramaService;
-
-    @MockitoBean
-    private PoolService poolService;
-
-    @MockitoBean
-    private ValidacionModeloService validacionModeloService;
 
     @Test
     @DisplayName("GET /api/v1/procesos - listar procesos (200)")
@@ -99,9 +93,8 @@ class ProcesoControllerTest {
     @DisplayName("POST /api/v1/procesos - crear proceso como editor (201)")
     void crear_proceso() throws Exception {
         Proceso p = crearProceso(2L, "Compras");
-        given(procesoService.crear(eq(1L), eq(1L), anyString(), anyString(), anyString())).willReturn(p);
-        given(poolService.crear(eq(1L), eq(2L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false)))
-                .willReturn(new Pool());
+        given(procesoOrquestadorService.crearConPoolInicial(eq(1L), eq(1L), anyString(), anyString(), anyString()))
+                .willReturn(p);
 
         mockMvc.perform(post("/api/v1/procesos")
                         .with(principal(RolAcceso.EDITOR))
@@ -113,9 +106,7 @@ class ProcesoControllerTest {
                 .andExpect(header().string("Location", "http://localhost/api/v1/procesos/2"))
                 .andExpect(jsonPath("$.nombre").value("Compras"));
 
-        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(procesoService, poolService);
-        orden.verify(procesoService).crear(eq(1L), eq(1L), anyString(), anyString(), anyString());
-        orden.verify(poolService).crear(eq(1L), eq(2L), eq("Acme"), eq(TipoParticipante.EMPRESA), eq(false));
+        verify(procesoOrquestadorService).crearConPoolInicial(eq(1L), eq(1L), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -165,7 +156,6 @@ class ProcesoControllerTest {
     void publicar_proceso() throws Exception {
         Proceso p = crearProceso(1L, "Ventas");
         p.setEstado(EstadoProceso.PUBLICADO);
-        doNothing().when(validacionModeloService).validarParaPublicacion(1L, 1L);
         given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO)).willReturn(p);
         mockMvc.perform(patch("/api/v1/procesos/1")
                 .with(principal(RolAcceso.EDITOR))
@@ -176,26 +166,7 @@ class ProcesoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
 
-        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(validacionModeloService, procesoService);
-        orden.verify(validacionModeloService).validarParaPublicacion(1L, 1L);
-        orden.verify(procesoService).cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO);
-    }
-
-    @Test
-    @DisplayName("PATCH /api/v1/procesos/{id} - volver a BORRADOR no valida el modelo")
-    void cambiar_a_borrador_no_valida_modelo() throws Exception {
-        Proceso p = crearProceso(1L, "Ventas");
-        given(procesoService.cambiarEstado(1L, 1L, 1L, EstadoProceso.BORRADOR)).willReturn(p);
-
-        mockMvc.perform(patch("/api/v1/procesos/1")
-                .with(principal(RolAcceso.EDITOR))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"estado":"BORRADOR"}
-                        """))
-                .andExpect(status().isOk());
-
-        verify(validacionModeloService, org.mockito.Mockito.never()).validarParaPublicacion(anyLong(), anyLong());
+        verify(procesoService).cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO);
     }
 
 

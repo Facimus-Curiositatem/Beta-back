@@ -1,7 +1,5 @@
 package com.facimus.procesos.modelado.controller;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -18,9 +16,8 @@ import org.modelmapper.ModelMapper;
 import com.facimus.procesos.modelado.controller.dto.CorrelacionRequest;
 import com.facimus.procesos.modelado.controller.dto.CorrelacionResponse;
 import com.facimus.procesos.modelado.model.Correlacion;
-import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.service.CorrelacionOrquestadorService;
 import com.facimus.procesos.modelado.service.CorrelacionService;
-import com.facimus.procesos.modelado.service.MensajeService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +38,7 @@ import lombok.RequiredArgsConstructor;
 public class CorrelacionController {
 
     private final CorrelacionService correlacionService;
-    private final MensajeService mensajeService;
+    private final CorrelacionOrquestadorService correlacionOrquestadorService;
     private final ModelMapper modelMapper;
 
     @PutMapping
@@ -61,12 +58,7 @@ public class CorrelacionController {
     public ResponseEntity<CorrelacionResponse> definir(@PathVariable Long mensajeId,
             @Validated @RequestBody CorrelacionRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Mensaje mensaje = mensajeService.obtener(empresaId, mensajeId);
-        List<Mensaje> mensajesDelProceso = mensajeService.listarTodosPorProceso(empresaId,
-                mensaje.getProceso().getId());
-        Correlacion correlacion = correlacionService.definir(mensaje, mensajesDelProceso, request.criterio());
-        mensaje.setClaveCorrelacion(request.criterio());
-        mensajeService.guardar(mensaje);
+        Correlacion correlacion = correlacionOrquestadorService.definir(empresaId, mensajeId, request.criterio());
         return ResponseEntity.ok(modelMapper.map(correlacion, CorrelacionResponse.class));
     }
 
@@ -97,10 +89,7 @@ public class CorrelacionController {
     public ResponseEntity<Void> eliminar(@PathVariable Long mensajeId,
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        Mensaje mensaje = mensajeService.obtener(empresaId, mensajeId);
-        correlacionService.eliminar(empresaId, mensaje);
-        mensaje.setClaveCorrelacion(null);
-        mensajeService.guardar(mensaje);
+        correlacionOrquestadorService.eliminar(empresaId, mensajeId);
         return ResponseEntity.noContent().build();
     }
 }

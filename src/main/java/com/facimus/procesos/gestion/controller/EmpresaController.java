@@ -14,9 +14,7 @@ import org.modelmapper.ModelMapper;
 import com.facimus.procesos.gestion.controller.dto.EmpresaResponse;
 import com.facimus.procesos.gestion.controller.dto.RegistroEmpresaRequest;
 import com.facimus.procesos.gestion.model.Empresa;
-import com.facimus.procesos.gestion.model.RolAcceso;
-import com.facimus.procesos.gestion.service.EmpresaService;
-import com.facimus.procesos.gestion.service.UsuarioService;
+import com.facimus.procesos.gestion.service.EmpresaOrquestadorService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,8 +35,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 @RequiredArgsConstructor
 public class EmpresaController {
 
-    private final EmpresaService empresaService;
-    private final UsuarioService usuarioService;
+    private final EmpresaOrquestadorService empresaOrquestadorService;
     private final ModelMapper modelMapper;
 
     @SecurityRequirements()
@@ -51,10 +48,9 @@ public class EmpresaController {
     @ApiResponse(responseCode = "409", description = "Conflicto: la operacion viola una regla de negocio.",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<EmpresaResponse> registrar(@Validated @RequestBody RegistroEmpresaRequest request) {
-        Empresa empresa = empresaService.registrar(request.nombreEmpresa(), request.nit(),
-                request.correoContacto());
-        usuarioService.crearColaborador(empresa.getId(), request.nombreAdmin(), request.emailAdmin(),
-                request.passwordAdmin(), RolAcceso.ADMINISTRADOR);
+        Empresa empresa = empresaOrquestadorService.registrarConAdministrador(request.nombreEmpresa(),
+                request.nit(), request.correoContacto(), request.nombreAdmin(), request.emailAdmin(),
+                request.passwordAdmin());
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/api/v1/empresas/{id}").buildAndExpand(empresa.getId()).toUri())
         .body(modelMapper.map(empresa, EmpresaResponse.class));

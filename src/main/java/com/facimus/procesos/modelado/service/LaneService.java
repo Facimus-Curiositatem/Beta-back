@@ -2,11 +2,13 @@ package com.facimus.procesos.modelado.service;
 
 import java.util.List;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.common.event.PoolMarcadoCajaNegraEvent;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
@@ -128,6 +130,19 @@ public class LaneService {
     @Transactional
     public void eliminarPorPool(Long empresaId, Long poolId) {
         laneRepository.deleteAll(laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId));
+    }
+
+    /**
+     * Escucha PoolMarcadoCajaNegraEvent (publicado por PoolService.editar antes de guardar un
+     * pool con cajaNegra = true) para que esta validacion se cumpla sin que PoolService dependa
+     * de este servicio directamente. Se ejecuta de forma sincrona, dentro de la misma
+     * transaccion: si lanza ReglaNegocioException, aborta la edicion del pool.
+     */
+    @EventListener
+    public void alMarcarPoolCajaNegra(PoolMarcadoCajaNegraEvent evento) {
+        if (!listarPorPool(evento.empresaId(), evento.poolId()).isEmpty()) {
+            throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
+        }
     }
 
     @Transactional(readOnly = true)

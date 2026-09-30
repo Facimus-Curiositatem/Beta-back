@@ -34,6 +34,7 @@ import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
+import com.facimus.procesos.gestion.service.ProcesoOrquestadorService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
 import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
@@ -42,9 +43,6 @@ import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
 import com.facimus.procesos.modelado.controller.dto.LaneResponse;
 import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
-import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.service.PoolService;
-import com.facimus.procesos.modelado.service.ValidacionModeloService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,10 +66,9 @@ public class ProcesoController {
     private static final int TAMANO_PAGINA = 10;
 
     private final ProcesoService procesoService;
+    private final ProcesoOrquestadorService procesoOrquestadorService;
     private final HistorialCambioService historialCambioService;
     private final ProcesoDiagramaService procesoDiagramaService;
-    private final PoolService poolService;
-    private final ValidacionModeloService validacionModeloService;
     private final ModelMapper modelMapper;
 
     @GetMapping
@@ -110,10 +107,8 @@ public class ProcesoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        Proceso proceso = procesoService.crear(empresaId, usuarioId, request.nombre(), request.descripcion(),
-                request.categoria());
-        poolService.crear(empresaId, proceso.getId(), proceso.getEmpresa().getNombre(),
-                TipoParticipante.EMPRESA, false);
+        Proceso proceso = procesoOrquestadorService.crearConPoolInicial(empresaId, usuarioId, request.nombre(),
+                request.descripcion(), request.categoria());
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/api/v1/procesos/{id}").buildAndExpand(proceso.getId()).toUri())
                 .body(modelMapper.map(proceso, ProcesoResponse.class));
@@ -178,9 +173,6 @@ public class ProcesoController {
             @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         Long usuarioId = principal.usuarioId();
-        if (request.estado() == EstadoProceso.PUBLICADO) {
-            validacionModeloService.validarParaPublicacion(empresaId, id);
-        }
         Proceso proceso = procesoService.cambiarEstado(empresaId, id, usuarioId, request.estado());
         return ResponseEntity.ok(modelMapper.map(proceso, ProcesoResponse.class));
     }

@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.facimus.procesos.common.ReglaNegocioException;
+import com.facimus.procesos.common.event.ProcesoPublicacionEvent;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Mensaje;
@@ -37,6 +39,17 @@ public class ValidacionModeloService {
         validarPools(empresaId, procesoId);
         validarNodosYGateways(empresaId, procesoId);
         validarMensajes(empresaId, procesoId);
+    }
+
+    /**
+     * Escucha ProcesoPublicacionEvent (publicado por ProcesoService.cambiarEstado antes de guardar
+     * la transicion a PUBLICADO) para que esta validacion se cumpla sin que ProcesoService dependa
+     * de este servicio directamente. Se ejecuta de forma sincrona, dentro de la misma transaccion:
+     * si lanza ReglaNegocioException, aborta la publicacion.
+     */
+    @EventListener
+    public void alPublicarProceso(ProcesoPublicacionEvent evento) {
+        validarParaPublicacion(evento.empresaId(), evento.procesoId());
     }
 
     private void validarPools(Long empresaId, Long procesoId) {

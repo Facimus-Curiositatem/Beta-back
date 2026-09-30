@@ -1,7 +1,5 @@
 package com.facimus.procesos.modelado.controller;
 
-import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,19 +8,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
-import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.service.CorrelacionOrquestadorService;
 import com.facimus.procesos.modelado.service.CorrelacionService;
-import com.facimus.procesos.modelado.service.MensajeService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 
 import com.facimus.procesos.config.ModelMapperConfig;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -44,16 +40,13 @@ class CorrelacionControllerTest {
     private CorrelacionService correlacionService;
 
     @MockitoBean
-    private MensajeService mensajeService;
+    private CorrelacionOrquestadorService correlacionOrquestadorService;
 
     @Test
     @DisplayName("PUT /api/v1/mensajes/{mensajeId}/correlacion - definir correlacion (200)")
     void definir_correlacion() throws Exception {
-        Mensaje mensaje = crearMensaje();
         Correlacion c = crearCorrelacion(1L, "orderId");
-        given(mensajeService.obtener(1L, 5L)).willReturn(mensaje);
-        given(mensajeService.listarTodosPorProceso(1L, 10L)).willReturn(List.of(mensaje));
-        given(correlacionService.definir(any(Mensaje.class), any(), anyString())).willReturn(c);
+        given(correlacionOrquestadorService.definir(eq(1L), eq(5L), anyString())).willReturn(c);
 
         mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
                         .with(principal(RolAcceso.EDITOR))
@@ -99,9 +92,7 @@ class CorrelacionControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/mensajes/{mensajeId}/correlacion - eliminar correlacion (204)")
     void eliminar_correlacion() throws Exception {
-        Mensaje mensaje = crearMensaje();
-        given(mensajeService.obtener(1L, 5L)).willReturn(mensaje);
-        doNothing().when(correlacionService).eliminar(eq(1L), any(Mensaje.class));
+        doNothing().when(correlacionOrquestadorService).eliminar(1L, 5L);
 
         mockMvc.perform(delete("/api/v1/mensajes/5/correlacion").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
@@ -112,16 +103,6 @@ class CorrelacionControllerTest {
     void eliminar_sin_sesion() throws Exception {
         mockMvc.perform(delete("/api/v1/mensajes/5/correlacion"))
                 .andExpect(status().isUnauthorized());
-    }
-
-    private Mensaje crearMensaje() {
-        Proceso proceso = new Proceso();
-        proceso.setId(10L);
-        Mensaje mensaje = new Mensaje();
-        mensaje.setId(5L);
-        mensaje.setNombre("Orden");
-        mensaje.setProceso(proceso);
-        return mensaje;
     }
 
     private Correlacion crearCorrelacion(Long id, String criterio) {

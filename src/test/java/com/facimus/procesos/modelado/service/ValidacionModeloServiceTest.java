@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.facimus.procesos.common.ReglaNegocioException;
+import com.facimus.procesos.common.event.ProcesoPublicacionEvent;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.*;
 
@@ -47,6 +48,16 @@ class ValidacionModeloServiceTest {
         lane = new Lane();
         lane.setId(200L);
         lane.setPool(pool);
+    }
+
+    @Test
+    void alPublicarProceso_delega_en_validarParaPublicacion() {
+        pool.setCajaNegra(true);
+        when(poolService.listarPorProceso(1L, 10L)).thenReturn(List.of(pool));
+        when(laneService.listarPorProceso(1L, 10L)).thenReturn(List.of(lane));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> service.alPublicarProceso(new ProcesoPublicacionEvent(1L, 10L)));
     }
 
     @Test

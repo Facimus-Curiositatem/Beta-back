@@ -12,12 +12,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.common.event.PoolMarcadoCajaNegraEvent;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.ProcesoService;
@@ -36,6 +39,8 @@ class PoolServiceTest {
     private NodoFlujoService nodoFlujoService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PoolService poolService;
@@ -94,6 +99,44 @@ class PoolServiceTest {
 
         assertEquals("Pool Editado", resultado.getNombre());
         assertEquals(TipoParticipante.PROVEEDOR, resultado.getTipoParticipante());
+    }
+
+    @Test
+    @DisplayName("Editar con cajaNegra=true publica PoolMarcadoCajaNegraEvent antes de guardar, para que "
+            + "LaneService pueda rechazar la operacion sin que PoolService dependa de el")
+    void editar_cajaNegra_publica_evento_antes_de_guardar() {
+        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(pool));
+        when(poolRepository.save(any(Pool.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        poolService.editar(1L, 100L, "Pool Editado", TipoParticipante.PROVEEDOR, true);
+
+        InOrder orden = inOrder(eventPublisher, poolRepository);
+        orden.verify(eventPublisher).publishEvent(new PoolMarcadoCajaNegraEvent(1L, 100L));
+        orden.verify(poolRepository).save(any(Pool.class));
+    }
+
+    @Test
+    @DisplayName("Editar con cajaNegra=false no publica PoolMarcadoCajaNegraEvent")
+    void editar_sin_cajaNegra_no_publica_evento() {
+        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(pool));
+        when(poolRepository.save(any(Pool.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        poolService.editar(1L, 100L, "Pool Editado", TipoParticipante.PROVEEDOR, false);
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("Si el listener del evento rechaza marcar caja negra, no se guarda el pool")
+    void editar_cajaNegra_no_guarda_si_el_evento_lanza_excepcion() {
+        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(pool));
+        doThrow(new ReglaNegocioException("el pool tiene lanes"))
+                .when(eventPublisher).publishEvent(any(PoolMarcadoCajaNegraEvent.class));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> poolService.editar(1L, 100L, "Pool Editado", TipoParticipante.PROVEEDOR, true));
+
+        verify(poolRepository, never()).save(any());
     }
 
     @Test
