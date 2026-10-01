@@ -89,6 +89,7 @@ public class ArcoService {
         return arco;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long arcoId) {
         Arco arco = obtener(empresaId, arcoId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -117,12 +118,14 @@ public class ArcoService {
         auditoriaModeladoService.registrar(proceso, "Arco eliminado (baja logica): " + descripcion + ".");
     }
 
+    @Transactional(readOnly = true)
     public Arco obtener(Long empresaId, Long arcoId) {
         return arcoRepository.findByIdAndEmpresaId(arcoId, empresaId)
                 .filter(arco -> arco.isActivo())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Arco no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<Arco> listarPorPool(Long empresaId, Long poolId) {
         if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
             throw new RecursoNoEncontradoException("Pool no encontrado.");
