@@ -21,9 +21,13 @@ import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
 import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.service.MensajeService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
+@Tag(name = "Mensajes", description = "Gestion de mensajes entre pools de un proceso")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -31,6 +35,7 @@ public class MensajeController {
 
     private final MensajeService mensajeService;
 
+    @Operation(summary = "Listar mensajes de un proceso")
     @GetMapping("/procesos/{procesoId}/mensajes")
     public ResponseEntity<List<MensajeResponse>> listar(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -38,12 +43,15 @@ public class MensajeController {
                 .map(MensajeResponse::of).toList());
     }
 
+    @Operation(summary = "Obtener detalle de un mensaje")
     @GetMapping("/mensajes/{id}")
     public ResponseEntity<MensajeResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(MensajeResponse.of(mensajeService.obtener(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Crear mensaje entre pools")
+    @ApiResponse(responseCode = "201", description = "Mensaje creado")
     @PostMapping("/procesos/{procesoId}/mensajes")
     public ResponseEntity<MensajeResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody MensajeRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -58,6 +66,7 @@ public class MensajeController {
                 .body(MensajeResponse.of(mensaje));
     }
 
+    @Operation(summary = "Editar mensaje")
     @PutMapping("/mensajes/{id}")
     public ResponseEntity<MensajeResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarMensajeRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -74,6 +83,8 @@ public class MensajeController {
         return ResponseEntity.ok(MensajeResponse.of(mensaje));
     }
 
+    @Operation(summary = "Eliminar mensaje (baja logica)")
+    @ApiResponse(responseCode = "204", description = "Mensaje eliminado")
     @DeleteMapping("/mensajes/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         mensajeService.eliminar(principal.empresaId(), id);
