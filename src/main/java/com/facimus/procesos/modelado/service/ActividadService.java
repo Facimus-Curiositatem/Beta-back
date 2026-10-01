@@ -110,6 +110,7 @@ public class ActividadService {
         return actividad;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long actividadId) {
         Actividad actividad = obtener(empresaId, actividadId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -158,6 +159,7 @@ public class ActividadService {
         auditoriaModeladoService.registrar(proceso, "Actividad eliminada (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public Actividad obtener(Long empresaId, Long actividadId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(actividadId, empresaId)
                 .filter(nodo -> nodo.isActivo())
@@ -166,6 +168,7 @@ public class ActividadService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
     }
 
+    @Transactional(readOnly = true)
     public List<Actividad> listarPorLane(Long empresaId, Long laneId) {
         if (!laneRepository.existsByIdAndEmpresaId(laneId, empresaId)) {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
