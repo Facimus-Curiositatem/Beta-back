@@ -88,6 +88,7 @@ public class GatewayService {
         return gateway;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long gatewayId) {
         Gateway gateway = obtener(empresaId, gatewayId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -124,6 +125,7 @@ public class GatewayService {
         auditoriaModeladoService.registrar(proceso, "Gateway eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public Gateway obtener(Long empresaId, Long gatewayId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(gatewayId, empresaId)
                 .filter(nodo -> nodo.isActivo())
@@ -132,6 +134,7 @@ public class GatewayService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Gateway no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<Gateway> listarPorLane(Long empresaId, Long laneId) {
         if (!laneRepository.existsByIdAndEmpresaId(laneId, empresaId)) {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
