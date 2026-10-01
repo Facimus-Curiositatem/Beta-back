@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.facimus.procesos.common.ReglaNegocioException;
@@ -37,6 +38,7 @@ public class ValidacionModeloService {
     private final MensajeRepository mensajeRepository;
     private final CorrelacionRepository correlacionRepository;
 
+    @Transactional(readOnly = true)
     public void validarParaPublicacion(Long empresaId, Long procesoId) {
         validarPools(empresaId, procesoId);
         validarNodosYGateways(empresaId, procesoId);
