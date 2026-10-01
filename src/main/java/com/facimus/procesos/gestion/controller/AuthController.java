@@ -16,9 +16,13 @@ import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.UsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
 import com.facimus.procesos.security.JwtService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /** HU-03: inicio y cierre de sesion con JWT. */
+@Tag(name = "Autenticacion", description = "Inicio y cierre de sesion mediante JWT")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -33,6 +37,9 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    @Operation(summary = "Iniciar sesion", description = "Autentica con email y contrasena, retorna un token JWT")
+    @ApiResponse(responseCode = "200", description = "Autenticacion exitosa")
+    @ApiResponse(responseCode = "401", description = "Credenciales invalidas")
     @SecurityRequirements()
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Validated @RequestBody LoginRequest request) {
@@ -50,6 +57,8 @@ public class AuthController {
     }
 
     /** Sin estado en el servidor: cerrar sesion es que el cliente descarte su token. */
+    @Operation(summary = "Cerrar sesion", description = "Invalida la sesion del lado del cliente")
+    @ApiResponse(responseCode = "204", description = "Sesion cerrada")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         return ResponseEntity.noContent().build();
