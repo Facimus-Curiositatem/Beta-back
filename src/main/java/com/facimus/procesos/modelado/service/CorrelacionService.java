@@ -53,6 +53,7 @@ public class CorrelacionService {
         return correlacion;
     }
 
+    @Transactional(readOnly = true)
     public Correlacion obtener(Long empresaId, Long mensajeId) {
         return correlacionRepository.findByMensajeIdAndEmpresaId(mensajeId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Este mensaje no tiene correlacion definida."));
