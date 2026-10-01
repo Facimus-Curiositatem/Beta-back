@@ -90,6 +90,7 @@ public class ProcesoCompartidoService {
                 "Se retiro el acceso compartido a la empresa " + compartido.getEmpresaInvitada().getNombre() + ".");
     }
 
+    @Transactional(readOnly = true)
     public List<ProcesoCompartido> listarCompartidosPorPropietario(Long empresaId, Long procesoId) {
         if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
@@ -97,10 +98,12 @@ public class ProcesoCompartidoService {
         return procesoCompartidoRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public List<ProcesoCompartido> listarRecibidos(Long empresaInvitadaId) {
         return procesoCompartidoRepository.findAllByEmpresaInvitadaIdAndActivoTrue(empresaInvitadaId);
     }
 
+    @Transactional(readOnly = true)
     public ProcesoCompartidoDetalle obtenerCompartido(Long empresaInvitadaId, Long procesoId) {
         ProcesoCompartido compartido = procesoCompartidoRepository
                 .findByProcesoIdAndEmpresaInvitadaIdAndActivoTrue(procesoId, empresaInvitadaId)
