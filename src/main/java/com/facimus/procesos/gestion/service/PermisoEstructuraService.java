@@ -22,6 +22,7 @@ public class PermisoEstructuraService {
     private final PermisoEstructuraRepository permisoEstructuraRepository;
     private final EmpresaService empresaService;
 
+    @Transactional(readOnly = true)
     public void validar(Long empresaId, RolAcceso rol, OperacionEstructura operacion) {
         PermisoEstructura permiso = obtener(empresaId, rol);
         boolean permitido = switch (operacion) {
