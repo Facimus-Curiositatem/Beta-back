@@ -23,6 +23,7 @@ public class PermisoEstructuraService {
     private final PermisoEstructuraRepository permisoEstructuraRepository;
     private final EmpresaRepository empresaRepository;
 
+    @Transactional(readOnly = true)
     public void validar(Long empresaId, RolAcceso rol, OperacionEstructura operacion) {
         PermisoEstructura permiso = obtener(empresaId, rol);
         boolean permitido = switch (operacion) {
@@ -38,11 +39,13 @@ public class PermisoEstructuraService {
         }
     }
 
+    @Transactional(readOnly = true)
     public PermisoEstructura obtener(Long empresaId, RolAcceso rol) {
         return permisoEstructuraRepository.findByEmpresaIdAndRolAcceso(empresaId, rol)
                 .orElseGet(() -> permisoPorDefecto(empresaId, rol));
     }
 
+    @Transactional(readOnly = true)
     public List<PermisoEstructura> listar(Long empresaId) {
         return Arrays.stream(RolAcceso.values()).map(rol -> obtener(empresaId, rol)).toList();
     }
