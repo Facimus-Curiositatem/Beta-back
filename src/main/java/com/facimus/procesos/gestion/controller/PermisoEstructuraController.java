@@ -16,10 +16,13 @@ import com.facimus.procesos.gestion.controller.dto.PermisoEstructuraResponse;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-24: configuracion de permisos de estructura por rol de acceso. */
+@Tag(name = "Permisos de estructura", description = "Configuracion de permisos para operar pools y lanes")
 @RestController
 @RequestMapping("/api/v1/permisos-estructura")
 @RequiredArgsConstructor
@@ -27,12 +30,14 @@ public class PermisoEstructuraController {
 
     private final PermisoEstructuraService permisoEstructuraService;
 
+    @Operation(summary = "Listar permisos de estructura por rol")
     @GetMapping
     public ResponseEntity<List<PermisoEstructuraResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(permisoEstructuraService.listar(principal.empresaId()).stream()
                 .map(PermisoEstructuraResponse::of).toList());
     }
 
+    @Operation(summary = "Actualizar permisos de estructura para un rol")
     @PutMapping("/{rol}")
     public ResponseEntity<PermisoEstructuraResponse> actualizar(@PathVariable RolAcceso rol,
             @RequestBody PermisoEstructuraRequest request,
