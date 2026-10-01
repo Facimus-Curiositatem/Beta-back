@@ -15,9 +15,13 @@ import com.facimus.procesos.gestion.service.EmpresaService;
 
 import lombok.RequiredArgsConstructor;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /** HU-01: registro de una nueva empresa y su administrador inicial. */
+@Tag(name = "Empresas", description = "Registro de empresas en la plataforma")
 @RestController
 @RequestMapping("/api/v1/empresas")
 @RequiredArgsConstructor
@@ -25,6 +29,9 @@ public class EmpresaController {
 
     private final EmpresaService empresaService;
 
+    @Operation(summary = "Registrar empresa", description = "Crea una empresa y su usuario administrador inicial")
+    @ApiResponse(responseCode = "201", description = "Empresa registrada exitosamente")
+    @ApiResponse(responseCode = "409", description = "Ya existe una empresa con ese NIT")
     @SecurityRequirements()
     @PostMapping
     public ResponseEntity<EmpresaResponse> registrar(@Validated @RequestBody RegistroEmpresaRequest request) {
