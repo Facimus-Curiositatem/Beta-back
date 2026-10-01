@@ -41,7 +41,9 @@ public class ProcesoCompartidoService {
         ProcesoCompartido compartido = procesoCompartidoRepository
                 .findByProcesoIdAndEmpresaIdAndEmpresaInvitadaId(procesoId, empresaId, empresaInvitadaId)
                 .orElseGet(ProcesoCompartido::new);
-        compartido.setEmpresa(proceso.getEmpresa());
+        // proceso.getEmpresa() es LAZY: se resuelve con empresaService (ya tenemos empresaId)
+        // en vez de navegar el proxy, que aqui no esta inicializado.
+        compartido.setEmpresa(empresaService.obtener(empresaId));
         compartido.setProceso(proceso);
         compartido.setEmpresaInvitada(invitada);
         compartido.setSoloLectura(true);

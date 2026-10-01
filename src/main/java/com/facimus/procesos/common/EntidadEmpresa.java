@@ -1,6 +1,7 @@
 package com.facimus.procesos.common;
 
 import com.facimus.procesos.gestion.model.Empresa;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
@@ -13,15 +14,19 @@ import lombok.Setter;
  *
  * <p><b>Decisiones de mapeo JPA (deliberadas, no un descuido):</b>
  * <ul>
- *   <li><b>{@code @ManyToOne} sin {@code fetch = FetchType.LAZY}:</b> el mapeo Entity-&gt;DTO
- *   ocurre en los controllers (via {@code ModelMapper}), fuera del {@code @Transactional}
- *   del service que cargo la entidad. Con {@code spring.jpa.open-in-view=false} (asi esta
- *   configurado a proposito, ver application.properties), la sesion de Hibernate se cierra
- *   al salir del metodo del service; si las relaciones fueran LAZY, acceder a ellas desde el
- *   controller lanzaria {@code LazyInitializationException}. Adoptar LAZY aqui requeriria
- *   primero mover el mapeo a la capa de servicio (evaluado y descartado: la mayoria de
- *   servicios ya se llaman entre si con la entidad real para validar reglas de negocio, y
- *   convertir esos metodos a devolver DTOs rompe esa composicion).</li>
+ *   <li><b>{@code @ManyToOne} con {@code fetch = FetchType.LAZY}:</b> el mapeo Entity-&gt;DTO
+ *   sigue ocurriendo en los controllers (via {@code ModelMapper}), fuera del
+ *   {@code @Transactional} del service que cargo la entidad, y con
+ *   {@code spring.jpa.open-in-view=false} la sesion de Hibernate ya cerro para entonces. Para
+ *   que esto no lance {@code LazyInitializationException}, cada repositorio cuyo resultado se
+ *   mapea a un DTO que navega una relacion (p. ej. {@code lane.getRolProceso().getNombre()})
+ *   declara un {@code @EntityGraph} sobre el metodo correspondiente, cargando esa relacion de
+ *   forma explicita en la misma query — ver por ejemplo {@code LaneRepository},
+ *   {@code HistorialCambioRepository} o {@code ProcesoCompartidoRepository}. Mover el mapeo a
+ *   la capa de servicio tambien evitaria el problema, pero se evaluo y se descarto (la mayoria
+ *   de servicios ya se llaman entre si con la entidad real para validar reglas de negocio, y
+ *   convertir esos metodos a devolver DTOs rompe esa composicion); por eso la solucion elegida
+ *   es declarar explicitamente, por repositorio, que relaciones necesita cada lectura.</li>
  *   <li><b>Baja logica manual (campo {@code activo} + filtro explicito en cada query) en vez
  *   de {@code @SQLDelete}/{@code @Where}:</b> el proyecto ya filtra explicitamente por
  *   {@code empresaId} en cada consulta (ver {@link RepositorioTenant}); mantener {@code activo}
@@ -37,7 +42,7 @@ import lombok.Setter;
 @MappedSuperclass
 public abstract class EntidadEmpresa {
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false, updatable = false)
     protected Empresa empresa;
 }

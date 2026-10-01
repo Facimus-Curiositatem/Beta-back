@@ -5,7 +5,7 @@ decisiones vigentes, la infraestructura de CI/CD, el despliegue en Docker y
 las guias que todo colaborador debe seguir para contribuir sin romper las
 garantias que ya estan en pie.
 
-Ultima actualizacion: 2026-09-28 (rama `main`).
+Ultima actualizacion: 2026-10-01 (rama `refactor/modelmapper-y-separacion-repositorios`, PR #37).
 
 ---
 
@@ -29,50 +29,69 @@ Ultima actualizacion: 2026-09-28 (rama `main`).
 | CI/CD | GitHub Actions |
 | Contenedorizacion | Docker (multi-stage build) |
 | Documentacion API | springdoc-openapi (Swagger UI) |
+| Mapeo entidad-DTO | ModelMapper 3.2.0 |
 
-### Entidades implementadas (13)
+### Entidades implementadas (17)
 
-**Bloque gestion** (5): `Empresa`, `Usuario`, `Proceso`, `HistorialCambio`,
-`RolProceso`.
+**Bloque gestion** (8): `Empresa`, `Usuario`, `Proceso`, `HistorialCambio`,
+`RolProceso`, `InvitacionUsuario`, `PermisoEstructura`, `ProcesoCompartido`.
 
-**Bloque modelado** (8): `Pool`, `Lane`, `NodoFlujo` (abstracta), `Actividad`,
-`Gateway`, `Arco`, `Mensaje`, `Correlacion`.
+**Bloque modelado** (9): `Pool`, `Lane`, `NodoFlujo` (abstracta), `Actividad`,
+`Gateway`, `EventoMensaje`, `Arco`, `Mensaje`, `Correlacion`.
 
-**Enums** (4): `RolAcceso`, `EstadoProceso`, `TipoParticipante`, `TipoGateway`.
+**Enums** (9): `RolAcceso`, `EstadoProceso` (gestion); `TipoParticipante`,
+`TipoGateway`, `TipoActividad`, `TipoEventoMensaje`, `TipoDestinoExterno`,
+`PoliticaFalloNotificacion`, `PoliticaMensajeSinCaso` (modelado). Ademas,
+`OperacionEstructura` vive en `gestion/service/` (no en `model/`): enumera las
+operaciones que `PermisoEstructuraService` autoriza por rol (crear/editar/
+eliminar pool o lane).
 
 Todas las entidades excepto `Empresa` extienden `EntidadEmpresa`
 (`@MappedSuperclass`) que aporta la columna `empresa_id` con
 `updatable = false`.
 
-### Servicios implementados (12)
+### Servicios implementados (24)
 
-Bloque gestion: `EmpresaService`, `UsuarioService`, `ProcesoService`,
-`HistorialCambioService`, `RolProcesoService`.
+**Bloque gestion** (11): `EmpresaService`, `UsuarioService`, `ProcesoService`,
+`HistorialCambioService`, `RolProcesoService`, `InvitacionUsuarioService`,
+`PermisoEstructuraService`, `ProcesoCompartidoService`,
+`ProcesoDiagramaService`, y los orquestadores `EmpresaOrquestadorService`,
+`ProcesoOrquestadorService`.
 
-Bloque modelado: `PoolService`, `LaneService`, `ActividadService`,
-`GatewayService`, `ArcoService`, `MensajeService`, `CorrelacionService`.
+**Bloque modelado** (13): `PoolService`, `LaneService`, `ActividadService`,
+`GatewayService`, `ArcoService`, `MensajeService`, `CorrelacionService`,
+`EventoMensajeService`, `NodoFlujoService`, `AuditoriaModeladoService`,
+`ValidacionModeloService`, y los orquestadores `PoolOrquestadorService`,
+`CorrelacionOrquestadorService`.
 
 Todos reciben `empresaId` del controlador (extraido del `ApiPrincipal`
-autenticado) y lo usan para acotar cada operacion al tenant correcto.
+autenticado) y lo usan para acotar cada operacion al tenant correcto. Sobre
+los 4 orquestadores (resaltados arriba) ver la seccion 2.8.
 
-### Controladores REST (12)
+### Controladores REST (16)
 
 | Modulo | Controlador | Base path |
 |---|---|---|
 | Auth | `AuthController` | `/api/v1/auth` |
 | Empresas | `EmpresaController` | `/api/v1/empresas` |
 | Usuarios | `UsuarioController` | `/api/v1/usuarios` |
+| Invitaciones | `InvitacionUsuarioController` | `/api/v1/usuarios/invitaciones` |
+| Permisos de estructura | `PermisoEstructuraController` | `/api/v1/permisos-estructura` |
 | Procesos | `ProcesoController` | `/api/v1/procesos` |
+| Procesos compartidos | `ProcesoCompartidoController` | `/api/v1/procesos/{id}/compartidos`, `/api/v1/procesos-compartidos` |
 | Roles | `RolProcesoController` | `/api/v1/roles` |
 | Pools | `PoolController` | `/api/v1/procesos/{id}/pools`, `/api/v1/pools/{id}` |
 | Lanes | `LaneController` | `/api/v1/pools/{id}/lanes`, `/api/v1/lanes/{id}` |
 | Actividades | `ActividadController` | `/api/v1/lanes/{id}/actividades`, `/api/v1/actividades/{id}` |
 | Gateways | `GatewayController` | `/api/v1/lanes/{id}/gateways`, `/api/v1/gateways/{id}` |
+| Eventos de mensaje | `EventoMensajeController` | `/api/v1/lanes/{id}/eventos-mensaje`, `/api/v1/eventos-mensaje/{id}` |
 | Arcos | `ArcoController` | `/api/v1/arcos`, `/api/v1/pools/{id}/arcos` |
 | Mensajes | `MensajeController` | `/api/v1/procesos/{id}/mensajes`, `/api/v1/mensajes/{id}` |
 | Correlaciones | `CorrelacionController` | `/api/v1/mensajes/{id}/correlacion` |
 
-Documentacion interactiva disponible en `/swagger-ui/index.html`.
+Documentacion interactiva disponible en `/swagger-ui/index.html`. Los 16
+controllers tienen `@Tag` (clase) y `@Operation`/`@ApiResponse` (metodo) con
+el DTO real o `ProblemDetail` segun el codigo de respuesta.
 
 ---
 
@@ -123,7 +142,13 @@ com.facimus.procesos
 
 - `NodoFlujo` es abstracta con `@Inheritance(SINGLE_TABLE)` y
   `@DiscriminatorColumn(name = "tipo_nodo")`.
-- Solo tiene dos subtipos: `Actividad` y `Gateway`.
+- Tiene tres subtipos: `Actividad`, `Gateway` y `EventoMensaje` (Message
+  Throw/Catch).
+- `NodoFlujoRepository` es el unico repositorio compartido entre varios
+  servicios (`ActividadService`, `GatewayService`, `EventoMensajeService`
+  delegan en `NodoFlujoService` en vez de inyectarlo directamente): es la
+  excepcion documentada a la regla "cada Service solo su propio Repository"
+  (ver 2.7), justificada porque los tres subtipos comparten tabla.
 
 ### 2.4 Enums
 
@@ -132,8 +157,17 @@ Agregar un valor al enum o reordenarlo no corrompe datos existentes.
 
 ### 2.5 Eliminacion logica
 
-`Proceso` y `RolProceso` usan `boolean activo`. Nunca se hace `DELETE`
-fisico sobre estas entidades.
+`Proceso` y `RolProceso` usan `boolean activo` desde el inicio del proyecto.
+El mismo patron se extendio a todas las entidades de modelado: `Pool`,
+`Lane`, `Actividad`, `Gateway`, `EventoMensaje`, `Arco` y `Mensaje` tambien
+tienen `boolean activo` con filtrado explicito en cada query/servicio.
+Nunca se hace `DELETE` fisico sobre ninguna de estas entidades.
+
+Se evaluo adoptar `@SQLDelete`/`@Where` (soft delete declarativo de
+Hibernate) y se descarto a proposito: cambiaria el filtrado de `activo` de
+explicito (visible en cada query, igual que el filtrado por `empresaId`) a
+implicito y global, lo que es mas dificil de auditar. La decision esta
+documentada en `EntidadEmpresa.java`.
 
 ### 2.6 Seguridad
 
@@ -144,6 +178,77 @@ fisico sobre estas entidades.
 - Errores de autenticacion y autorizacion responden con `ProblemDetail`
   (RFC 9457).
 
+### 2.7 Mapeo entidad-DTO con ModelMapper
+
+- `config/ModelMapperConfig.java` registra un bean `ModelMapper` con
+  `AbstractConverter` explicitos solo para los DTOs que tienen campos
+  derivados de una relacion (p. ej. `pool.getProceso().getId()` ->
+  `procesoId`). Los DTOs que solo copian campos con el mismo nombre no
+  tienen converter: ModelMapper los resuelve por coincidencia automatica.
+- **El mapeo ocurre en los controllers**, no en los services, y es una
+  decision deliberada: los services ya se llaman entre si con la entidad
+  real (no con el DTO) para validar reglas de negocio cruzadas; mover el
+  mapeo a la capa de servicio rompia esa composicion.
+- Se probo eliminar los converters "triviales" confiando por completo en el
+  mapeo automatico por nombre: rompio 24 tests, porque los DTO de respuesta
+  son Java records (sin setters) y ModelMapper 3.2.0 no los resuelve solo
+  por nombre cuando no hay un setter que rellenar. Por eso los converters
+  explicitos se mantienen para esos casos.
+- Las 20 relaciones `@ManyToOne`/`@OneToOne` del proyecto son
+  `FetchType.LAZY` (ver `EntidadEmpresa.java` para el detalle). Como el
+  mapeo sigue ocurriendo en el controller — fuera de la transaccion, con
+  `spring.jpa.open-in-view=false` — acceder a una relacion no inicializada
+  ahi lanzaria `LazyInitializationException`. La solucion no fue mover el
+  mapeo a la capa de servicio (evaluado y descartado, ver arriba), sino
+  declarar `@EntityGraph(attributePaths = {...})` en el metodo del
+  repositorio que alimenta cada lectura que necesita esa relacion — p. ej.
+  `LaneRepository.findByIdAndEmpresaId` carga `rolProceso` porque
+  `LaneResponse` necesita su nombre. Cada repositorio con un
+  `@EntityGraph` documenta en un comentario que relacion necesita y por
+  que. Los accesos que solo leen el id de la relacion (la mayoria) no
+  necesitan `@EntityGraph`: un proxy LAZY sin inicializar sigue
+  respondiendo a `getId()` sin lanzar excepcion.
+
+### 2.8 Orquestadores transaccionales y eventos de dominio
+
+Varios casos de uso necesitan coordinar dos o mas servicios en una sola
+operacion atomica (p. ej. crear un proceso y su pool inicial). Hacer esa
+coordinacion llamando a dos servicios por separado desde el controller deja
+cada llamada en su propia transaccion: si la segunda falla, la primera ya
+quedo persistida. La solucion son 4 servicios `@Service` nuevos, cada uno
+con un metodo `@Transactional` que envuelve la secuencia completa:
+
+| Orquestador | Casos de uso | Depende de |
+|---|---|---|
+| `EmpresaOrquestadorService` | Registrar empresa + administrador inicial (HU-01) | `EmpresaService`, `UsuarioService` |
+| `ProcesoOrquestadorService` | Crear proceso + pool inicial (HU-04) | `ProcesoService`, `PoolService` |
+| `CorrelacionOrquestadorService` | Definir/eliminar correlacion + actualizar el mensaje (HU-28) | `MensajeService`, `CorrelacionService` |
+| `PoolOrquestadorService` | Verificar + borrar lanes + eliminar el pool (HU-21) | `PoolService`, `LaneService` |
+
+Como son clases nuevas que dependen de los services existentes (y ningun
+service existente depende de ellas), no reintroducen los ciclos que
+`SeparacionRepositoriosTest` prohibe.
+
+Un caso distinto: hay reglas de negocio (validar el modelo BPMN antes de
+publicar, o rechazar marcar un pool con lanes como caja negra) que deben
+cumplirse aunque el Service se llame directamente, sin pasar por un
+orquestador. Para esos dos casos se usan **eventos de dominio sincronos**
+(`ApplicationEventPublisher` + `@EventListener`):
+
+- `ProcesoService.cambiarEstado` publica `ProcesoPublicacionEvent` antes de
+  guardar la transicion a `PUBLICADO`; `ValidacionModeloService` lo escucha.
+- `PoolService.editar` publica `PoolMarcadoCajaNegraEvent` antes de guardar
+  `cajaNegra = true`; `LaneService` lo escucha.
+
+Un evento no es una dependencia de compilacion (quien publica no conoce a
+quien escucha), y `@EventListener` de Spring se ejecuta de forma sincrona,
+dentro de la misma transaccion del publicador: si el listener lanza una
+excepcion, aborta la operacion antes de guardar nada.
+
+Resultado: **0 usos de `@Lazy` en todo el proyecto**. `SeparacionRepositoriosTest`
+tiene una regla `beFreeOfCycles()` que falla el build si se reintroduce un
+ciclo entre servicios.
+
 ---
 
 ## 3. Suite de tests
@@ -153,13 +258,14 @@ fisico sobre estas entidades.
 | Tipo | Clases | Tests | Que valida |
 |---|---|---|---|
 | Contexto | 1 | 1 | Spring Boot arranca correctamente |
-| Arquitectura (ArchUnit) | 6 | 20 | Empaquetado, multi-tenencia, herencia JPA, seguridad |
-| Controllers (gestion) | 5 | 39 | Endpoints REST, validaciones, permisos |
-| Controllers (modelado) | 7 | 57 | Endpoints REST de modelado BPMN |
-| Servicios (gestion) | 4 | 19 | Logica de negocio de gestion |
-| Servicios (modelado) | 7 | 52 | Logica de negocio de modelado |
-| Seguridad e integracion | 4 | 17 | JWT, aislamiento de tenants, roles |
-| **Total** | **34** | **279** | |
+| Arquitectura (ArchUnit) | 7 | 35 | Empaquetado, multi-tenencia, herencia JPA, seguridad, separacion de repositorios y 0 ciclos entre servicios |
+| Controllers (gestion) | 8 | 53 | Endpoints REST, validaciones, permisos |
+| Controllers (modelado) | 8 | 65 | Endpoints REST de modelado BPMN |
+| Servicios (gestion) | 10 | 52 | Logica de negocio de gestion, incluye los orquestadores |
+| Servicios (modelado) | 12 | 129 | Logica de negocio de modelado, incluye los orquestadores y los `@EventListener` |
+| Seguridad e integracion | 4 | 92 | JWT, aislamiento de tenants, roles |
+| Transaccionalidad (integracion, H2 real) | 7 | 8 | Rollback real de cada orquestador, cumplimiento de reglas de negocio llamando al Service directamente, y lectura de relaciones LAZY fuera de la transaccion (ProcesoCompartido, Arco) |
+| **Total** | **57** | **435** | |
 
 ### 3.2 Ejecucion local
 
@@ -199,13 +305,13 @@ Push o PR a main/develop
 │
 ├── Job 1: Build & Test (ubuntu + windows, en paralelo)
 │   ├── Compilar con Maven
-│   ├── Ejecutar los 279 tests
+│   ├── Ejecutar los 435 tests
 │   ├── Generar reporte de tests
 │   ├── Subir reporte JaCoCo como artefacto
 │   └── Empaquetar JAR
 │
 ├── Job 2: Architecture Guard (despues de Job 1)
-│   ├── Ejecutar los 20 tests de ArchUnit
+│   ├── Ejecutar los 35 tests de ArchUnit
 │   └── Reporte separado de reglas de arquitectura
 │
 ├── Job 3: Docker Build (despues de Jobs 1 y 2)
