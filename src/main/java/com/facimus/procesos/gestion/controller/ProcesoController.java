@@ -41,11 +41,15 @@ import com.facimus.procesos.modelado.controller.dto.LaneResponse;
 import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.constraints.Min;
 
 /** HU-04 a HU-07: creacion, edicion, eliminacion logica y consulta de procesos. */
+@Tag(name = "Procesos", description = "Gestion del ciclo de vida de procesos BPMN")
 @RestController
 @RequestMapping("/api/v1/procesos")
 @RequiredArgsConstructor
@@ -57,6 +61,7 @@ public class ProcesoController {
     private final HistorialCambioService historialCambioService;
     private final ProcesoDiagramaService procesoDiagramaService;
 
+    @Operation(summary = "Listar procesos con filtros y paginacion")
     @GetMapping
     public ResponseEntity<PageResponse<ProcesoResponse>> listar(
             @RequestParam(required = false) String nombre,
@@ -72,6 +77,9 @@ public class ProcesoController {
         return ResponseEntity.ok(PageResponse.from(procesos));
     }
 
+    @Operation(summary = "Crear proceso", description = "Crea un proceso en estado BORRADOR con pool inicial")
+    @ApiResponse(responseCode = "201", description = "Proceso creado")
+    @ApiResponse(responseCode = "409", description = "Nombre duplicado en la empresa")
     @PostMapping
     public ResponseEntity<ProcesoResponse> crear(@Validated @RequestBody ProcesoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -83,6 +91,7 @@ public class ProcesoController {
                 .body(ProcesoResponse.of(proceso));
     }
 
+    @Operation(summary = "Obtener detalle de un proceso con historial")
     @GetMapping("/{id}")
     public ResponseEntity<ProcesoDetalleResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -94,6 +103,7 @@ public class ProcesoController {
         return ResponseEntity.ok(new ProcesoDetalleResponse(ProcesoResponse.of(proceso), historial));
     }
 
+    @Operation(summary = "Editar datos del proceso")
     @PutMapping("/{id}")
     public ResponseEntity<ProcesoResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarProcesoRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -104,6 +114,7 @@ public class ProcesoController {
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
+    @Operation(summary = "Cambiar estado del proceso (borrador/publicado)")
     @PatchMapping("/{id}")
     public ResponseEntity<ProcesoResponse> cambiarEstado(@PathVariable Long id,
             @Validated @RequestBody CambiarEstadoProcesoRequest request,
@@ -114,6 +125,7 @@ public class ProcesoController {
         return ResponseEntity.ok(ProcesoResponse.of(proceso));
     }
 
+    @Operation(summary = "Obtener diagrama completo del proceso")
     @GetMapping("/{id}/diagrama")
     public ResponseEntity<ProcesoDiagramaResponse> diagrama(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -129,6 +141,7 @@ public class ProcesoController {
                 diagrama.mensajes().stream().map(MensajeResponse::of).toList()));
     }
 
+    @Operation(summary = "Consultar historial de cambios del proceso")
     @GetMapping("/{id}/historial")
     public ResponseEntity<List<HistorialCambioResponse>> historial(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -139,6 +152,8 @@ public class ProcesoController {
                 .toList());
     }
 
+    @Operation(summary = "Eliminar proceso (baja logica, solo administrador)")
+    @ApiResponse(responseCode = "204", description = "Proceso eliminado")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
