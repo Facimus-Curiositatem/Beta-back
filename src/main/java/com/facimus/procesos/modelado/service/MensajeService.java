@@ -217,6 +217,7 @@ public class MensajeService {
         auditoriaModeladoService.registrar(proceso, "Mensaje eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public List<Mensaje> listarPorProceso(Long empresaId, Long procesoId) {
         if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
@@ -224,6 +225,7 @@ public class MensajeService {
         return mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Mensaje obtener(Long empresaId, Long mensajeId) {
         return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId)
                 .filter(Mensaje::isActivo)
