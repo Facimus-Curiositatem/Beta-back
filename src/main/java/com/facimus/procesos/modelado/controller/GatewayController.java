@@ -20,10 +20,14 @@ import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.service.GatewayService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-14 a HU-16: gateways (puntos de decision). */
+@Tag(name = "Gateways", description = "Gestion de gateways (compuertas) de decision y bifurcacion")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -31,6 +35,8 @@ public class GatewayController {
 
     private final GatewayService gatewayService;
 
+    @Operation(summary = "Crear gateway en una lane")
+    @ApiResponse(responseCode = "201", description = "Gateway creado")
     @PostMapping("/lanes/{laneId}/gateways")
     public ResponseEntity<GatewayResponse> crear(@PathVariable Long laneId,
             @Validated @RequestBody GatewayRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -41,6 +47,7 @@ public class GatewayController {
                 .body(GatewayResponse.of(gateway));
     }
 
+    @Operation(summary = "Obtener detalle de un gateway")
     @GetMapping("/gateways/{id}")
     public ResponseEntity<GatewayResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -49,6 +56,7 @@ public class GatewayController {
         return ResponseEntity.ok(GatewayResponse.of(gateway));
     }
 
+    @Operation(summary = "Listar gateways de una lane")
     @GetMapping("/lanes/{laneId}/gateways")
     public ResponseEntity<List<GatewayResponse>> listar(@PathVariable Long laneId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -58,6 +66,7 @@ public class GatewayController {
         return ResponseEntity.ok(gateways);
     }
 
+    @Operation(summary = "Editar gateway")
     @PutMapping("/gateways/{id}")
     public ResponseEntity<GatewayResponse> editar(@PathVariable Long id,
             @Validated @RequestBody GatewayRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -67,6 +76,7 @@ public class GatewayController {
         return ResponseEntity.ok(GatewayResponse.of(gateway));
     }
 
+    @Operation(summary = "Evaluar impacto de eliminar un gateway")
     @GetMapping("/gateways/{id}/impacto-eliminacion")
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -74,6 +84,8 @@ public class GatewayController {
                 gatewayService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Eliminar gateway (baja logica)")
+    @ApiResponse(responseCode = "204", description = "Gateway eliminado")
     @DeleteMapping("/gateways/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
