@@ -20,10 +20,14 @@ import com.facimus.procesos.gestion.controller.dto.ProcesoCompartidoResponse;
 import com.facimus.procesos.gestion.model.ProcesoCompartido;
 import com.facimus.procesos.gestion.service.ProcesoCompartidoService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-23: procesos compartidos entre empresas en modo solo lectura. */
+@Tag(name = "Procesos compartidos", description = "Compartir procesos en modo solo lectura entre empresas")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -31,6 +35,7 @@ public class ProcesoCompartidoController {
 
     private final ProcesoCompartidoService procesoCompartidoService;
 
+    @Operation(summary = "Listar empresas con acceso compartido al proceso")
     @GetMapping("/procesos/{procesoId}/compartidos")
     public ResponseEntity<List<ProcesoCompartidoResponse>> listarCompartidos(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -39,6 +44,8 @@ public class ProcesoCompartidoController {
                 .map(ProcesoCompartidoResponse::of).toList());
     }
 
+    @Operation(summary = "Compartir proceso con otra empresa")
+    @ApiResponse(responseCode = "201", description = "Proceso compartido")
     @PostMapping("/procesos/{procesoId}/compartidos")
     public ResponseEntity<ProcesoCompartidoResponse> compartir(@PathVariable Long procesoId,
             @Validated @RequestBody CompartirProcesoRequest request,
@@ -49,6 +56,8 @@ public class ProcesoCompartidoController {
                 .body(ProcesoCompartidoResponse.of(compartido));
     }
 
+    @Operation(summary = "Retirar acceso compartido a una empresa")
+    @ApiResponse(responseCode = "204", description = "Acceso retirado")
     @DeleteMapping("/procesos/{procesoId}/compartidos/{empresaInvitadaId}")
     public ResponseEntity<Void> dejarDeCompartir(@PathVariable Long procesoId,
             @PathVariable Long empresaInvitadaId,
@@ -58,6 +67,7 @@ public class ProcesoCompartidoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Listar procesos compartidos recibidos")
     @GetMapping("/procesos-compartidos")
     public ResponseEntity<List<ProcesoCompartidoResponse>> listarRecibidos(
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -65,6 +75,7 @@ public class ProcesoCompartidoController {
                 .map(ProcesoCompartidoResponse::of).toList());
     }
 
+    @Operation(summary = "Ver detalle de un proceso compartido (solo lectura)")
     @GetMapping("/procesos-compartidos/{procesoId}")
     public ResponseEntity<ProcesoCompartidoDetalleResponse> detalleCompartido(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
