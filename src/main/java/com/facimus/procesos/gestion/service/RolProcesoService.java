@@ -78,6 +78,7 @@ public class RolProcesoService {
         rolProcesoRepository.save(rol);
     }
 
+    @Transactional(readOnly = true)
     public List<RolProcesoVista> listarConUso(Long empresaId) {
         return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
                 .map(rol -> {
@@ -87,6 +88,7 @@ public class RolProcesoService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Page<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre, Pageable pageable) {
         Page<RolProceso> pagina = (nombre == null || nombre.isBlank())
                 ? rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId, pageable)
@@ -116,11 +118,13 @@ public class RolProcesoService {
                         .forEach(proceso -> historialCambioService.registrar(proceso, usuario, descripcion)));
     }
 
+    @Transactional(readOnly = true)
     public long contarUsos(Long empresaId, Long rolId) {
         obtener(empresaId, rolId);
         return laneRepository.countByRolProcesoIdAndEmpresaId(rolId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public RolProceso obtener(Long empresaId, Long rolId) {
         return rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(rolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
