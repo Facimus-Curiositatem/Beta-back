@@ -23,9 +23,13 @@ import com.facimus.procesos.gestion.service.OperacionEstructura;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.modelado.service.PoolService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
+@Tag(name = "Pools", description = "Gestion de pools (participantes) dentro de un proceso BPMN")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class PoolController {
     private final PoolService poolService;
     private final PermisoEstructuraService permisoEstructuraService;
 
+    @Operation(summary = "Listar pools de un proceso")
     @GetMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<List<PoolResponse>> listar(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -41,12 +46,15 @@ public class PoolController {
                 .map(PoolResponse::of).toList());
     }
 
+    @Operation(summary = "Obtener detalle de un pool")
     @GetMapping("/pools/{id}")
     public ResponseEntity<PoolResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(PoolResponse.of(poolService.obtener(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Crear pool en un proceso")
+    @ApiResponse(responseCode = "201", description = "Pool creado")
     @PostMapping("/procesos/{procesoId}/pools")
     public ResponseEntity<PoolResponse> crear(@PathVariable Long procesoId,
             @Validated @RequestBody PoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -57,6 +65,7 @@ public class PoolController {
                 .body(PoolResponse.of(pool));
     }
 
+    @Operation(summary = "Editar pool")
     @PutMapping("/pools/{id}")
     public ResponseEntity<PoolResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarPoolRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -68,6 +77,8 @@ public class PoolController {
         return ResponseEntity.ok(PoolResponse.of(pool));
     }
 
+    @Operation(summary = "Eliminar pool")
+    @ApiResponse(responseCode = "204", description = "Pool eliminado")
     @DeleteMapping("/pools/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         permisoEstructuraService.validar(principal.empresaId(), principal.rol(), OperacionEstructura.ELIMINAR_POOL);
