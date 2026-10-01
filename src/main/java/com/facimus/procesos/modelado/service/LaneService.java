@@ -106,6 +106,7 @@ public class LaneService {
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public List<Lane> listarPorPool(Long empresaId, Long poolId) {
         if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
             throw new RecursoNoEncontradoException("Pool no encontrado.");
@@ -113,6 +114,7 @@ public class LaneService {
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Lane obtener(Long empresaId, Long laneId) {
         return laneRepository.findByIdAndEmpresaId(laneId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Lane no encontrada."));
