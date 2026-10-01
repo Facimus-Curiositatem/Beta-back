@@ -51,6 +51,7 @@ public class EmpresaService {
         return empresa;
     }
 
+    @Transactional(readOnly = true)
     public Optional<Empresa> buscarPorNit(String nit) {
         return empresaRepository.findByNit(nit);
     }
