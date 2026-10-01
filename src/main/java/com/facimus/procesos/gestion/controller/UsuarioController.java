@@ -21,10 +21,14 @@ import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.UsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-02: administracion de colaboradores de la empresa (solo administrador). */
+@Tag(name = "Usuarios", description = "Gestion de usuarios dentro de una empresa")
 @RestController
 @RequestMapping("/api/v1/usuarios")
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
+    @Operation(summary = "Listar usuarios activos de la empresa")
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
@@ -41,6 +46,9 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarios);
     }
 
+    @Operation(summary = "Crear usuario")
+    @ApiResponse(responseCode = "201", description = "Usuario creado")
+    @ApiResponse(responseCode = "409", description = "Email duplicado en la empresa")
     @PostMapping
     public ResponseEntity<UsuarioResponse> crear(@Validated @RequestBody CrearUsuarioRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -51,6 +59,7 @@ public class UsuarioController {
         .body(UsuarioResponse.of(usuario));
     }
 
+    @Operation(summary = "Obtener usuario por ID")
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponse> obtener(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -59,6 +68,7 @@ public class UsuarioController {
         return ResponseEntity.ok(UsuarioResponse.of(usuario));
     }
 
+    @Operation(summary = "Actualizar rol o estado de un usuario")
     @PatchMapping("/{id}")
     public ResponseEntity<UsuarioResponse> actualizar(@PathVariable Long id,
             @Validated @RequestBody ActualizarUsuarioRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -67,6 +77,8 @@ public class UsuarioController {
         return ResponseEntity.ok(UsuarioResponse.of(usuario));
     }
 
+    @Operation(summary = "Desactivar usuario (baja logica)")
+    @ApiResponse(responseCode = "204", description = "Usuario desactivado")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desactivar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
