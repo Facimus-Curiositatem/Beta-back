@@ -135,12 +135,14 @@ public class ProcesoService {
         historialCambioService.registrar(proceso, autor, "Proceso eliminado (baja logica).");
     }
 
+    @Transactional(readOnly = true)
     public Page<Proceso> buscar(Long empresaId, String nombre, EstadoProceso estado, String categoria,
             Boolean activo, Pageable pageable) {
         return procesoRepository.findAll(
                 ProcesoSpecifications.conFiltros(empresaId, nombre, estado, categoria, activo), pageable);
     }
 
+    @Transactional(readOnly = true)
     public Proceso obtener(Long empresaId, Long procesoId) {
         return procesoRepository.findByIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
