@@ -20,10 +20,14 @@ import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.service.ActividadService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-08 a HU-10: actividades (tareas del proceso). */
+@Tag(name = "Actividades", description = "Gestion de actividades (tareas) en el modelado BPMN")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -31,6 +35,8 @@ public class ActividadController {
 
     private final ActividadService actividadService;
 
+    @Operation(summary = "Crear actividad en una lane")
+    @ApiResponse(responseCode = "201", description = "Actividad creada")
     @PostMapping("/lanes/{laneId}/actividades")
     public ResponseEntity<ActividadResponse> crear(@PathVariable Long laneId,
             @Validated @RequestBody ActividadRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -44,12 +50,14 @@ public class ActividadController {
                 .body(ActividadResponse.of(actividad));
     }
 
+    @Operation(summary = "Obtener detalle de una actividad")
     @GetMapping("/actividades/{id}")
     public ResponseEntity<ActividadResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
         return ResponseEntity.ok(ActividadResponse.of(actividadService.obtener(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Listar actividades de una lane")
     @GetMapping("/lanes/{laneId}/actividades")
     public ResponseEntity<List<ActividadResponse>> listar(@PathVariable Long laneId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -57,6 +65,7 @@ public class ActividadController {
                 .map(ActividadResponse::of).toList());
     }
 
+    @Operation(summary = "Editar actividad")
     @PutMapping("/actividades/{id}")
     public ResponseEntity<ActividadResponse> editar(@PathVariable Long id,
             @Validated @RequestBody ActividadRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -69,6 +78,7 @@ public class ActividadController {
         return ResponseEntity.ok(ActividadResponse.of(actividad));
     }
 
+    @Operation(summary = "Evaluar impacto de eliminar una actividad")
     @GetMapping("/actividades/{id}/impacto-eliminacion")
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -76,6 +86,8 @@ public class ActividadController {
                 actividadService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Eliminar actividad (baja logica)")
+    @ApiResponse(responseCode = "204", description = "Actividad eliminada")
     @DeleteMapping("/actividades/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         actividadService.eliminar(principal.empresaId(), id);
