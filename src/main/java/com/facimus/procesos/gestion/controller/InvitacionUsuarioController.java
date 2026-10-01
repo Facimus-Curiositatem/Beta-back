@@ -17,10 +17,15 @@ import com.facimus.procesos.gestion.controller.dto.InvitacionUsuarioResponse;
 import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
 import com.facimus.procesos.gestion.service.InvitacionUsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-02: invitacion y alta de colaboradores. */
+@Tag(name = "Invitaciones", description = "Invitacion de usuarios mediante token")
 @RestController
 @RequestMapping("/api/v1/usuarios/invitaciones")
 @RequiredArgsConstructor
@@ -28,6 +33,8 @@ public class InvitacionUsuarioController {
 
     private final InvitacionUsuarioService invitacionUsuarioService;
 
+    @Operation(summary = "Crear invitacion para un colaborador")
+    @ApiResponse(responseCode = "201", description = "Invitacion creada")
     @PostMapping
     public ResponseEntity<InvitacionUsuarioResponse> crear(
             @Validated @RequestBody InvitacionUsuarioRequest request,
@@ -37,6 +44,10 @@ public class InvitacionUsuarioController {
                 .body(InvitacionUsuarioResponse.of(invitacion));
     }
 
+    @Operation(summary = "Aceptar invitacion y registrar usuario")
+    @ApiResponse(responseCode = "200", description = "Usuario registrado exitosamente")
+    @ApiResponse(responseCode = "400", description = "Token expirado o ya utilizado")
+    @SecurityRequirements()
     @PostMapping("/{token}/aceptar")
     public ResponseEntity<UsuarioResponse> aceptar(@PathVariable String token,
             @Validated @RequestBody AceptarInvitacionRequest request) {
