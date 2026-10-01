@@ -24,10 +24,14 @@ import com.facimus.procesos.gestion.service.OperacionEstructura;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.modelado.service.LaneService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-22 y HU-24: lanes (divisiones internas de un pool). */
+@Tag(name = "Lanes", description = "Gestion de lanes (carriles) dentro de un pool")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class LaneController {
     private final LaneService laneService;
     private final PermisoEstructuraService permisoEstructuraService;
 
+    @Operation(summary = "Listar lanes de un pool")
     @GetMapping("/pools/{poolId}/lanes")
     public ResponseEntity<List<LaneResponse>> listar(@PathVariable Long poolId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -46,6 +51,7 @@ public class LaneController {
         return ResponseEntity.ok(lanes);
     }
 
+    @Operation(summary = "Obtener detalle de una lane")
     @GetMapping("/lanes/{id}")
     public ResponseEntity<LaneResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -54,6 +60,8 @@ public class LaneController {
         return ResponseEntity.ok(LaneResponse.of(lane));
     }
 
+    @Operation(summary = "Crear lane en un pool")
+    @ApiResponse(responseCode = "201", description = "Lane creada")
     @PostMapping("/pools/{poolId}/lanes")
     public ResponseEntity<LaneResponse> crear(@PathVariable Long poolId,
             @Validated @RequestBody LaneRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -64,6 +72,7 @@ public class LaneController {
         .body(LaneResponse.of(lane));
     }
 
+    @Operation(summary = "Editar lane")
     @PutMapping("/lanes/{id}")
     public ResponseEntity<LaneResponse> editar(@PathVariable Long id,
             @Validated @RequestBody LaneRequest request, @AuthenticationPrincipal ApiPrincipal principal) {
@@ -73,6 +82,7 @@ public class LaneController {
         return ResponseEntity.ok(LaneResponse.of(lane));
     }
 
+    @Operation(summary = "Reordenar lanes de un pool")
     @PatchMapping("/pools/{poolId}/lanes/orden")
     public ResponseEntity<List<LaneResponse>> reordenar(@PathVariable Long poolId,
             @Validated @RequestBody ReordenarLanesRequest request,
@@ -84,6 +94,8 @@ public class LaneController {
         return ResponseEntity.ok(lanes);
     }
 
+    @Operation(summary = "Eliminar lane")
+    @ApiResponse(responseCode = "204", description = "Lane eliminada")
     @DeleteMapping("/lanes/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
