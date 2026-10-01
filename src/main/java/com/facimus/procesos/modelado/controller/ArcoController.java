@@ -21,10 +21,14 @@ import com.facimus.procesos.modelado.controller.dto.EditarArcoRequest;
 import com.facimus.procesos.modelado.model.Arco;
 import com.facimus.procesos.modelado.service.ArcoService;
 import com.facimus.procesos.security.ApiPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 
 /** HU-11 a HU-13: arcos (flujo entre nodos dentro de un pool). */
+@Tag(name = "Arcos", description = "Gestion de arcos (flujos de secuencia) entre nodos")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -32,6 +36,8 @@ public class ArcoController {
 
     private final ArcoService arcoService;
 
+    @Operation(summary = "Crear arco entre dos nodos")
+    @ApiResponse(responseCode = "201", description = "Arco creado")
     @PostMapping("/arcos")
     public ResponseEntity<ArcoResponse> crear(@Validated @RequestBody ArcoRequest request,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -42,6 +48,7 @@ public class ArcoController {
                 .body(ArcoResponse.of(arco));
     }
 
+    @Operation(summary = "Obtener detalle de un arco")
     @GetMapping("/arcos/{id}")
     public ResponseEntity<ArcoResponse> detalle(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -50,6 +57,7 @@ public class ArcoController {
         return ResponseEntity.ok(ArcoResponse.of(arco));
     }
 
+    @Operation(summary = "Listar arcos de un pool")
     @GetMapping("/pools/{poolId}/arcos")
     public ResponseEntity<List<ArcoResponse>> listar(@PathVariable Long poolId,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -59,6 +67,7 @@ public class ArcoController {
         return ResponseEntity.ok(arcos);
     }
 
+    @Operation(summary = "Editar arco")
     @PutMapping("/arcos/{id}")
     public ResponseEntity<ArcoResponse> editar(@PathVariable Long id,
             @Validated @RequestBody EditarArcoRequest request,
@@ -69,6 +78,7 @@ public class ArcoController {
         return ResponseEntity.ok(ArcoResponse.of(arco));
     }
 
+    @Operation(summary = "Evaluar impacto de eliminar un arco")
     @GetMapping("/arcos/{id}/impacto-eliminacion")
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
@@ -76,6 +86,8 @@ public class ArcoController {
                 arcoService.evaluarImpactoEliminacion(principal.empresaId(), id)));
     }
 
+    @Operation(summary = "Eliminar arco (baja logica)")
+    @ApiResponse(responseCode = "204", description = "Arco eliminado")
     @DeleteMapping("/arcos/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id, @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
