@@ -86,6 +86,7 @@ public class PoolService {
         auditoriaModeladoService.registrar(proceso, "Pool eliminado: " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public List<Pool> listarPorProceso(Long empresaId, Long procesoId) {
         if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
@@ -93,6 +94,7 @@ public class PoolService {
         return poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Pool obtener(Long empresaId, Long poolId) {
         return poolRepository.findByIdAndEmpresaId(poolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pool no encontrado."));
