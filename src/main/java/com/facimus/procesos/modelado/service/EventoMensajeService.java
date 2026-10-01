@@ -101,6 +101,7 @@ public class EventoMensajeService {
         auditoriaModeladoService.registrar(proceso, "Evento de mensaje eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public EventoMensaje obtener(Long empresaId, Long eventoId) {
         return nodoFlujoRepository.findByIdAndEmpresaId(eventoId, empresaId)
                 .filter(nodo -> nodo.isActivo())
@@ -109,6 +110,7 @@ public class EventoMensajeService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Evento de mensaje no encontrado."));
     }
 
+    @Transactional(readOnly = true)
     public List<EventoMensaje> listarPorLane(Long empresaId, Long laneId) {
         if (!laneRepository.existsByIdAndEmpresaId(laneId, empresaId)) {
             throw new RecursoNoEncontradoException("Lane no encontrada.");
