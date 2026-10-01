@@ -3,6 +3,7 @@ package com.facimus.procesos.gestion.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Proceso;
@@ -34,6 +35,7 @@ public class ProcesoDiagramaService {
     private final ArcoRepository arcoRepository;
     private final MensajeRepository mensajeRepository;
 
+    @Transactional(readOnly = true)
     public ProcesoDiagrama obtener(Long empresaId, Long procesoId) {
         Proceso proceso = procesoRepository.findByIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
