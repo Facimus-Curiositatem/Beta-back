@@ -12,20 +12,26 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.EstadoProceso;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
 import com.facimus.procesos.gestion.service.ProcesoDiagramaService;
+import com.facimus.procesos.gestion.service.ProcesoOrquestadorService;
 import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(ProcesoController.class)
+@Import(ModelMapperConfig.class)
 class ProcesoControllerTest {
 
     @Autowired
@@ -40,6 +47,9 @@ class ProcesoControllerTest {
 
     @MockitoBean
     private ProcesoService procesoService;
+
+    @MockitoBean
+    private ProcesoOrquestadorService procesoOrquestadorService;
 
     @MockitoBean
     private HistorialCambioService historialCambioService;
@@ -83,7 +93,8 @@ class ProcesoControllerTest {
     @DisplayName("POST /api/v1/procesos - crear proceso como editor (201)")
     void crear_proceso() throws Exception {
         Proceso p = crearProceso(2L, "Compras");
-        given(procesoService.crear(eq(1L), eq(1L), anyString(), anyString(), anyString())).willReturn(p);
+        given(procesoOrquestadorService.crearConPoolInicial(eq(1L), eq(1L), anyString(), anyString(), anyString()))
+                .willReturn(p);
 
         mockMvc.perform(post("/api/v1/procesos")
                         .with(principal(RolAcceso.EDITOR))
@@ -92,8 +103,10 @@ class ProcesoControllerTest {
                                 {"nombre":"Compras","descripcion":"Proceso de compras","categoria":"Operativo"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/procesos/2"))
                 .andExpect(jsonPath("$.nombre").value("Compras"));
+
+        verify(procesoOrquestadorService).crearConPoolInicial(eq(1L), eq(1L), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -152,6 +165,8 @@ class ProcesoControllerTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PUBLICADO"));
+
+        verify(procesoService).cambiarEstado(1L, 1L, 1L, EstadoProceso.PUBLICADO);
     }
 
 
@@ -229,6 +244,10 @@ class ProcesoControllerTest {
     }
 
     private Proceso crearProceso(Long id, String nombre) {
+        Empresa empresa = new Empresa();
+        empresa.setId(1L);
+        empresa.setNombre("Acme");
+
         Proceso p = new Proceso();
         p.setId(id);
         p.setNombre(nombre);
@@ -236,6 +255,7 @@ class ProcesoControllerTest {
         p.setCategoria("Operativo");
         p.setEstado(EstadoProceso.BORRADOR);
         p.setActivo(true);
+        p.setEmpresa(empresa);
         p.setFechaCreacion(LocalDateTime.now());
         p.setFechaModificacion(LocalDateTime.now());
         return p;

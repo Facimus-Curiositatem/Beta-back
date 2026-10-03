@@ -20,10 +20,8 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.ProcesoCompartido;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.ProcesoCompartidoRepository;
-import com.facimus.procesos.gestion.repository.ProcesoRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
+import com.facimus.procesos.gestion.service.dto.ProcesoDiagrama;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Arco;
 import com.facimus.procesos.modelado.model.EventoMensaje;
@@ -31,24 +29,15 @@ import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
-import com.facimus.procesos.modelado.repository.MensajeRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ProcesoCompartidoServiceTest {
 
     @Mock private ProcesoCompartidoRepository procesoCompartidoRepository;
-    @Mock private ProcesoRepository procesoRepository;
-    @Mock private EmpresaRepository empresaRepository;
-    @Mock private UsuarioRepository usuarioRepository;
-    @Mock private PoolRepository poolRepository;
-    @Mock private LaneRepository laneRepository;
-    @Mock private NodoFlujoRepository nodoFlujoRepository;
-    @Mock private ArcoRepository arcoRepository;
-    @Mock private MensajeRepository mensajeRepository;
+    @Mock private ProcesoService procesoService;
+    @Mock private EmpresaService empresaService;
+    @Mock private UsuarioService usuarioService;
+    @Mock private ProcesoDiagramaService procesoDiagramaService;
     @Mock private HistorialCambioService historialCambioService;
 
     @InjectMocks
@@ -82,15 +71,15 @@ class ProcesoCompartidoServiceTest {
 
     @Test
     void compartir_con_si_misma_falla() {
-        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(Optional.of(proceso));
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
         assertThrows(ReglaNegocioException.class, () -> service.compartir(1L, 5L, 10L, 1L));
     }
 
     @Test
     void compartir_crea_acceso_solo_lectura() {
-        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(Optional.of(proceso));
-        when(empresaRepository.findById(2L)).thenReturn(Optional.of(invitada));
-        when(usuarioRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(autor));
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
+        when(empresaService.obtener(2L)).thenReturn(invitada);
+        when(usuarioService.obtener(1L, 5L)).thenReturn(autor);
         when(procesoCompartidoRepository.findByProcesoIdAndEmpresaIdAndEmpresaInvitadaId(10L, 1L, 2L))
                 .thenReturn(Optional.empty());
         when(procesoCompartidoRepository.save(any(ProcesoCompartido.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -111,8 +100,8 @@ class ProcesoCompartidoServiceTest {
         compartido.setEmpresaInvitada(invitada);
         compartido.setActivo(true);
 
-        when(procesoRepository.findByIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(Optional.of(proceso));
-        when(usuarioRepository.findByIdAndEmpresaId(5L, 1L)).thenReturn(Optional.of(autor));
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
+        when(usuarioService.obtener(1L, 5L)).thenReturn(autor);
         when(procesoCompartidoRepository.findByProcesoIdAndEmpresaIdAndEmpresaInvitadaIdAndActivoTrue(10L, 1L, 2L))
                 .thenReturn(Optional.of(compartido));
 
@@ -124,7 +113,7 @@ class ProcesoCompartidoServiceTest {
 
     @Test
     void listar_compartidos_valida_existencia_proceso() {
-        when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(false);
+        when(procesoService.existe(1L, 10L)).thenReturn(false);
         assertThrows(RecursoNoEncontradoException.class,
                 () -> service.listarCompartidosPorPropietario(1L, 10L));
     }
@@ -143,20 +132,18 @@ class ProcesoCompartidoServiceTest {
         Actividad actividad = new Actividad(); actividad.setId(30L); actividad.setActivo(true);
         Gateway gateway = new Gateway(); gateway.setId(31L); gateway.setActivo(true);
         EventoMensaje evento = new EventoMensaje(); evento.setId(32L); evento.setActivo(true);
-        Actividad inactiva = new Actividad(); inactiva.setId(33L); inactiva.setActivo(false);
 
         Arco arco = new Arco(); arco.setId(40L); arco.setActivo(true);
-        Arco arcoInactivo = new Arco(); arcoInactivo.setId(41L); arcoInactivo.setActivo(false);
         Mensaje mensaje = new Mensaje(); mensaje.setId(50L);
+
+        ProcesoDiagrama diagrama = new ProcesoDiagrama(
+                proceso, List.of(pool), List.of(lane),
+                List.of(actividad), List.of(gateway), List.of(evento),
+                List.of(arco), List.of(mensaje));
 
         when(procesoCompartidoRepository.findByProcesoIdAndEmpresaInvitadaIdAndActivoTrue(10L, 2L))
                 .thenReturn(Optional.of(compartido));
-        when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L)).thenReturn(List.of(pool));
-        when(laneRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(lane));
-        when(nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(10L, 1L))
-                .thenReturn(List.of(actividad,gateway,evento,inactiva));
-        when(arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(10L, 1L)).thenReturn(List.of(arco,arcoInactivo));
-        when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
+        when(procesoDiagramaService.obtener(1L, 10L)).thenReturn(diagrama);
 
         var detalle = service.obtenerCompartido(2L, 10L);
 

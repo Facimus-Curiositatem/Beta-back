@@ -5,6 +5,7 @@ import com.facimus.procesos.common.EntidadEmpresa;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,8 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Nodo del diagrama BPMN: Actividad o Gateway. SINGLE_TABLE porque solo hay
- * dos subtipos con pocos campos propios; evita joins innecesarios.
+ * Nodo del diagrama BPMN: Actividad, Gateway o EventoMensaje. SINGLE_TABLE
+ * porque los subtipos tienen pocos campos propios; evita joins innecesarios.
  */
 @Getter
 @Setter
@@ -43,7 +44,7 @@ public abstract class NodoFlujo extends EntidadEmpresa {
     @Column(name = "posicion_y", nullable = false)
     private int posicionY;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "lane_id", nullable = false)
     private Lane lane;
 

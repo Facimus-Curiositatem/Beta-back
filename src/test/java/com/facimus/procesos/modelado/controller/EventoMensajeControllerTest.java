@@ -12,10 +12,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.config.ModelMapperConfig;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
@@ -23,6 +25,7 @@ import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.service.EventoMensajeService;
 
 @WebMvcTest(EventoMensajeController.class)
+@Import(ModelMapperConfig.class)
 class EventoMensajeControllerTest {
 
     @Autowired MockMvc mockMvc;
@@ -42,7 +45,7 @@ class EventoMensajeControllerTest {
                      "claveCorrelacion":"pedidoId","posicionX":10,"posicionY":20,"origenExterno":false}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/eventos-mensaje/5"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/eventos-mensaje/5"))
                 .andExpect(jsonPath("$.tipoEvento").value("THROW"));
     }
 

@@ -6,22 +6,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.facimus.procesos.common.ReglaNegocioException;
+import com.facimus.procesos.common.event.ProcesoPublicacionEvent;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.CorrelacionRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
-import com.facimus.procesos.modelado.repository.MensajeRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,22 +27,34 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ValidacionModeloService {
 
-    private final PoolRepository poolRepository;
-    private final LaneRepository laneRepository;
-    private final NodoFlujoRepository nodoFlujoRepository;
-    private final ArcoRepository arcoRepository;
-    private final MensajeRepository mensajeRepository;
-    private final CorrelacionRepository correlacionRepository;
+    private final PoolService poolService;
+    private final LaneService laneService;
+    private final NodoFlujoService nodoFlujoService;
+    private final ArcoService arcoService;
+    private final MensajeService mensajeService;
+    private final CorrelacionService correlacionService;
 
+    @Transactional(readOnly = true)
     public void validarParaPublicacion(Long empresaId, Long procesoId) {
         validarPools(empresaId, procesoId);
         validarNodosYGateways(empresaId, procesoId);
         validarMensajes(empresaId, procesoId);
     }
 
+    /**
+     * Escucha ProcesoPublicacionEvent (publicado por ProcesoService.cambiarEstado antes de guardar
+     * la transicion a PUBLICADO) para que esta validacion se cumpla sin que ProcesoService dependa
+     * de este servicio directamente. Se ejecuta de forma sincrona, dentro de la misma transaccion:
+     * si lanza ReglaNegocioException, aborta la publicacion.
+     */
+    @EventListener
+    public void alPublicarProceso(ProcesoPublicacionEvent evento) {
+        validarParaPublicacion(evento.empresaId(), evento.procesoId());
+    }
+
     private void validarPools(Long empresaId, Long procesoId) {
-        var pools = poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId);
-        var lanesPorPool = laneRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+        var pools = poolService.listarPorProceso(empresaId, procesoId);
+        var lanesPorPool = laneService.listarPorProceso(empresaId, procesoId).stream()
                 .collect(Collectors.groupingBy(lane -> lane.getPool().getId()));
         pools.forEach(pool -> {
             if (pool.isCajaNegra() && !lanesPorPool.getOrDefault(pool.getId(), List.of()).isEmpty()) {
@@ -56,12 +65,8 @@ public class ValidacionModeloService {
     }
 
     private void validarNodosYGateways(Long empresaId, Long procesoId) {
-        var nodos = nodoFlujoRepository.findAllByLane_Pool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
-                .filter(nodo -> nodo.isActivo())
-                .toList();
-        var arcos = arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
-                .filter(arco -> arco.isActivo())
-                .toList();
+        var nodos = nodoFlujoService.listarActivosPorProceso(empresaId, procesoId);
+        var arcos = arcoService.listarActivosPorProceso(empresaId, procesoId);
 
         Map<Long, List<com.facimus.procesos.modelado.model.Arco>> salientesPorNodo = arcos.stream()
                 .collect(Collectors.groupingBy(arco -> arco.getOrigen().getId()));
@@ -103,7 +108,7 @@ public class ValidacionModeloService {
 
     private void validarMensajes(Long empresaId, Long procesoId) {
         Set<String> claves = new HashSet<>();
-        for (Mensaje mensaje : mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)) {
+        for (Mensaje mensaje : mensajeService.listarPorProceso(empresaId, procesoId)) {
             if (mensaje.getEventoThrow() == null) {
                 throw new ReglaNegocioException(
                         "El mensaje \"" + mensaje.getNombre() + "\" debe tener un Message Throw asociado.");
@@ -117,7 +122,7 @@ public class ValidacionModeloService {
                 throw new ReglaNegocioException(
                         "El mensaje \"" + mensaje.getNombre() + "\" debe tener clave de correlacion.");
             }
-            if (correlacionRepository.findByMensajeIdAndEmpresaId(mensaje.getId(), empresaId).isEmpty()) {
+            if (correlacionService.buscarPorMensaje(empresaId, mensaje.getId()).isEmpty()) {
                 throw new ReglaNegocioException(
                         "El mensaje \"" + mensaje.getNombre() + "\" debe tener correlacion definida.");
             }

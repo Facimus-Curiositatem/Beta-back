@@ -16,8 +16,6 @@ import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
 import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 import lombok.RequiredArgsConstructor;
@@ -27,8 +25,8 @@ import lombok.RequiredArgsConstructor;
 public class ArcoService {
 
     private final ArcoRepository arcoRepository;
-    private final NodoFlujoRepository nodoFlujoRepository;
-    private final PoolRepository poolRepository;
+    private final NodoFlujoService nodoFlujoService;
+    private final PoolService poolService;
     private final AuditoriaModeladoService auditoriaModeladoService;
 
     @Transactional
@@ -36,10 +34,8 @@ public class ArcoService {
         if (origenId.equals(destinoId)) {
             throw new ReglaNegocioException("Un arco no puede tener el mismo nodo como origen y destino.");
         }
-        NodoFlujo origen = nodoFlujoRepository.findByIdAndEmpresaId(origenId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de origen no encontrado."));
-        NodoFlujo destino = nodoFlujoRepository.findByIdAndEmpresaId(destinoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de destino no encontrado."));
+        NodoFlujo origen = nodoFlujoService.obtener(empresaId, origenId);
+        NodoFlujo destino = nodoFlujoService.obtener(empresaId, destinoId);
 
         validarConexion(empresaId, origen, destino, condicion, null);
 
@@ -69,12 +65,10 @@ public class ArcoService {
             throw new ReglaNegocioException("Un arco no puede tener el mismo nodo como origen y destino.");
         }
         if (origenId != null) {
-            origen = nodoFlujoRepository.findByIdAndEmpresaId(origenId, empresaId)
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de origen no encontrado."));
+            origen = nodoFlujoService.obtener(empresaId, origenId);
         }
         if (destinoId != null) {
-            destino = nodoFlujoRepository.findByIdAndEmpresaId(destinoId, empresaId)
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Nodo de destino no encontrado."));
+            destino = nodoFlujoService.obtener(empresaId, destinoId);
         }
 
         validarConexion(empresaId, origen, destino, condicion, arcoId);
@@ -89,6 +83,7 @@ public class ArcoService {
         return arco;
     }
 
+    @Transactional(readOnly = true)
     public ImpactoEliminacion evaluarImpactoEliminacion(Long empresaId, Long arcoId) {
         Arco arco = obtener(empresaId, arcoId);
         List<String> advertencias = new java.util.ArrayList<>();
@@ -117,16 +112,23 @@ public class ArcoService {
         auditoriaModeladoService.registrar(proceso, "Arco eliminado (baja logica): " + descripcion + ".");
     }
 
+    @Transactional(readOnly = true)
     public Arco obtener(Long empresaId, Long arcoId) {
         return arcoRepository.findByIdAndEmpresaId(arcoId, empresaId)
                 .filter(arco -> arco.isActivo())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Arco no encontrado."));
     }
 
+    @Transactional(readOnly = true)
+    public List<Arco> listarActivosPorProceso(Long empresaId, Long procesoId) {
+        return arcoRepository.findAllByPool_ProcesoIdAndEmpresaId(procesoId, empresaId).stream()
+                .filter(Arco::isActivo)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<Arco> listarPorPool(Long empresaId, Long poolId) {
-        if (!poolRepository.existsByIdAndEmpresaId(poolId, empresaId)) {
-            throw new RecursoNoEncontradoException("Pool no encontrado.");
-        }
+        poolService.obtener(empresaId, poolId);
         return arcoRepository.findAllByPoolIdAndEmpresaId(poolId, empresaId).stream()
                 .filter(arco -> arco.isActivo())
                 .toList();
@@ -166,5 +168,32 @@ public class ArcoService {
                 .map(arco -> arco.getOrigen().getId().equals(origenId)
                         && arco.getDestino().getId().equals(destinoId))
                 .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Arco> listarPorOrigen(Long empresaId, Long origenId) {
+        return arcoRepository.findAllByOrigenIdAndEmpresaId(origenId, empresaId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Arco> listarPorDestino(Long empresaId, Long destinoId) {
+        return arcoRepository.findAllByDestinoIdAndEmpresaId(destinoId, empresaId);
+    }
+
+    @Transactional
+    public void desactivarPorNodo(Long empresaId, Long nodoId) {
+        arcoRepository.findAllByOrigenIdAndEmpresaId(nodoId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+        arcoRepository.findAllByDestinoIdAndEmpresaId(nodoId, empresaId).forEach(arco -> {
+            arco.setActivo(false);
+            arcoRepository.save(arco);
+        });
+    }
+
+    @Transactional
+    public Arco guardar(Arco arco) {
+        return arcoRepository.save(arco);
     }
 }

@@ -19,7 +19,7 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
-import com.facimus.procesos.gestion.repository.ProcesoRepository;
+import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.EventoMensaje;
@@ -31,10 +31,7 @@ import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoDestinoExterno;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
 
 @ExtendWith(MockitoExtension.class)
 class MensajeServiceTest {
@@ -42,13 +39,13 @@ class MensajeServiceTest {
     @Mock
     private MensajeRepository mensajeRepository;
     @Mock
-    private PoolRepository poolRepository;
+    private PoolService poolService;
     @Mock
-    private ProcesoRepository procesoRepository;
+    private ProcesoService procesoService;
     @Mock
-    private CorrelacionRepository correlacionRepository;
+    private CorrelacionService correlacionService;
     @Mock
-    private NodoFlujoRepository nodoFlujoRepository;
+    private NodoFlujoService nodoFlujoService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
@@ -97,11 +94,11 @@ class MensajeServiceTest {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         EventoMensaje catchEvt = evento(12L, TipoEventoMensaje.CATCH_INTERMEDIO, poolDestino, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
-        when(nodoFlujoRepository.findByIdAndEmpresaId(12L, 1L)).thenReturn(Optional.of(catchEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 12L)).thenReturn(Optional.of(catchEvt));
         when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(correlacionService.guardar(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Mensaje resultado = mensajeService.crear(
                 1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -127,7 +124,7 @@ class MensajeServiceTest {
     void crear_throw_de_tipo_incorrecto_falla() {
         EventoMensaje catchEvt = evento(11L, TipoEventoMensaje.CATCH_INTERMEDIO, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(catchEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(catchEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -139,7 +136,7 @@ class MensajeServiceTest {
     void crear_throw_en_pool_incorrecto_falla() {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolDestino, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -151,7 +148,7 @@ class MensajeServiceTest {
     void crear_throw_con_nombre_distinto_falla() {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Otro", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -163,7 +160,7 @@ class MensajeServiceTest {
     void crear_throw_con_correlacion_distinta_falla() {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "otra");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -177,10 +174,10 @@ class MensajeServiceTest {
         poolDestino.setCajaNegra(true);
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
         when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(correlacionRepository.save(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(correlacionService.guardar(any(Correlacion.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Mensaje resultado = mensajeService.crear(
                 1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -195,7 +192,7 @@ class MensajeServiceTest {
     void destino_externo_requiere_pool_externo_caja_negra() {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -209,7 +206,7 @@ class MensajeServiceTest {
         poolDestino.setCajaNegra(true);
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -223,7 +220,7 @@ class MensajeServiceTest {
         poolDestino.setCajaNegra(true);
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -237,7 +234,7 @@ class MensajeServiceTest {
         poolDestino.setCajaNegra(true);
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -259,8 +256,8 @@ class MensajeServiceTest {
         error.setLane(laneError);
 
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
-        when(nodoFlujoRepository.findByIdAndEmpresaId(50L, 1L)).thenReturn(Optional.of(error));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 50L)).thenReturn(Optional.of(error));
         when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -293,7 +290,7 @@ class MensajeServiceTest {
     void politica_de_fallo_sin_destino_externo_falla() {
         EventoMensaje throwEvt = evento(11L, TipoEventoMensaje.THROW, poolOrigen, "Orden", "pedidoId");
         prepararCreacionBase();
-        when(nodoFlujoRepository.findByIdAndEmpresaId(11L, 1L)).thenReturn(Optional.of(throwEvt));
+        when(nodoFlujoService.buscar(1L, 11L)).thenReturn(Optional.of(throwEvt));
 
         assertThrows(ReglaNegocioException.class, () ->
                 mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L,
@@ -305,9 +302,9 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Crear mensaje entre pools diferentes funciona")
     void crear_exitoso() {
-        when(procesoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(proceso));
-        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(poolOrigen));
-        when(poolRepository.findByIdAndEmpresaId(200L, 1L)).thenReturn(Optional.of(poolDestino));
+        when(procesoService.obtenerPorId(1L, 10L)).thenReturn(proceso);
+        when(poolService.obtener(1L, 100L)).thenReturn(poolOrigen);
+        when(poolService.obtener(1L, 200L)).thenReturn(poolDestino);
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Mensaje resultado = mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L);
@@ -325,7 +322,7 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Crear mensaje con proceso inexistente lanza excepcion")
     void crear_proceso_inexistente() {
-        when(procesoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.empty());
+        when(procesoService.obtenerPorId(1L, 10L)).thenThrow(new RecursoNoEncontradoException("Proceso no encontrado."));
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L));
@@ -355,7 +352,7 @@ class MensajeServiceTest {
 
         when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
         when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of());
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
+        when(correlacionService.buscarPorMensaje(1L, 1L)).thenReturn(Optional.empty());
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Mensaje resultado = mensajeService.editar(
@@ -372,11 +369,10 @@ class MensajeServiceTest {
     @DisplayName("Eliminar mensaje sin correlacion elimina solo el mensaje")
     void eliminar_sin_correlacion() {
         when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.empty());
 
         mensajeService.eliminar(1L, 1L);
 
-        verify(correlacionRepository, never()).delete(any());
+        verify(correlacionService).eliminarPorMensaje(1L, 1L);
         verify(mensajeRepository).save(mensaje);
         assertFalse(mensaje.isActivo());
         verify(mensajeRepository, never()).delete(any(Mensaje.class));
@@ -385,14 +381,11 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Eliminar mensaje con correlacion elimina ambos")
     void eliminar_con_correlacion() {
-        Correlacion correlacion = new Correlacion();
-        correlacion.setId(5L);
         when(mensajeRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(mensaje));
-        when(correlacionRepository.findByMensajeIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(correlacion));
 
         mensajeService.eliminar(1L, 1L);
 
-        verify(correlacionRepository).delete(correlacion);
+        verify(correlacionService).eliminarPorMensaje(1L, 1L);
         verify(mensajeRepository).save(mensaje);
         assertFalse(mensaje.isActivo());
         verify(mensajeRepository, never()).delete(any(Mensaje.class));
@@ -401,7 +394,7 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Listar mensajes de proceso inexistente lanza excepcion")
     void listar_proceso_inexistente() {
-        when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(false);
+        when(procesoService.existe(1L, 10L)).thenReturn(false);
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> mensajeService.listarPorProceso(1L, 10L));
@@ -410,7 +403,7 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Listar mensajes de proceso existente retorna lista")
     void listar_exitoso() {
-        when(procesoRepository.existsByIdAndEmpresaId(10L, 1L)).thenReturn(true);
+        when(procesoService.existe(1L, 10L)).thenReturn(true);
         when(mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(10L, 1L)).thenReturn(List.of(mensaje));
 
         List<Mensaje> resultado = mensajeService.listarPorProceso(1L, 10L);
@@ -426,10 +419,11 @@ class MensajeServiceTest {
         assertThrows(RecursoNoEncontradoException.class,
                 () -> mensajeService.obtener(1L, 999L));
     }
+
     private void prepararCreacionBase() {
-        when(procesoRepository.findByIdAndEmpresaId(10L, 1L)).thenReturn(Optional.of(proceso));
-        when(poolRepository.findByIdAndEmpresaId(100L, 1L)).thenReturn(Optional.of(poolOrigen));
-        when(poolRepository.findByIdAndEmpresaId(200L, 1L)).thenReturn(Optional.of(poolDestino));
+        when(procesoService.obtenerPorId(1L, 10L)).thenReturn(proceso);
+        when(poolService.obtener(1L, 100L)).thenReturn(poolOrigen);
+        when(poolService.obtener(1L, 200L)).thenReturn(poolDestino);
     }
 
     private EventoMensaje evento(Long id, TipoEventoMensaje tipo, Pool pool, String nombre, String clave) {

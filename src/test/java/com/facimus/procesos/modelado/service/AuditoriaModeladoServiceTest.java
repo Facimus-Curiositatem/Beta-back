@@ -17,15 +17,15 @@ import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
+import com.facimus.procesos.gestion.service.UsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 @ExtendWith(MockitoExtension.class)
 class AuditoriaModeladoServiceTest {
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
     @Mock
     private HistorialCambioService historialCambioService;
 
@@ -43,7 +43,7 @@ class AuditoriaModeladoServiceTest {
 
         service.registrar(proceso, "Cambio");
 
-        verifyNoInteractions(usuarioRepository, historialCambioService);
+        verifyNoInteractions(usuarioService, historialCambioService);
     }
 
     @Test
@@ -55,7 +55,7 @@ class AuditoriaModeladoServiceTest {
 
         service.registrar(proceso, "Cambio");
 
-        verifyNoInteractions(usuarioRepository, historialCambioService);
+        verifyNoInteractions(usuarioService, historialCambioService);
     }
 
     @Test
@@ -67,7 +67,7 @@ class AuditoriaModeladoServiceTest {
         ApiPrincipal principal = new ApiPrincipal(7L, 1L, RolAcceso.EDITOR, "user@demo.com");
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, principal.authorities()));
-        when(usuarioRepository.findByIdAndEmpresaId(7L, 1L)).thenReturn(Optional.of(usuario));
+        when(usuarioService.buscar(1L, 7L)).thenReturn(Optional.of(usuario));
 
         service.registrar(proceso, "Actividad creada");
 
@@ -81,7 +81,7 @@ class AuditoriaModeladoServiceTest {
         ApiPrincipal principal = new ApiPrincipal(7L, 1L, RolAcceso.EDITOR, "user@demo.com");
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, principal.authorities()));
-        when(usuarioRepository.findByIdAndEmpresaId(7L, 1L)).thenReturn(Optional.empty());
+        when(usuarioService.buscar(1L, 7L)).thenReturn(Optional.empty());
 
         service.registrar(proceso, "Cambio");
 

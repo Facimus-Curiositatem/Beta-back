@@ -101,7 +101,11 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push'
+    # Corre en push y en pull_request. Los PRs desde forks no reciben secrets, asi que se
+    # omiten en vez de fallar (los PRs de ramas del propio repo si se analizan).
+    if: >
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout
@@ -116,11 +120,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # sonar.qualitygate.wait=true hace que el job falle si el quality gate de SonarCloud
+      # no se cumple (cobertura de codigo nuevo >= 80 %, sin bugs/vulnerabilidades nuevas,
+      # duplicacion <= 3 %). Sin esto el analisis solo se sube y el job queda en verde
+      # aunque el gate falle.
       - name: Build, test & analyze
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # necesario para leer los datos del PR
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: >
           mvn -B verify sonar:sonar
           -Dsonar.host.url=$SONAR_HOST_URL
           -Dsonar.token=$SONAR_TOKEN
+          -Dsonar.qualitygate.wait=true

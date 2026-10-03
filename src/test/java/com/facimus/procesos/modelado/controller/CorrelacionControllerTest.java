@@ -11,9 +11,13 @@ import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.pri
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.service.CorrelacionOrquestadorService;
 import com.facimus.procesos.modelado.service.CorrelacionService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CorrelacionController.class)
+@Import(ModelMapperConfig.class)
 class CorrelacionControllerTest {
 
     @Autowired
@@ -34,11 +39,14 @@ class CorrelacionControllerTest {
     @MockitoBean
     private CorrelacionService correlacionService;
 
+    @MockitoBean
+    private CorrelacionOrquestadorService correlacionOrquestadorService;
+
     @Test
     @DisplayName("PUT /api/v1/mensajes/{mensajeId}/correlacion - definir correlacion (200)")
     void definir_correlacion() throws Exception {
         Correlacion c = crearCorrelacion(1L, "orderId");
-        given(correlacionService.definir(eq(1L), eq(5L), anyString())).willReturn(c);
+        given(correlacionOrquestadorService.definir(eq(1L), eq(5L), anyString())).willReturn(c);
 
         mockMvc.perform(put("/api/v1/mensajes/5/correlacion")
                         .with(principal(RolAcceso.EDITOR))
@@ -84,7 +92,7 @@ class CorrelacionControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/mensajes/{mensajeId}/correlacion - eliminar correlacion (204)")
     void eliminar_correlacion() throws Exception {
-        doNothing().when(correlacionService).eliminar(1L, 5L);
+        doNothing().when(correlacionOrquestadorService).eliminar(1L, 5L);
 
         mockMvc.perform(delete("/api/v1/mensajes/5/correlacion").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());
