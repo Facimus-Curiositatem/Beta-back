@@ -5,7 +5,7 @@ decisiones vigentes, la infraestructura de CI/CD, el despliegue en Docker y
 las guias que todo colaborador debe seguir para contribuir sin romper las
 garantias que ya estan en pie.
 
-Ultima actualizacion: 2026-10-01 (rama `refactor/modelmapper-y-separacion-repositorios`, PR #37).
+Ultima actualizacion: 2026-10-02 (rama `refactor/modelmapper-y-separacion-repositorios`, PR #37).
 
 ---
 
@@ -318,17 +318,37 @@ Push o PR a main/develop
 │   ├── Construir imagen Docker
 │   └── Levantar contenedor y verificar que arranca
 │
-└── Job 4: SonarCloud (despues de Job 1, solo en push)
-    └── Analisis de calidad y cobertura
+└── Job 4: SonarCloud (despues de Job 1, en push y en pull_request)
+    ├── Analisis de calidad y cobertura (`mvn verify sonar:sonar`)
+    └── Espera el resultado del quality gate (`-Dsonar.qualitygate.wait=true`):
+        el job falla si el gate no se cumple
 ```
+
+El job de SonarCloud corre tanto en `push` como en `pull_request`. Los PRs
+abiertos desde un fork se omiten (GitHub no les entrega los secrets), por lo
+que el analisis aplica a PRs de ramas del propio repositorio.
+
+El quality gate es el predeterminado de SonarCloud ("Sonar way"), que evalua
+solo el **codigo nuevo** del PR: cobertura >= 80%, duplicacion <= 3%, ratings
+de fiabilidad/seguridad/mantenibilidad en A y 100% de security hotspots
+revisados. Esto es distinto del minimo de JaCoCo configurado en el `pom.xml`
+(50% de lineas sobre todo el proyecto, verificado en `mvn verify`).
 
 ### 4.2 Que bloquea un merge
 
-Si se activa branch protection en `main`, un PR no se puede mergear si:
+Que un check bloquee el merge depende de que `main` tenga branch protection
+con ese check marcado como obligatorio (Settings > Branches). Con la regla
+activa, un PR no se puede mergear si:
 - Falla cualquier test unitario o de integracion.
 - Se viola alguna regla de arquitectura (ArchUnit).
 - La imagen Docker no se construye correctamente.
-- La cobertura de codigo nuevo cae por debajo del 80% (SonarCloud quality gate).
+- No se cumple el quality gate de SonarCloud (p. ej. cobertura de codigo
+  nuevo por debajo del 80%): el job `SonarQube Analysis` falla.
+
+Checks recomendados como obligatorios: `Build & Test (ubuntu-latest)`,
+`Build & Test (windows-latest)`, `Architecture Rules`, `Docker Image` y
+`SonarQube Analysis`. Sin branch protection, estos checks informan pero no
+impiden el merge.
 
 ---
 
