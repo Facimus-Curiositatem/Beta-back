@@ -20,9 +20,7 @@ import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.InvitacionUsuarioRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class InvitacionUsuarioServiceTest {
@@ -30,9 +28,7 @@ class InvitacionUsuarioServiceTest {
     @Mock
     private InvitacionUsuarioRepository invitacionUsuarioRepository;
     @Mock
-    private EmpresaRepository empresaRepository;
-    @Mock
-    private UsuarioRepository usuarioRepository;
+    private EmpresaService empresaService;
     @Mock
     private UsuarioService usuarioService;
 
@@ -41,7 +37,7 @@ class InvitacionUsuarioServiceTest {
 
     @Test
     void crear_rechaza_usuario_existente() {
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "nuevo@demo.com")).thenReturn(true);
+        when(usuarioService.existePorEmail(1L, "nuevo@demo.com")).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
                 () -> invitacionUsuarioService.crear(1L, "nuevo@demo.com", RolAcceso.EDITOR));
@@ -97,11 +93,11 @@ class InvitacionUsuarioServiceTest {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
 
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "nuevo@demo.com")).thenReturn(false);
+        when(usuarioService.existePorEmail(1L, "nuevo@demo.com")).thenReturn(false);
         when(invitacionUsuarioRepository
                 .existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
                         any(), any(), any())).thenReturn(false);
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtener(1L)).thenReturn(empresa);
         when(invitacionUsuarioRepository.save(any(InvitacionUsuario.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 

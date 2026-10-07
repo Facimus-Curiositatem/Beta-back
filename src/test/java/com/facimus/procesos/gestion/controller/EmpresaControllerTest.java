@@ -10,25 +10,30 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.facimus.procesos.gestion.model.Empresa;
-import com.facimus.procesos.gestion.service.EmpresaService;
+import com.facimus.procesos.gestion.service.EmpresaOrquestadorService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(EmpresaController.class)
+@Import(ModelMapperConfig.class)
 class EmpresaControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private EmpresaService empresaService;
+    private EmpresaOrquestadorService empresaOrquestadorService;
 
     @Test
     @DisplayName("POST /api/v1/empresas - registrar empresa exitoso (201)")
@@ -40,8 +45,8 @@ class EmpresaControllerTest {
         empresa.setCorreoContacto("info@acme.com");
         empresa.setFechaRegistro(LocalDate.now());
 
-        given(empresaService.registrar(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
-                .willReturn(empresa);
+        given(empresaOrquestadorService.registrarConAdministrador(anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).willReturn(empresa);
 
         mockMvc.perform(post("/api/v1/empresas")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,10 +61,13 @@ class EmpresaControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/empresas/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/empresas/1"))
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.nombre").value("Acme Corp"))
                 .andExpect(jsonPath("$.nit").value("900123456"));
+
+        verify(empresaOrquestadorService).registrarConAdministrador("Acme Corp", "900123456",
+                "info@acme.com", "Admin", "admin@acme.com", "secret123");
     }
 
     @Test

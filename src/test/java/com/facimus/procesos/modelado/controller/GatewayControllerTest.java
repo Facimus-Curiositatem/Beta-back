@@ -17,6 +17,9 @@ import com.facimus.procesos.modelado.model.TipoGateway;
 import com.facimus.procesos.modelado.service.GatewayService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(GatewayController.class)
+@Import(ModelMapperConfig.class)
 class GatewayControllerTest {
 
     @Autowired
@@ -48,7 +52,7 @@ class GatewayControllerTest {
                                 {"nombre":"Decision pago","tipoGateway":"EXCLUSIVO","posicionX":300,"posicionY":150}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/gateways/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/gateways/1"))
                 .andExpect(jsonPath("$.nombre").value("Decision pago"))
                 .andExpect(jsonPath("$.tipoGateway").value("EXCLUSIVO"));
     }

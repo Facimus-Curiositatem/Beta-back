@@ -5,7 +5,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +28,7 @@ class UsuarioServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
     @Mock
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
     @Mock
     private PasswordEncoder passwordEncoder;
 
@@ -59,7 +58,7 @@ class UsuarioServiceTest {
     @DisplayName("HU-02: crear colaborador con email unico")
     void crearColaborador_exitoso() {
         when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "nuevo@acme.com")).thenReturn(false);
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtener(1L)).thenReturn(empresa);
         when(passwordEncoder.encode("pass")).thenReturn("hashed");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
 

@@ -10,21 +10,19 @@ import org.springframework.util.StringUtils;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Proceso;
-import com.facimus.procesos.gestion.repository.ProcesoRepository;
+import com.facimus.procesos.gestion.service.ProcesoService;
 import com.facimus.procesos.modelado.model.Actividad;
 import com.facimus.procesos.modelado.model.Correlacion;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Mensaje;
+import com.facimus.procesos.modelado.model.NodoFlujo;
 import com.facimus.procesos.modelado.model.PoliticaFalloNotificacion;
 import com.facimus.procesos.modelado.model.PoliticaMensajeSinCaso;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoDestinoExterno;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
 import com.facimus.procesos.modelado.model.TipoParticipante;
-import com.facimus.procesos.modelado.repository.CorrelacionRepository;
 import com.facimus.procesos.modelado.repository.MensajeRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
-import com.facimus.procesos.modelado.repository.PoolRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,10 +31,10 @@ import lombok.RequiredArgsConstructor;
 public class MensajeService {
 
     private final MensajeRepository mensajeRepository;
-    private final PoolRepository poolRepository;
-    private final ProcesoRepository procesoRepository;
-    private final CorrelacionRepository correlacionRepository;
-    private final NodoFlujoRepository nodoFlujoRepository;
+    private final PoolService poolService;
+    private final ProcesoService procesoService;
+    private final CorrelacionService correlacionService;
+    private final NodoFlujoService nodoFlujoService;
     private final AuditoriaModeladoService auditoriaModeladoService;
 
     /** Compatibilidad con clientes que todavia modelan el mensaje en varias llamadas. */
@@ -68,12 +66,9 @@ public class MensajeService {
             throw new ReglaNegocioException("Un mensaje debe conectar dos pools diferentes.");
         }
 
-        Proceso proceso = procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
-        Pool poolOrigen = poolRepository.findByIdAndEmpresaId(poolOrigenId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Pool de origen no encontrado."));
-        Pool poolDestino = poolRepository.findByIdAndEmpresaId(poolDestinoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Pool de destino no encontrado."));
+        Proceso proceso = procesoService.obtenerPorId(empresaId, procesoId);
+        Pool poolOrigen = poolService.obtener(empresaId, poolOrigenId);
+        Pool poolDestino = poolService.obtener(empresaId, poolDestinoId);
 
         validarPoolsDelProceso(procesoId, poolOrigen, poolDestino);
 
@@ -118,7 +113,7 @@ public class MensajeService {
         entidadCorrelacion.setEmpresa(proceso.getEmpresa());
         entidadCorrelacion.setMensaje(mensaje);
         entidadCorrelacion.setCriterio(correlacion);
-        correlacionRepository.save(entidadCorrelacion);
+        correlacionService.guardar(entidadCorrelacion);
 
         auditoriaModeladoService.registrar(proceso, "Mensaje creado: " + mensaje.getNombre() + ".");
         return mensaje;
@@ -186,8 +181,7 @@ public class MensajeService {
         mensaje.setPoliticaSinCaso(politicaSinCasoEfectiva);
         mensaje = mensajeRepository.save(mensaje);
 
-        Correlacion correlacionEntidad = correlacionRepository
-                .findByMensajeIdAndEmpresaId(mensajeId, empresaId)
+        Correlacion correlacionEntidad = correlacionService.buscarPorMensaje(empresaId, mensajeId)
                 .orElse(null);
         if (correlacionEntidad == null) {
             correlacionEntidad = new Correlacion();
@@ -195,7 +189,7 @@ public class MensajeService {
             correlacionEntidad.setMensaje(mensaje);
         }
         correlacionEntidad.setCriterio(correlacion);
-        correlacionRepository.save(correlacionEntidad);
+        correlacionService.guardar(correlacionEntidad);
 
         auditoriaModeladoService.registrar(mensaje.getProceso(),
                 "Mensaje editado: " + mensaje.getNombre() + ".");
@@ -208,26 +202,41 @@ public class MensajeService {
         Proceso proceso = mensaje.getProceso();
         String nombre = mensaje.getNombre();
 
-        Optional<Correlacion> correlacion = correlacionRepository
-                .findByMensajeIdAndEmpresaId(mensajeId, empresaId);
-        correlacion.ifPresent(correlacionRepository::delete);
+        correlacionService.eliminarPorMensaje(empresaId, mensajeId);
         mensaje.setActivo(false);
         mensajeRepository.save(mensaje);
 
         auditoriaModeladoService.registrar(proceso, "Mensaje eliminado (baja logica): " + nombre + ".");
     }
 
+    @Transactional(readOnly = true)
     public List<Mensaje> listarPorProceso(Long empresaId, Long procesoId) {
-        if (!procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId)) {
+        if (!procesoService.existe(empresaId, procesoId)) {
             throw new RecursoNoEncontradoException("Proceso no encontrado.");
         }
         return mensajeRepository.findAllByProcesoIdAndEmpresaIdAndActivoTrue(procesoId, empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Mensaje obtener(Long empresaId, Long mensajeId) {
         return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId)
                 .filter(Mensaje::isActivo)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Mensaje no encontrado."));
+    }
+
+    @Transactional
+    public Mensaje guardar(Mensaje mensaje) {
+        return mensajeRepository.save(mensaje);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Mensaje> buscar(Long empresaId, Long mensajeId) {
+        return mensajeRepository.findByIdAndEmpresaId(mensajeId, empresaId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Mensaje> listarTodosPorProceso(Long empresaId, Long procesoId) {
+        return mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
     }
 
     private void validarPoolsDelProceso(Long procesoId, Pool poolOrigen, Pool poolDestino) {
@@ -242,8 +251,8 @@ public class MensajeService {
         if (eventoId == null) {
             return null;
         }
-        return nodoFlujoRepository.findByIdAndEmpresaId(eventoId, empresaId)
-                .filter(nodo -> nodo.isActivo())
+        return nodoFlujoService.buscar(empresaId, eventoId)
+                .filter(NodoFlujo::isActivo)
                 .filter(EventoMensaje.class::isInstance)
                 .map(EventoMensaje.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException(etiqueta + " no encontrado."));
@@ -253,8 +262,8 @@ public class MensajeService {
         if (actividadId == null) {
             return null;
         }
-        Actividad actividad = nodoFlujoRepository.findByIdAndEmpresaId(actividadId, empresaId)
-                .filter(nodo -> nodo.isActivo())
+        Actividad actividad = nodoFlujoService.buscar(empresaId, actividadId)
+                .filter(NodoFlujo::isActivo)
                 .filter(Actividad.class::isInstance)
                 .map(Actividad.class::cast)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Actividad de error no encontrada."));

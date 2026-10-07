@@ -5,8 +5,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.facimus.procesos.gestion.model.Proceso;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.gestion.service.HistorialCambioService;
+import com.facimus.procesos.gestion.service.UsuarioService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuditoriaModeladoService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
     private final HistorialCambioService historialCambioService;
 
     public void registrar(Proceso proceso, String descripcion) {
@@ -28,7 +28,7 @@ public class AuditoriaModeladoService {
         if (!empresaId.equals(principal.empresaId())) {
             return;
         }
-        usuarioRepository.findByIdAndEmpresaId(principal.usuarioId(), empresaId)
+        usuarioService.buscar(empresaId, principal.usuarioId())
                 .ifPresent(usuario -> historialCambioService.registrar(proceso, usuario, descripcion));
     }
 }
