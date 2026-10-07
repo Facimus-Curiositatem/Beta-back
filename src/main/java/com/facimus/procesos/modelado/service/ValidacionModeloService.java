@@ -36,9 +36,7 @@ public class ValidacionModeloService {
 
     @Transactional(readOnly = true)
     public void validarParaPublicacion(Long empresaId, Long procesoId) {
-        validarPools(empresaId, procesoId);
-        validarNodosYGateways(empresaId, procesoId);
-        validarMensajes(empresaId, procesoId);
+        ejecutarValidaciones(empresaId, procesoId);
     }
 
     /**
@@ -49,7 +47,13 @@ public class ValidacionModeloService {
      */
     @EventListener
     public void alPublicarProceso(ProcesoPublicacionEvent evento) {
-        validarParaPublicacion(evento.empresaId(), evento.procesoId());
+        ejecutarValidaciones(evento.empresaId(), evento.procesoId());
+    }
+
+    private void ejecutarValidaciones(Long empresaId, Long procesoId) {
+        validarPools(empresaId, procesoId);
+        validarNodosYGateways(empresaId, procesoId);
+        validarMensajes(empresaId, procesoId);
     }
 
     private void validarPools(Long empresaId, Long procesoId) {
