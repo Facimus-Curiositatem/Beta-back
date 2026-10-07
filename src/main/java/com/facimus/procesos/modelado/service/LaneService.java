@@ -103,6 +103,10 @@ public class LaneService {
     @Transactional(readOnly = true)
     public List<Lane> listarPorPool(Long empresaId, Long poolId) {
         poolService.obtener(empresaId, poolId);
+        return buscarLanesPorPool(empresaId, poolId);
+    }
+
+    private List<Lane> buscarLanesPorPool(Long empresaId, Long poolId) {
         return laneRepository.findAllByPoolIdAndEmpresaIdOrderByOrdenAsc(poolId, empresaId);
     }
 
@@ -140,7 +144,7 @@ public class LaneService {
      */
     @EventListener
     public void alMarcarPoolCajaNegra(PoolMarcadoCajaNegraEvent evento) {
-        if (!listarPorPool(evento.empresaId(), evento.poolId()).isEmpty()) {
+        if (!buscarLanesPorPool(evento.empresaId(), evento.poolId()).isEmpty()) {
             throw new ReglaNegocioException("No se puede marcar como caja negra un pool que contiene lanes.");
         }
     }
