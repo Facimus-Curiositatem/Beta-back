@@ -121,7 +121,8 @@ public class ProcesoCompartidoController {
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ProcesoCompartidoDetalleResponse> detalleCompartido(@PathVariable Long procesoId,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(ProcesoCompartidoDetalleResponse.of(
-                procesoCompartidoService.obtenerCompartido(principal.empresaId(), procesoId)));
+        return ResponseEntity.ok(modelMapper.map(
+                procesoCompartidoService.obtenerCompartido(principal.empresaId(), procesoId),
+                ProcesoCompartidoDetalleResponse.class));
     }
 }
