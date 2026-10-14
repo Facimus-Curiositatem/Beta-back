@@ -27,14 +27,15 @@ import lombok.Setter;
  *   de servicios ya se llaman entre si con la entidad real para validar reglas de negocio, y
  *   convertir esos metodos a devolver DTOs rompe esa composicion); por eso la solucion elegida
  *   es declarar explicitamente, por repositorio, que relaciones necesita cada lectura.</li>
- *   <li><b>Baja logica manual (campo {@code activo} + filtro explicito en cada query) en vez
- *   de {@code @SQLDelete}/{@code @Where}:</b> el proyecto ya filtra explicitamente por
- *   {@code empresaId} en cada consulta (ver {@link RepositorioTenant}); mantener {@code activo}
- *   con el mismo filtrado explicito es consistente con ese patron. {@code @Where} aplicaria un
- *   filtro global e implicito a nivel de Hibernate, lo cual puede interactuar de forma no
- *   obvia con el filtrado explicito de tenant y es mas dificil de auditar por lectura del
- *   codigo (un query que necesite ver registros inactivos tendria que "romper" el {@code @Where}
- *   en vez de simplemente omitir un predicado).</li>
+ *   <li><b>Baja logica con campo {@code activo} y filtro explicito en cada query:</b>
+ *   las entidades que soportan eliminacion logica ({@code Proceso}, {@code Pool}, {@code Lane},
+ *   {@code NodoFlujo}, {@code Arco}, {@code Mensaje}, {@code Correlacion}) heredan un campo
+ *   {@code activo} que se pone en {@code false} al "eliminar". Los repositorios filtran con
+ *   el sufijo {@code ActivoTrue} o con predicados explicitos, de la misma forma en que se filtra
+ *   por {@code empresaId} (ver {@link RepositorioTenant}). Se eligio este enfoque manual en vez
+ *   de {@code @SQLDelete}/{@code @SQLRestriction} porque un filtro global e implicito de Hibernate
+ *   puede interactuar de forma no obvia con el filtrado de tenant y es mas dificil de auditar
+ *   por lectura del codigo.</li>
  * </ul>
  */
 @Getter
