@@ -133,8 +133,9 @@ public class ArcoController {
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
-                arcoService.evaluarImpactoEliminacion(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(
+                arcoService.evaluarImpactoEliminacion(principal.empresaId(), id),
+                ImpactoEliminacionResponse.class));
     }
 
     @DeleteMapping("/arcos/{id}")
