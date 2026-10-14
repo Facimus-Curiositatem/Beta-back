@@ -83,7 +83,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-03: autenticar con credenciales validas retorna usuario")
     void autenticar_exitoso() {
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
 
         Usuario result = usuarioService.autenticar("juan@acme.com", "pass");
@@ -94,7 +94,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-03: autenticar con password incorrecta lanza excepcion")
     void autenticar_password_incorrecta() {
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
@@ -108,7 +108,7 @@ class UsuarioServiceTest {
     @DisplayName("HU-03: autenticar usuario inactivo lanza excepcion")
     void autenticar_usuario_inactivo() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
 
         assertThrows(ReglaNegocioException.class,
                 () -> usuarioService.autenticar("juan@acme.com", "pass"));
