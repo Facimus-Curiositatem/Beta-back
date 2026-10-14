@@ -55,7 +55,7 @@ public class NodoFlujoService {
 
     @Transactional(readOnly = true)
     public boolean existeNombreEnProceso(String nombre, Long procesoId, Long empresaId) {
-        return nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        return nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaIdAndActivoTrue(
                 nombre, procesoId, empresaId);
     }
 
