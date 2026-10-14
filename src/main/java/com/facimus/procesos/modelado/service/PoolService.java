@@ -67,6 +67,7 @@ public class PoolService {
     public Pool editar(Long empresaId, Long poolId, String nombre, TipoParticipante tipoParticipante,
             boolean cajaNegra) {
         Pool pool = obtener(empresaId, poolId);
+        validarProcesoActivo(pool.getProceso());
         if (cajaNegra) {
             eventPublisher.publishEvent(new PoolMarcadoCajaNegraEvent(empresaId, poolId));
         }
@@ -96,6 +97,7 @@ public class PoolService {
 
     @Transactional
     public void eliminarRegistro(Pool pool) {
+        validarProcesoActivo(pool.getProceso());
         var proceso = pool.getProceso();
         String nombre = pool.getNombre();
         poolRepository.delete(pool);
@@ -119,5 +121,11 @@ public class PoolService {
     @Transactional(readOnly = true)
     public boolean existe(Long empresaId, Long poolId) {
         return poolRepository.existsByIdAndEmpresaId(poolId, empresaId);
+    }
+
+    private void validarProcesoActivo(Proceso proceso) {
+        if (!proceso.isActivo()) {
+            throw new ReglaNegocioException("No se permite modelar en un proceso inactivo.");
+        }
     }
 }
