@@ -9,8 +9,11 @@ import com.facimus.procesos.gestion.controller.dto.EmpresaResponse;
 import com.facimus.procesos.gestion.controller.dto.HistorialCambioResponse;
 import com.facimus.procesos.gestion.controller.dto.InvitacionUsuarioResponse;
 import com.facimus.procesos.gestion.controller.dto.PermisoEstructuraResponse;
+import com.facimus.procesos.gestion.controller.dto.ProcesoCompartidoDetalleResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoCompartidoResponse;
 import com.facimus.procesos.gestion.controller.dto.ProcesoResponse;
+import com.facimus.procesos.gestion.controller.dto.RolProcesoConsultaResponse;
+import com.facimus.procesos.gestion.controller.dto.RolProcesoVistaResponse;
 import com.facimus.procesos.gestion.controller.dto.UsuarioResponse;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.HistorialCambio;
@@ -19,11 +22,15 @@ import com.facimus.procesos.gestion.model.PermisoEstructura;
 import com.facimus.procesos.gestion.model.ProcesoCompartido;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.model.Usuario;
+import com.facimus.procesos.gestion.service.dto.ProcesoCompartidoDetalle;
+import com.facimus.procesos.gestion.service.dto.RolProcesoConsulta;
+import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 import com.facimus.procesos.modelado.controller.dto.ActividadResponse;
 import com.facimus.procesos.modelado.controller.dto.ArcoResponse;
 import com.facimus.procesos.modelado.controller.dto.CorrelacionResponse;
 import com.facimus.procesos.modelado.controller.dto.EventoMensajeResponse;
 import com.facimus.procesos.modelado.controller.dto.GatewayResponse;
+import com.facimus.procesos.modelado.controller.dto.ImpactoEliminacionResponse;
 import com.facimus.procesos.modelado.controller.dto.LaneResponse;
 import com.facimus.procesos.modelado.controller.dto.MensajeResponse;
 import com.facimus.procesos.modelado.controller.dto.PoolResponse;
@@ -36,17 +43,15 @@ import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Mensaje;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoActividad;
+import com.facimus.procesos.modelado.service.dto.ImpactoEliminacion;
 
 /**
  * Registra el mapeo Entity -> DTO de respuesta para todos los casos de "una entidad
  * mapea a un DTO" (usados por los controllers vía {@code modelMapper.map(entity, X.class)}).
  * <p>
- * Los DTOs que NO estan aqui (p. ej. {@code RolProcesoVistaResponse}, {@code LoginResponse},
- * {@code ProcesoDetalleResponse}, {@code ImpactoEliminacionResponse}) se construyen a mano
- * a proposito: no son el mapeo de una sola entidad, sino la composicion de una entidad con
- * un valor calculado en el service (p. ej. cuantos Lanes usan un RolProceso) o de varios
- * DTOs entre si. ModelMapper resuelve conversiones de un origen a un destino; forzar esos
- * casos a un converter no simplifica nada.
+ * Los DTOs que NO estan aqui (p. ej. {@code LoginResponse}, {@code ProcesoDetalleResponse},
+ * {@code ProcesoDiagramaResponse}) se construyen a mano a proposito: necesitan logica de
+ * composicion que no encaja en un solo converter de ModelMapper.
  */
 @Configuration
 public class ModelMapperConfig {
@@ -206,6 +211,48 @@ public class ModelMapperConfig {
                         m.getActividadError() != null ? m.getActividadError().getId() : null,
                         m.getPoliticaSinCaso(),
                         m.getEventoCatch() == null && m.getTipoDestinoExterno() == null);
+            }
+        });
+
+        // -- Converters compuestos: el origen es un DTO de servicio, no una entidad JPA. --
+
+        mapper.addConverter(new AbstractConverter<ImpactoEliminacion, ImpactoEliminacionResponse>() {
+            @Override
+            protected ImpactoEliminacionResponse convert(ImpactoEliminacion i) {
+                return new ImpactoEliminacionResponse(true, i.rompeContinuidad(), i.advertencias());
+            }
+        });
+
+        mapper.addConverter(new AbstractConverter<RolProcesoVista, RolProcesoVistaResponse>() {
+            @Override
+            protected RolProcesoVistaResponse convert(RolProcesoVista v) {
+                return new RolProcesoVistaResponse(v.rol().getId(), v.rol().getNombre(),
+                        v.rol().getDescripcion(), v.procesosQueLoUsan(), v.enUso());
+            }
+        });
+
+        mapper.addConverter(new AbstractConverter<RolProcesoConsulta, RolProcesoConsultaResponse>() {
+            @Override
+            protected RolProcesoConsultaResponse convert(RolProcesoConsulta c) {
+                return new RolProcesoConsultaResponse(c.rol().getId(), c.rol().getNombre(),
+                        c.rol().getDescripcion(), c.procesos(), !c.procesos().isEmpty());
+            }
+        });
+
+        mapper.addConverter(new AbstractConverter<ProcesoCompartidoDetalle, ProcesoCompartidoDetalleResponse>() {
+            @Override
+            protected ProcesoCompartidoDetalleResponse convert(ProcesoCompartidoDetalle d) {
+                return new ProcesoCompartidoDetalleResponse(
+                        mapper.map(d.proceso(), ProcesoResponse.class),
+                        d.compartido().getEmpresa().getNombre(),
+                        true,
+                        d.pools().stream().map(p -> mapper.map(p, PoolResponse.class)).toList(),
+                        d.lanes().stream().map(l -> mapper.map(l, LaneResponse.class)).toList(),
+                        d.actividades().stream().map(a -> mapper.map(a, ActividadResponse.class)).toList(),
+                        d.gateways().stream().map(g -> mapper.map(g, GatewayResponse.class)).toList(),
+                        d.eventos().stream().map(e -> mapper.map(e, EventoMensajeResponse.class)).toList(),
+                        d.arcos().stream().map(a -> mapper.map(a, ArcoResponse.class)).toList(),
+                        d.mensajes().stream().map(m -> mapper.map(m, MensajeResponse.class)).toList());
             }
         });
 
