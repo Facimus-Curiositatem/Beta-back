@@ -70,7 +70,7 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public Usuario autenticar(String email, String password) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
                 .filter(Usuario::isActivo)
                 .orElseThrow(() -> new ReglaNegocioException(CREDENCIALES_INVALIDAS));
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
