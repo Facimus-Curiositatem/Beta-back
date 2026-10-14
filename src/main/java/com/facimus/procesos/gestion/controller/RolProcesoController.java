@@ -58,7 +58,7 @@ public class RolProcesoController {
     public ResponseEntity<List<RolProcesoVistaResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
         List<RolProcesoVistaResponse> roles = rolProcesoService.listarConUso(empresaId).stream()
-                .map(RolProcesoVistaResponse::of)
+                .map(v -> modelMapper.map(v, RolProcesoVistaResponse.class))
                 .toList();
         return ResponseEntity.ok(roles);
     }
@@ -76,7 +76,7 @@ public class RolProcesoController {
         final int tamano = 10;
         var page = rolProcesoService.buscarConProcesos(
                 principal.empresaId(), nombre, PageRequest.of(pagina, tamano))
-                .map(consulta -> RolProcesoConsultaResponse.of(consulta.rol(), consulta.procesos()));
+                .map(consulta -> modelMapper.map(consulta, RolProcesoConsultaResponse.class));
         return ResponseEntity.ok(PageResponse.from(page));
     }
 
