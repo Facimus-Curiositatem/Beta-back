@@ -18,6 +18,7 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.common.event.PoolMarcadoCajaNegraEvent;
 import com.facimus.procesos.gestion.model.Empresa;
+import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.gestion.service.RolProcesoService;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
@@ -50,9 +51,15 @@ class LaneServiceTest {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
 
+        Proceso proceso = new Proceso();
+        proceso.setId(1L);
+        proceso.setActivo(true);
+        proceso.setEmpresa(empresa);
+
         pool = new Pool();
         pool.setId(100L);
         pool.setEmpresa(empresa);
+        pool.setProceso(proceso);
 
         lane1 = new Lane();
         lane1.setId(1L);
