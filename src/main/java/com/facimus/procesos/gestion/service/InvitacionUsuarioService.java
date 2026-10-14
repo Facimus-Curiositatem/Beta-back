@@ -29,8 +29,8 @@ public class InvitacionUsuarioService {
     public InvitacionUsuario crear(Long empresaId, String email, RolAcceso rolAcceso) {
         LocalDateTime ahora = LocalDateTime.now();
         invitacionUsuarioRepository.deleteAllByFechaExpiracionBeforeAndUsadaFalse(ahora);
-        if (usuarioService.existePorEmail(empresaId, email)) {
-            throw new ReglaNegocioException("Ya existe un usuario con ese correo en la empresa.");
+        if (usuarioService.existePorEmail(email)) {
+            throw new ReglaNegocioException("Ya existe un usuario registrado con ese correo.");
         }
         if (invitacionUsuarioRepository.existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
                 empresaId, email, ahora)) {

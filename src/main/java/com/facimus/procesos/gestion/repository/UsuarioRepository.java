@@ -10,7 +10,8 @@ public interface UsuarioRepository extends RepositorioTenant<Usuario> {
 
     Optional<Usuario> findByEmpresaIdAndEmail(Long empresaId, String email);
 
-    boolean existsByEmpresaIdAndEmail(Long empresaId, String email);
+    /** El correo es unico en todo el sistema, no solo dentro de la empresa. */
+    boolean existsByEmailIgnoreCase(String email);
 
     List<Usuario> findAllByEmpresaIdAndActivoTrue(Long empresaId);
 
