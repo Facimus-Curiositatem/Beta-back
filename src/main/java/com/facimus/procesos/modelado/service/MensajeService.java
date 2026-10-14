@@ -66,7 +66,7 @@ public class MensajeService {
             throw new ReglaNegocioException("Un mensaje debe conectar dos pools diferentes.");
         }
 
-        Proceso proceso = procesoService.obtenerPorId(empresaId, procesoId);
+        Proceso proceso = procesoService.obtener(empresaId, procesoId);
         Pool poolOrigen = poolService.obtener(empresaId, poolOrigenId);
         Pool poolDestino = poolService.obtener(empresaId, poolDestinoId);
 
@@ -237,6 +237,12 @@ public class MensajeService {
     @Transactional(readOnly = true)
     public List<Mensaje> listarTodosPorProceso(Long empresaId, Long procesoId) {
         return mensajeRepository.findAllByProcesoIdAndEmpresaId(procesoId, empresaId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean tieneMensajesActivosEnPool(Long empresaId, Long poolId) {
+        return mensajeRepository.existsByPoolOrigenIdAndEmpresaIdAndActivoTrue(poolId, empresaId)
+                || mensajeRepository.existsByPoolDestinoIdAndEmpresaIdAndActivoTrue(poolId, empresaId);
     }
 
     private void validarPoolsDelProceso(Long procesoId, Pool poolOrigen, Pool poolDestino) {

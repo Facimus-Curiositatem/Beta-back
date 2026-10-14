@@ -69,7 +69,7 @@ class PoolServiceTest {
     @Test
     @DisplayName("Crear pool asigna orden correcto")
     void crear_exitoso() {
-        when(procesoService.obtenerPorId(1L, 10L)).thenReturn(proceso);
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
         when(poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(10L, 1L))
                 .thenReturn(List.of(pool));
         when(poolRepository.save(any(Pool.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -83,7 +83,7 @@ class PoolServiceTest {
     @Test
     @DisplayName("Crear pool con proceso inexistente lanza excepcion")
     void crear_proceso_inexistente() {
-        when(procesoService.obtenerPorId(1L, 10L)).thenThrow(new RecursoNoEncontradoException("Proceso no encontrado."));
+        when(procesoService.obtener(1L, 10L)).thenThrow(new RecursoNoEncontradoException("Proceso no encontrado."));
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> poolService.crear(1L, 10L, "Pool", TipoParticipante.EMPRESA, false));
