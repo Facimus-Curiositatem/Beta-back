@@ -129,8 +129,9 @@ public class GatewayController {
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
-                gatewayService.evaluarImpactoEliminacion(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(
+                gatewayService.evaluarImpactoEliminacion(principal.empresaId(), id),
+                ImpactoEliminacionResponse.class));
     }
 
     @DeleteMapping("/gateways/{id}")
