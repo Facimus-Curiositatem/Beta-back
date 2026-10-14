@@ -21,5 +21,5 @@ public interface UsuarioRepository extends RepositorioTenant<Usuario> {
      * despues de autenticar), asi que esta unica consulta rompe la regla
      * general de acotar por tenant.
      */
-    Optional<Usuario> findByEmail(String email);
+    Optional<Usuario> findByEmailIgnoreCase(String email);
 }
