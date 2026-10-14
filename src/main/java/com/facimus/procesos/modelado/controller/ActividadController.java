@@ -132,8 +132,9 @@ public class ActividadController {
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<ImpactoEliminacionResponse> impactoEliminacion(@PathVariable Long id,
             @AuthenticationPrincipal ApiPrincipal principal) {
-        return ResponseEntity.ok(ImpactoEliminacionResponse.of(
-                actividadService.evaluarImpactoEliminacion(principal.empresaId(), id)));
+        return ResponseEntity.ok(modelMapper.map(
+                actividadService.evaluarImpactoEliminacion(principal.empresaId(), id),
+                ImpactoEliminacionResponse.class));
     }
 
     @DeleteMapping("/actividades/{id}")
