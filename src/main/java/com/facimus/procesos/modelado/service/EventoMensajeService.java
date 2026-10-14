@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
+import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.EventoMensaje;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.TipoEventoMensaje;
@@ -26,6 +27,7 @@ public class EventoMensajeService {
     public EventoMensaje crear(Long empresaId, Long laneId, String nombre, TipoEventoMensaje tipoEvento,
             String contenido, String claveCorrelacion, int posX, int posY, boolean origenExterno) {
         Lane lane = laneService.obtener(empresaId, laneId);
+        validarProcesoActivo(lane.getPool().getProceso());
         if (lane.getPool().isCajaNegra()) {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener eventos internos.");
         }
@@ -54,6 +56,7 @@ public class EventoMensajeService {
     public EventoMensaje editar(Long empresaId, Long eventoId, String nombre, TipoEventoMensaje tipoEvento,
             String contenido, String claveCorrelacion, int posX, int posY, boolean origenExterno) {
         EventoMensaje evento = obtener(empresaId, eventoId);
+        validarProcesoActivo(evento.getLane().getPool().getProceso());
         Long procesoId = evento.getLane().getPool().getProceso().getId();
         if (!evento.getNombre().equalsIgnoreCase(nombre)
                 && nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
@@ -80,6 +83,7 @@ public class EventoMensajeService {
     @Transactional
     public void eliminar(Long empresaId, Long eventoId) {
         EventoMensaje evento = obtener(empresaId, eventoId);
+        validarProcesoActivo(evento.getLane().getPool().getProceso());
         var proceso = evento.getLane().getPool().getProceso();
         String nombre = evento.getNombre();
         arcoService.desactivarPorNodo(empresaId, eventoId);
@@ -107,4 +111,9 @@ public class EventoMensajeService {
                 .toList();
     }
 
+    private void validarProcesoActivo(Proceso proceso) {
+        if (!proceso.isActivo()) {
+            throw new ReglaNegocioException("No se permite modelar en un proceso inactivo.");
+        }
+    }
 }
