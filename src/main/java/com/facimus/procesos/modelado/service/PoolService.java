@@ -38,7 +38,7 @@ public class PoolService {
     @Transactional
     public Pool crear(Long empresaId, Long procesoId, String nombre, TipoParticipante tipoParticipante,
             boolean cajaNegra) {
-        Proceso proceso = procesoService.obtenerPorId(empresaId, procesoId);
+        Proceso proceso = procesoService.obtener(empresaId, procesoId);
         int orden = poolRepository.findAllByProcesoIdAndEmpresaIdOrderByOrdenAsc(procesoId, empresaId).size();
 
         Pool pool = new Pool();

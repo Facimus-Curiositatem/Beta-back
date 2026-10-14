@@ -57,7 +57,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-02: crear colaborador con email unico")
     void crearColaborador_exitoso() {
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "nuevo@acme.com")).thenReturn(false);
+        when(usuarioRepository.existsByEmailIgnoreCase("nuevo@acme.com")).thenReturn(false);
         when(empresaService.obtener(1L)).thenReturn(empresa);
         when(passwordEncoder.encode("pass")).thenReturn("hashed");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -73,7 +73,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-02: email duplicado lanza excepcion")
     void crearColaborador_email_duplicado() {
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "juan@acme.com")).thenReturn(true);
+        when(usuarioRepository.existsByEmailIgnoreCase("juan@acme.com")).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
                 () -> usuarioService.crearColaborador(1L, "Juan", "juan@acme.com", "pass",

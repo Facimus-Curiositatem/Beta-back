@@ -37,7 +37,7 @@ class InvitacionUsuarioServiceTest {
 
     @Test
     void crear_rechaza_usuario_existente() {
-        when(usuarioService.existePorEmail(1L, "nuevo@demo.com")).thenReturn(true);
+        when(usuarioService.existePorEmail("nuevo@demo.com")).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
                 () -> invitacionUsuarioService.crear(1L, "nuevo@demo.com", RolAcceso.EDITOR));
@@ -93,7 +93,7 @@ class InvitacionUsuarioServiceTest {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
 
-        when(usuarioService.existePorEmail(1L, "nuevo@demo.com")).thenReturn(false);
+        when(usuarioService.existePorEmail("nuevo@demo.com")).thenReturn(false);
         when(invitacionUsuarioRepository
                 .existsByEmpresaIdAndEmailIgnoreCaseAndUsadaFalseAndFechaExpiracionAfter(
                         any(), any(), any())).thenReturn(false);

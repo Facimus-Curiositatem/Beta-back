@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,7 +18,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "usuarios", uniqueConstraints = @UniqueConstraint(columnNames = { "empresa_id", "email" }))
+@Table(name = "usuarios")
 public class Usuario extends EntidadEmpresa {
 
     @Id
@@ -29,7 +28,8 @@ public class Usuario extends EntidadEmpresa {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(nullable = false)
+    /** Unico en todo el sistema: el login (HU-03) solo pide correo y contrasena, sin empresa. */
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)

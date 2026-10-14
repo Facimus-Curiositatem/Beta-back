@@ -302,7 +302,7 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Crear mensaje entre pools diferentes funciona")
     void crear_exitoso() {
-        when(procesoService.obtenerPorId(1L, 10L)).thenReturn(proceso);
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
         when(poolService.obtener(1L, 100L)).thenReturn(poolOrigen);
         when(poolService.obtener(1L, 200L)).thenReturn(poolDestino);
         when(mensajeRepository.save(any(Mensaje.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -322,7 +322,7 @@ class MensajeServiceTest {
     @Test
     @DisplayName("Crear mensaje con proceso inexistente lanza excepcion")
     void crear_proceso_inexistente() {
-        when(procesoService.obtenerPorId(1L, 10L)).thenThrow(new RecursoNoEncontradoException("Proceso no encontrado."));
+        when(procesoService.obtener(1L, 10L)).thenThrow(new RecursoNoEncontradoException("Proceso no encontrado."));
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> mensajeService.crear(1L, 10L, "Orden", "Datos", 100L, 200L));
@@ -421,7 +421,7 @@ class MensajeServiceTest {
     }
 
     private void prepararCreacionBase() {
-        when(procesoService.obtenerPorId(1L, 10L)).thenReturn(proceso);
+        when(procesoService.obtener(1L, 10L)).thenReturn(proceso);
         when(poolService.obtener(1L, 100L)).thenReturn(poolOrigen);
         when(poolService.obtener(1L, 200L)).thenReturn(poolDestino);
     }

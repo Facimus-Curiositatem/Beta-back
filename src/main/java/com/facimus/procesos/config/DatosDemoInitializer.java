@@ -6,6 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
@@ -16,17 +17,16 @@ import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Crea una empresa y un administrador de demostracion en el primer arranque,
- * unicamente si la base de datos esta vacia, para poder iniciar sesion sin
- * pasar antes por el formulario de registro.
+ * Crea dos empresas de demostracion con su administrador en el primer arranque, unicamente si la
+ * base de datos esta vacia, para poder iniciar sesion sin pasar antes por el formulario de registro
+ * y probar el aislamiento entre empresas. Solo corre en el perfil por defecto: ni en prod ni en test.
  */
 @Component
-@Profile("!prod")
+@Profile("default")
+@Transactional
 @RequiredArgsConstructor
 public class DatosDemoInitializer implements CommandLineRunner {
 
-    private static final String NIT_DEMO = "900123456-1";
-    private static final String EMAIL_DEMO = "admin@demo.com";
     private static final String PASSWORD_DEMO = "admin123";
 
     private final EmpresaRepository empresaRepository;
@@ -39,17 +39,25 @@ public class DatosDemoInitializer implements CommandLineRunner {
             return;
         }
 
+        crearEmpresaConAdministrador("Empresa Demo S.A.S.", "900123456-1", "contacto@demo.com",
+                "Administrador Demo", "admin@demo.com");
+        crearEmpresaConAdministrador("Empresa Beta S.A.S.", "900654321-2", "contacto@beta.com",
+                "Administrador Beta", "admin@beta.com");
+    }
+
+    private void crearEmpresaConAdministrador(String nombre, String nit, String correoContacto,
+            String nombreAdmin, String emailAdmin) {
         Empresa empresa = new Empresa();
-        empresa.setNombre("Empresa Demo S.A.S.");
-        empresa.setNit(NIT_DEMO);
-        empresa.setCorreoContacto("contacto@demo.com");
+        empresa.setNombre(nombre);
+        empresa.setNit(nit);
+        empresa.setCorreoContacto(correoContacto);
         empresa.setFechaRegistro(LocalDate.now());
         empresa = empresaRepository.save(empresa);
 
         Usuario admin = new Usuario();
         admin.setEmpresa(empresa);
-        admin.setNombre("Administrador Demo");
-        admin.setEmail(EMAIL_DEMO);
+        admin.setNombre(nombreAdmin);
+        admin.setEmail(emailAdmin);
         admin.setPasswordHash(passwordEncoder.encode(PASSWORD_DEMO));
         admin.setRolAcceso(RolAcceso.ADMINISTRADOR);
         admin.setActivo(true);

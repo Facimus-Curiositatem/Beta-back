@@ -33,6 +33,8 @@ class PoolOrquestadorServiceTest {
     private PoolService poolService;
     @Mock
     private LaneService laneService;
+    @Mock
+    private MensajeService mensajeService;
 
     @InjectMocks
     private PoolOrquestadorService poolOrquestadorService;
@@ -66,6 +68,18 @@ class PoolOrquestadorServiceTest {
     void eliminar_no_continua_si_no_es_eliminable() {
         when(poolService.verificarEliminable(1L, 100L))
                 .thenThrow(new ReglaNegocioException("tiene elementos activos"));
+
+        assertThrows(ReglaNegocioException.class, () -> poolOrquestadorService.eliminar(1L, 100L));
+
+        verify(laneService, never()).eliminarPorPool(1L, 100L);
+        verify(poolService, never()).eliminarRegistro(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("Si el pool tiene mensajes activos, no se borran las lanes ni el pool")
+    void eliminar_no_continua_si_tiene_mensajes_activos() {
+        when(poolService.verificarEliminable(1L, 100L)).thenReturn(pool);
+        when(mensajeService.tieneMensajesActivosEnPool(1L, 100L)).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class, () -> poolOrquestadorService.eliminar(1L, 100L));
 

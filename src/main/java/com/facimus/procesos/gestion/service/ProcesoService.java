@@ -136,12 +136,7 @@ public class ProcesoService {
         return procesoRepository.existsByIdAndEmpresaId(procesoId, empresaId);
     }
 
-    @Transactional(readOnly = true)
-    public Proceso obtenerPorId(Long empresaId, Long procesoId) {
-        return procesoRepository.findByIdAndEmpresaId(procesoId, empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Proceso no encontrado."));
-    }
-
+    /** Unica puerta de carga del proceso: un proceso eliminado (inactivo) no admite cambios. */
     @Transactional(readOnly = true)
     public Proceso obtener(Long empresaId, Long procesoId) {
         return procesoRepository.findByIdAndEmpresaIdAndActivoTrue(procesoId, empresaId)

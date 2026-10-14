@@ -29,8 +29,8 @@ public class UsuarioService {
     @Transactional
     public Usuario crearColaborador(Long empresaId, String nombre, String email, String password,
             RolAcceso rolAcceso) {
-        if (usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email)) {
-            throw new ReglaNegocioException("Ya existe un usuario con el correo " + email + " en esta empresa.");
+        if (usuarioRepository.existsByEmailIgnoreCase(email)) {
+            throw new ReglaNegocioException("Ya existe un usuario registrado con el correo " + email + ".");
         }
         Empresa empresa = empresaService.obtener(empresaId);
 
@@ -91,8 +91,8 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public boolean existePorEmail(Long empresaId, String email) {
-        return usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email);
+    public boolean existePorEmail(String email) {
+        return usuarioRepository.existsByEmailIgnoreCase(email);
     }
 
     @Transactional(readOnly = true)
