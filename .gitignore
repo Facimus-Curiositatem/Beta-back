@@ -6,6 +6,12 @@ target/
 
 ### Base de datos local H2 ###
 /data/
+*.mv.db
+*.trace.db
+
+### Configuracion y secretos locales ###
+.env
+application-local.properties
 
 ### STS ###
 .apt_generated
@@ -35,7 +41,7 @@ build/
 ### VS Code ###
 .vscode/
 
-### Worktrees locales de Codex ###
+### Worktrees locales ###
 .worktrees/
 
 ### JMeter ###

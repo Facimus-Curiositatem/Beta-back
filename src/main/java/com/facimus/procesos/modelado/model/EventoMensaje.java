@@ -5,7 +5,6 @@ import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Lob;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,8 +21,8 @@ public class EventoMensaje extends NodoFlujo {
     @Column(name = "tipo_evento_mensaje")
     private TipoEventoMensaje tipoEvento;
 
-    @Lob
-    @Column(name = "contenido_evento")
+    // text y no @Lob: en PostgreSQL @Lob guarda un OID, igual que paso con Proceso y Mensaje (sql/V1, V2).
+    @Column(name = "contenido_evento", columnDefinition = "text")
     private String contenido;
 
     @Column(name = "clave_correlacion_evento")
