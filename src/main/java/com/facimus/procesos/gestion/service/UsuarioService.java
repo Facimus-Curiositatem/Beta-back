@@ -11,7 +11,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,17 +23,16 @@ public class UsuarioService {
     private static final String CREDENCIALES_INVALIDAS = "Correo o contrasena incorrectos.";
 
     private final UsuarioRepository usuarioRepository;
-    private final EmpresaRepository empresaRepository;
+    private final EmpresaService empresaService;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public Usuario crearColaborador(Long empresaId, String nombre, String email, String password,
             RolAcceso rolAcceso) {
-        if (usuarioRepository.existsByEmpresaIdAndEmail(empresaId, email)) {
-            throw new ReglaNegocioException("Ya existe un usuario con el correo " + email + " en esta empresa.");
+        if (usuarioRepository.existsByEmailIgnoreCase(email)) {
+            throw new ReglaNegocioException("Ya existe un usuario registrado con el correo " + email + ".");
         }
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
+        Empresa empresa = empresaService.obtener(empresaId);
 
         Usuario usuario = new Usuario();
         usuario.setEmpresa(empresa);
@@ -70,8 +68,9 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional(readOnly = true)
     public Usuario autenticar(String email, String password) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
                 .filter(Usuario::isActivo)
                 .orElseThrow(() -> new ReglaNegocioException(CREDENCIALES_INVALIDAS));
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
@@ -80,12 +79,24 @@ public class UsuarioService {
         return usuario;
     }
 
+    @Transactional(readOnly = true)
     public List<Usuario> listarPorEmpresa(Long empresaId) {
         return usuarioRepository.findAllByEmpresaIdAndActivoTrue(empresaId);
     }
 
+    @Transactional(readOnly = true)
     public Usuario obtener(Long empresaId, Long usuarioId) {
         return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existePorEmail(String email) {
+        return usuarioRepository.existsByEmailIgnoreCase(email);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<Usuario> buscar(Long empresaId, Long usuarioId) {
+        return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId);
     }
 }

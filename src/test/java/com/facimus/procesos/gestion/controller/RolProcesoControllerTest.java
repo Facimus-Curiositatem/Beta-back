@@ -17,6 +17,9 @@ import com.facimus.procesos.gestion.service.dto.RolProcesoConsulta;
 import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
    import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(RolProcesoController.class)
+@Import(ModelMapperConfig.class)
 class RolProcesoControllerTest {
 
     @Autowired
@@ -106,7 +110,7 @@ class RolProcesoControllerTest {
                                 {"nombre":"Supervisor","descripcion":"Supervisa"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/roles/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/roles/2"))
                 .andExpect(jsonPath("$.nombre").value("Supervisor"));
     }
 

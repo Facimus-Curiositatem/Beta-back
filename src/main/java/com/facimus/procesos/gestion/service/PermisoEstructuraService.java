@@ -10,7 +10,6 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.PermisoEstructura;
 import com.facimus.procesos.gestion.model.RolAcceso;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.PermisoEstructuraRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,8 +20,9 @@ import lombok.RequiredArgsConstructor;
 public class PermisoEstructuraService {
 
     private final PermisoEstructuraRepository permisoEstructuraRepository;
-    private final EmpresaRepository empresaRepository;
+    private final EmpresaService empresaService;
 
+    @Transactional(readOnly = true)
     public void validar(Long empresaId, RolAcceso rol, OperacionEstructura operacion) {
         PermisoEstructura permiso = obtener(empresaId, rol);
         boolean permitido = switch (operacion) {
@@ -38,11 +38,13 @@ public class PermisoEstructuraService {
         }
     }
 
+    @Transactional(readOnly = true)
     public PermisoEstructura obtener(Long empresaId, RolAcceso rol) {
         return permisoEstructuraRepository.findByEmpresaIdAndRolAcceso(empresaId, rol)
                 .orElseGet(() -> permisoPorDefecto(empresaId, rol));
     }
 
+    @Transactional(readOnly = true)
     public List<PermisoEstructura> listar(Long empresaId) {
         return Arrays.stream(RolAcceso.values()).map(rol -> obtener(empresaId, rol)).toList();
     }
@@ -66,8 +68,7 @@ public class PermisoEstructuraService {
     }
 
     private PermisoEstructura permisoPorDefecto(Long empresaId, RolAcceso rol) {
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new ReglaNegocioException("Empresa no encontrada."));
+        Empresa empresa = empresaService.obtener(empresaId);
         PermisoEstructura permiso = new PermisoEstructura();
         permiso.setEmpresa(empresa);
         permiso.setRolAcceso(rol);

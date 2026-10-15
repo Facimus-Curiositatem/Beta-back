@@ -17,6 +17,9 @@ import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.service.MensajeService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(MensajeController.class)
+@Import(ModelMapperConfig.class)
 class MensajeControllerTest {
 
     @Autowired
@@ -77,7 +81,7 @@ class MensajeControllerTest {
                                 {"nombre":"Factura","contenido":"Datos de factura","poolOrigenId":1,"poolDestinoId":2}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/mensajes/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/mensajes/2"))
                 .andExpect(jsonPath("$.nombre").value("Factura"));
     }
 

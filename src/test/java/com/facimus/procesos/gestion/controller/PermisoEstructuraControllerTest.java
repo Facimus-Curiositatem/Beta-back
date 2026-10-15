@@ -11,15 +11,18 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.config.ModelMapperConfig;
 import com.facimus.procesos.gestion.model.PermisoEstructura;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 
 @WebMvcTest(PermisoEstructuraController.class)
+@Import(ModelMapperConfig.class)
 class PermisoEstructuraControllerTest {
 
     @Autowired MockMvc mockMvc;

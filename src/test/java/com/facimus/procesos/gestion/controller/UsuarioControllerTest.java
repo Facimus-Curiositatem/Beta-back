@@ -14,6 +14,9 @@ import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.UsuarioService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(UsuarioController.class)
+@Import(ModelMapperConfig.class)
 class UsuarioControllerTest {
 
     @Autowired
@@ -80,7 +84,7 @@ class UsuarioControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/usuarios/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/usuarios/2"))
                 .andExpect(jsonPath("$.nombre").value("Pedro"));
     }
 

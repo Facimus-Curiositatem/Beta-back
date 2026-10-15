@@ -13,15 +13,18 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.config.ModelMapperConfig;
 import com.facimus.procesos.gestion.model.*;
 import com.facimus.procesos.gestion.service.ProcesoCompartidoService;
 import com.facimus.procesos.gestion.service.dto.ProcesoCompartidoDetalle;
 
 @WebMvcTest(ProcesoCompartidoController.class)
+@Import(ModelMapperConfig.class)
 class ProcesoCompartidoControllerTest {
 
     @Autowired MockMvc mockMvc;
@@ -51,7 +54,7 @@ class ProcesoCompartidoControllerTest {
                     {"empresaInvitadaId":2}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/procesos-compartidos/10"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/procesos-compartidos/10"))
                 .andExpect(jsonPath("$.empresaInvitada").value("Aliada"));
     }
 

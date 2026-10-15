@@ -5,7 +5,6 @@ import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.model.Usuario;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.UsuarioRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +28,7 @@ class UsuarioServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
     @Mock
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
     @Mock
     private PasswordEncoder passwordEncoder;
 
@@ -58,8 +57,8 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-02: crear colaborador con email unico")
     void crearColaborador_exitoso() {
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "nuevo@acme.com")).thenReturn(false);
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(usuarioRepository.existsByEmailIgnoreCase("nuevo@acme.com")).thenReturn(false);
+        when(empresaService.obtener(1L)).thenReturn(empresa);
         when(passwordEncoder.encode("pass")).thenReturn("hashed");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -74,7 +73,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-02: email duplicado lanza excepcion")
     void crearColaborador_email_duplicado() {
-        when(usuarioRepository.existsByEmpresaIdAndEmail(1L, "juan@acme.com")).thenReturn(true);
+        when(usuarioRepository.existsByEmailIgnoreCase("juan@acme.com")).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
                 () -> usuarioService.crearColaborador(1L, "Juan", "juan@acme.com", "pass",
@@ -84,7 +83,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-03: autenticar con credenciales validas retorna usuario")
     void autenticar_exitoso() {
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
 
         Usuario result = usuarioService.autenticar("juan@acme.com", "pass");
@@ -95,7 +94,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("HU-03: autenticar con password incorrecta lanza excepcion")
     void autenticar_password_incorrecta() {
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
@@ -109,7 +108,7 @@ class UsuarioServiceTest {
     @DisplayName("HU-03: autenticar usuario inactivo lanza excepcion")
     void autenticar_usuario_inactivo() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByEmail("juan@acme.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findByEmailIgnoreCase("juan@acme.com")).thenReturn(Optional.of(usuario));
 
         assertThrows(ReglaNegocioException.class,
                 () -> usuarioService.autenticar("juan@acme.com", "pass"));

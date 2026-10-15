@@ -15,9 +15,13 @@ import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoParticipante;
+import com.facimus.procesos.modelado.service.PoolOrquestadorService;
 import com.facimus.procesos.modelado.service.PoolService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -28,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(PoolController.class)
+@Import(ModelMapperConfig.class)
 class PoolControllerTest {
 
     @Autowired
@@ -38,6 +43,9 @@ class PoolControllerTest {
 
     @MockitoBean
     private PoolService poolService;
+
+    @MockitoBean
+    private PoolOrquestadorService poolOrquestadorService;
 
     @Test
     @DisplayName("GET /api/v1/procesos/{procesoId}/pools - listar pools (200)")
@@ -88,7 +96,7 @@ class PoolControllerTest {
                                 {"nombre":"Proveedor","tipoParticipante":"PROVEEDOR","cajaNegra":false}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/pools/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/pools/2"))
                 .andExpect(jsonPath("$.nombre").value("Proveedor"));
     }
 
@@ -123,7 +131,7 @@ class PoolControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/pools/{id} - eliminar pool (204)")
     void eliminar_pool() throws Exception {
-        doNothing().when(poolService).eliminar(1L, 1L);
+        doNothing().when(poolOrquestadorService).eliminar(1L, 1L);
 
         mockMvc.perform(delete("/api/v1/pools/1").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isNoContent());

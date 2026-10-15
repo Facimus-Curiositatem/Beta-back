@@ -16,6 +16,9 @@ import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.service.ActividadService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -26,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(ActividadController.class)
+@Import(ModelMapperConfig.class)
 class ActividadControllerTest {
 
     @Autowired
@@ -47,7 +51,7 @@ class ActividadControllerTest {
                                 {"nombre":"Revisar solicitud","descripcion":"Verifica datos","posicionX":100,"posicionY":200}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/actividades/1"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/actividades/1"))
                 .andExpect(jsonPath("$.nombre").value("Revisar solicitud"))
                 .andExpect(jsonPath("$.posicionX").value(100));
     }

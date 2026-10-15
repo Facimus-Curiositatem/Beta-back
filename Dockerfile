@@ -10,5 +10,6 @@ RUN useradd -r -u 1001 appuser
 USER appuser
 WORKDIR /app
 COPY --from=build --chown=appuser:appuser /build/app.jar app.jar
+ENV SPRING_PROFILES_ACTIVE=prod
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

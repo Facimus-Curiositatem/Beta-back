@@ -12,5 +12,7 @@ public interface NodoFlujoRepository extends RepositorioTenant<NodoFlujo> {
 
     List<NodoFlujo> findAllByLane_Pool_ProcesoIdAndEmpresaId(Long procesoId, Long empresaId);
 
-    boolean existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(String nombre, Long procesoId, Long empresaId);
+    boolean existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaIdAndActivoTrue(String nombre, Long procesoId, Long empresaId);
+
+    boolean existsByLane_PoolIdAndEmpresaIdAndActivoTrue(Long poolId, Long empresaId);
 }

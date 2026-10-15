@@ -113,6 +113,32 @@ class SeguridadIntegracionTest {
     }
 
     @Test
+    @DisplayName("Crear un proceso registra 'Proceso creado' y luego 'Pool creado' en ese orden")
+    void Seguridad_crearProceso_registraHistorialDeProcesoYPoolEnOrden() throws Exception {
+        String token = login(ADMIN_DEMO, CLAVE_DEMO);
+
+        String respuestaCrear = mockMvc.perform(post("/api/v1/procesos")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(
+                                new ProcesoRequest("Onboarding", "Proceso de onboarding", "RRHH"))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long procesoId = jsonMapper.readTree(respuestaCrear).get("id").asLong();
+
+        // El historial se lista mas reciente primero (ORDER BY fechaCambio DESC): "Pool
+        // creado" se registra despues que "Proceso creado" dentro de la misma peticion
+        // POST /api/v1/procesos (ver ProcesoController.crear), asi que aparece primero.
+        mockMvc.perform(get("/api/v1/procesos/" + procesoId + "/historial")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].descripcionCambio").value(
+                        org.hamcrest.Matchers.startsWith("Pool creado:")))
+                .andExpect(jsonPath("$[1].descripcionCambio").value("Proceso creado."));
+    }
+
+    @Test
     @DisplayName("El AccessDeniedHandler responde 403 con ProblemDetail")
     void Seguridad_accessDeniedHandler_respondeProblemDetail403() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("DELETE", "/api/v1/procesos/1");

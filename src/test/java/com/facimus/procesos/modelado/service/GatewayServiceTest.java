@@ -24,19 +24,16 @@ import com.facimus.procesos.modelado.model.Gateway;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.model.TipoGateway;
-import com.facimus.procesos.modelado.repository.ArcoRepository;
-import com.facimus.procesos.modelado.repository.LaneRepository;
-import com.facimus.procesos.modelado.repository.NodoFlujoRepository;
 
 @ExtendWith(MockitoExtension.class)
 class GatewayServiceTest {
 
     @Mock
-    private NodoFlujoRepository nodoFlujoRepository;
+    private NodoFlujoService nodoFlujoService;
     @Mock
-    private LaneRepository laneRepository;
+    private LaneService laneService;
     @Mock
-    private ArcoRepository arcoRepository;
+    private ArcoService arcoService;
     @Mock
     private AuditoriaModeladoService auditoriaModeladoService;
 
@@ -76,10 +73,10 @@ class GatewayServiceTest {
     @Test
     void crear_gateway_exitosamente() {
         Lane lane = gateway.getLane();
-        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane));
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane);
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Nuevo", 10L, 1L)).thenReturn(false);
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.crear(1L, 1000L, "Nuevo", TipoGateway.EXCLUSIVO, 5, 6);
 
@@ -91,7 +88,7 @@ class GatewayServiceTest {
     void crear_en_pool_caja_negra_falla() {
         Lane lane = gateway.getLane();
         lane.getPool().setCajaNegra(true);
-        when(laneRepository.findByIdAndEmpresaId(1000L, 1L)).thenReturn(Optional.of(lane));
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane);
 
         assertThrows(ReglaNegocioException.class,
                 () -> gatewayService.crear(1L, 1000L, "Nuevo", TipoGateway.EXCLUSIVO, 0, 0));
@@ -103,9 +100,9 @@ class GatewayServiceTest {
         Arco salida1 = new Arco(); salida1.setActivo(true);
         Arco salida2 = new Arco(); salida2.setActivo(true);
 
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida1, salida2));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorDestino(1L, 1L)).thenReturn(List.of(entrada));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(salida1, salida2));
 
         var impacto = gatewayService.evaluarImpactoEliminacion(1L, 1L);
 
@@ -115,17 +112,12 @@ class GatewayServiceTest {
 
     @Test
     void eliminar_desactiva_gateway_y_arcos() {
-        Arco entrada = new Arco(); entrada.setActivo(true);
-        Arco salida = new Arco(); salida.setActivo(true);
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByDestinoIdAndEmpresaId(1L, 1L)).thenReturn(List.of(entrada));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(salida));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
 
         gatewayService.eliminar(1L, 1L);
 
         assertFalse(gateway.isActivo());
-        assertFalse(entrada.isActivo());
-        assertFalse(salida.isActivo());
+        verify(arcoService).desactivarPorNodo(1L, 1L);
         verify(auditoriaModeladoService).registrar(any(), contains("eliminado"));
     }
 
@@ -137,8 +129,9 @@ class GatewayServiceTest {
                 new com.facimus.procesos.modelado.model.Actividad();
         actividad.setActivo(true);
 
-        when(laneRepository.existsByIdAndEmpresaId(1000L, 1L)).thenReturn(true);
-        when(nodoFlujoRepository.findAllByLaneIdAndEmpresaId(1000L, 1L))
+        Lane lane = new Lane();
+        when(laneService.obtener(1L, 1000L)).thenReturn(lane);
+        when(nodoFlujoService.listarPorLane(1L, 1000L))
                 .thenReturn(List.of(activo, inactivo, actividad));
 
         var resultado = gatewayService.listarPorLane(1L, 1000L);
@@ -150,8 +143,8 @@ class GatewayServiceTest {
     @Test
     @DisplayName("Editar con nombre duplicado lanza excepcion")
     void editar_nombre_duplicado() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(nodoFlujoRepository.existsByNombreIgnoreCaseAndLane_Pool_ProcesoIdAndEmpresaId(
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(nodoFlujoService.existeNombreEnProceso(
                 "Otro", 10L, 1L)).thenReturn(true);
 
         assertThrows(ReglaNegocioException.class,
@@ -163,15 +156,15 @@ class GatewayServiceTest {
     void cambiar_a_paralelo_limpia_condiciones() {
         Arco arco = new Arco();
         arco.setCondicion("x > 5");
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arco));
-        when(arcoRepository.save(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(arco));
+        when(arcoService.guardar(any(Arco.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         gatewayService.editar(1L, 1L, "Decision", TipoGateway.PARALELO, 0, 0);
 
         assertNull(arco.getCondicion());
-        verify(arcoRepository).save(arco);
+        verify(arcoService).guardar(arco);
     }
 
     @Test
@@ -180,8 +173,8 @@ class GatewayServiceTest {
         gateway.setTipoGateway(TipoGateway.PARALELO);
         Arco arco = new Arco();
         arco.setCondicion(null);
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arco));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(arco));
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
                 () -> gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 0, 0));
@@ -195,9 +188,9 @@ class GatewayServiceTest {
         gateway.setTipoGateway(TipoGateway.PARALELO);
         Arco arco = new Arco();
         arco.setCondicion("x > 5");
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arco));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(arco));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 0, 0);
 
@@ -208,9 +201,9 @@ class GatewayServiceTest {
     @DisplayName("Cambiar de PARALELO a INCLUSIVO sin arcos funciona")
     void cambiar_paralelo_a_inclusivo_sin_arcos() {
         gateway.setTipoGateway(TipoGateway.PARALELO);
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(Collections.emptyList());
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(Collections.emptyList());
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.INCLUSIVO, 0, 0);
 
@@ -223,8 +216,8 @@ class GatewayServiceTest {
         gateway.setTipoGateway(TipoGateway.PARALELO);
         Arco arco = new Arco();
         arco.setCondicion(null);
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arco));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(arco));
 
         ReglaNegocioException ex = assertThrows(ReglaNegocioException.class,
                 () -> gatewayService.editar(1L, 1L, "Decision", TipoGateway.INCLUSIVO, 0, 0));
@@ -235,8 +228,8 @@ class GatewayServiceTest {
     @Test
     @DisplayName("Editar gateway sin cambiar tipo ni nombre funciona")
     void editar_sin_cambiar_tipo() {
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 5, 10);
 
@@ -251,9 +244,9 @@ class GatewayServiceTest {
         arcoInactivo.setActivo(false);
         arcoInactivo.setCondicion(null);
 
-        when(nodoFlujoRepository.findByIdAndEmpresaId(1L, 1L)).thenReturn(Optional.of(gateway));
-        when(arcoRepository.findAllByOrigenIdAndEmpresaId(1L, 1L)).thenReturn(List.of(arcoInactivo));
-        when(nodoFlujoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(nodoFlujoService.buscar(1L, 1L)).thenReturn(Optional.of(gateway));
+        when(arcoService.listarPorOrigen(1L, 1L)).thenReturn(List.of(arcoInactivo));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Gateway resultado = gatewayService.editar(1L, 1L, "Decision", TipoGateway.EXCLUSIVO, 0, 0);
 

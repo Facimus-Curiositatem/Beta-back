@@ -12,12 +12,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import static com.facimus.procesos.security.ApiPrincipalRequestPostProcessor.principal;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.gestion.service.PermisoEstructuraService;
+import com.facimus.procesos.gestion.service.RolProcesoService;
 import com.facimus.procesos.gestion.model.RolProceso;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
 import com.facimus.procesos.modelado.service.LaneService;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+
+import com.facimus.procesos.config.ModelMapperConfig;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -32,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(LaneController.class)
+@Import(ModelMapperConfig.class)
 class LaneControllerTest {
 
     @Autowired
@@ -42,6 +47,9 @@ class LaneControllerTest {
 
     @MockitoBean
     private LaneService laneService;
+
+    @MockitoBean
+    private RolProcesoService rolProcesoService;
 
     @Test
     @DisplayName("GET /api/v1/pools/{poolId}/lanes - listar lanes (200)")
@@ -76,7 +84,8 @@ class LaneControllerTest {
     @DisplayName("POST /api/v1/pools/{poolId}/lanes - crear lane (201)")
     void crear_lane() throws Exception {
         Lane lane = crearLane(2L, "Analisis");
-        given(laneService.crear(eq(1L), eq(5L), anyString(), anyLong())).willReturn(lane);
+        given(rolProcesoService.obtener(1L, 1L)).willReturn(lane.getRolProceso());
+        given(laneService.crear(eq(1L), eq(5L), anyString(), any(RolProceso.class))).willReturn(lane);
 
         mockMvc.perform(post("/api/v1/pools/5/lanes")
                         .with(principal(RolAcceso.EDITOR))
@@ -85,7 +94,7 @@ class LaneControllerTest {
                                 {"nombre":"Analisis","rolProcesoId":1}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/lanes/2"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/lanes/2"))
                 .andExpect(jsonPath("$.nombre").value("Analisis"));
     }
 
@@ -105,7 +114,8 @@ class LaneControllerTest {
     @DisplayName("PUT /api/v1/lanes/{id} - editar lane (200)")
     void editar_lane() throws Exception {
         Lane lane = crearLane(1L, "Recepcion v2");
-        given(laneService.editar(eq(1L), eq(1L), anyString(), anyLong())).willReturn(lane);
+        given(rolProcesoService.obtener(1L, 1L)).willReturn(lane.getRolProceso());
+        given(laneService.editar(eq(1L), eq(1L), anyString(), any(RolProceso.class))).willReturn(lane);
 
         mockMvc.perform(put("/api/v1/lanes/1")
                         .with(principal(RolAcceso.EDITOR))

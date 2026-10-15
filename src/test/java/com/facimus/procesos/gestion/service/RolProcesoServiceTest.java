@@ -3,16 +3,14 @@ package com.facimus.procesos.gestion.service;
 import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolProceso;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.RolProcesoRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.model.RolAcceso;
 import com.facimus.procesos.security.ApiPrincipal;
 import com.facimus.procesos.gestion.model.Proceso;
 import com.facimus.procesos.modelado.model.Lane;
 import com.facimus.procesos.modelado.model.Pool;
-import com.facimus.procesos.modelado.repository.LaneRepository;
+import com.facimus.procesos.modelado.service.LaneService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,11 +38,11 @@ class RolProcesoServiceTest {
     @Mock
     private RolProcesoRepository rolProcesoRepository;
     @Mock
-    private EmpresaRepository empresaRepository;
+    private EmpresaService empresaService;
     @Mock
-    private LaneRepository laneRepository;
+    private LaneService laneService;
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
     @Mock
     private HistorialCambioService historialCambioService;
 
@@ -94,8 +92,8 @@ class RolProcesoServiceTest {
         when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
         when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(List.of(rol));
         when(rolProcesoRepository.save(any(RolProceso.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(usuarioRepository.findByIdAndEmpresaId(7L, 1L)).thenReturn(Optional.of(usuario));
-        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(lane));
+        when(usuarioService.buscar(1L, 7L)).thenReturn(Optional.of(usuario));
+        when(laneService.listarPorRolProceso(1L, 5L)).thenReturn(List.of(lane));
 
         ApiPrincipal principal = new ApiPrincipal(7L, 1L, RolAcceso.ADMINISTRADOR, "admin@demo.com");
         SecurityContextHolder.getContext().setAuthentication(
@@ -112,7 +110,7 @@ class RolProcesoServiceTest {
     @Test
     void listar_con_uso_mapea_conteo_y_bandera() {
         when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(List.of(rol));
-        when(laneRepository.countByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(2L);
+        when(laneService.contarPorRolProceso(1L, 5L)).thenReturn(2L);
 
         var resultado = rolProcesoService.listarConUso(1L);
 
@@ -133,7 +131,7 @@ class RolProcesoServiceTest {
         var pageable = PageRequest.of(0, 10);
         when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L, pageable))
                 .thenReturn(new PageImpl<>(List.of(rol)));
-        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(lane));
+        when(laneService.listarPorRolProceso(1L, 5L)).thenReturn(List.of(lane));
 
         var resultado = rolProcesoService.buscarConProcesos(1L, " ", pageable);
 
@@ -145,7 +143,7 @@ class RolProcesoServiceTest {
         var pageable = PageRequest.of(0, 10);
         when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrueAndNombreContainingIgnoreCase(
                 1L, "Ana", pageable)).thenReturn(new PageImpl<>(List.of(rol)));
-        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of());
+        when(laneService.listarPorRolProceso(1L, 5L)).thenReturn(List.of());
 
         var resultado = rolProcesoService.buscarConProcesos(1L, " Ana ", pageable);
 
@@ -155,7 +153,7 @@ class RolProcesoServiceTest {
     @Test
     void contar_usos_valida_rol_y_retorna_conteo() {
         when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
-        when(laneRepository.countByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(3L);
+        when(laneService.contarPorRolProceso(1L, 5L)).thenReturn(3L);
 
         assertEquals(3L, rolProcesoService.contarUsos(1L, 5L));
     }
@@ -172,7 +170,7 @@ class RolProcesoServiceTest {
     @DisplayName("HU-17: crear rol con nombre unico")
     void crear_exitoso() {
         when(rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(1L)).thenReturn(Collections.emptyList());
-        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(empresaService.obtener(1L)).thenReturn(empresa);
         when(rolProcesoRepository.save(any(RolProceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RolProceso result = rolProcesoService.crear(1L, "Auditor", "Revisa procesos");
@@ -191,7 +189,7 @@ class RolProcesoServiceTest {
         pool.setProceso(proceso);
         Lane lane = new Lane();
         lane.setPool(pool);
-        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(List.of(lane));
+        when(laneService.listarPorRolProceso(1L, 5L)).thenReturn(List.of(lane));
 
         assertThrows(ReglaNegocioException.class,
                 () -> rolProcesoService.eliminar(1L, 5L));
@@ -203,7 +201,7 @@ class RolProcesoServiceTest {
     @DisplayName("HU-19: eliminar rol sin uso desactiva correctamente")
     void eliminar_rol_sin_uso() {
         when(rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(5L, 1L)).thenReturn(Optional.of(rol));
-        when(laneRepository.findAllByRolProcesoIdAndEmpresaId(5L, 1L)).thenReturn(Collections.emptyList());
+        when(laneService.listarPorRolProceso(1L, 5L)).thenReturn(Collections.emptyList());
         when(rolProcesoRepository.save(any(RolProceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
         rolProcesoService.eliminar(1L, 5L);

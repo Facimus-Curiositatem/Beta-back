@@ -11,10 +11,12 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.facimus.procesos.config.ModelMapperConfig;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.InvitacionUsuario;
 import com.facimus.procesos.gestion.model.RolAcceso;
@@ -22,6 +24,7 @@ import com.facimus.procesos.gestion.model.Usuario;
 import com.facimus.procesos.gestion.service.InvitacionUsuarioService;
 
 @WebMvcTest(InvitacionUsuarioController.class)
+@Import(ModelMapperConfig.class)
 class InvitacionUsuarioControllerTest {
 
     @Autowired MockMvc mockMvc;
@@ -47,7 +50,7 @@ class InvitacionUsuarioControllerTest {
                     {"email":"nuevo@demo.com","rolAcceso":"EDITOR"}
                     """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/usuarios/invitaciones/7"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/usuarios/invitaciones/7"))
                 .andExpect(jsonPath("$.email").value("nuevo@demo.com"))
                 .andExpect(jsonPath("$.token").value("abc"));
     }

@@ -14,13 +14,11 @@ import com.facimus.procesos.common.ReglaNegocioException;
 import com.facimus.procesos.common.RecursoNoEncontradoException;
 import com.facimus.procesos.gestion.model.Empresa;
 import com.facimus.procesos.gestion.model.RolProceso;
-import com.facimus.procesos.gestion.repository.EmpresaRepository;
 import com.facimus.procesos.gestion.repository.RolProcesoRepository;
-import com.facimus.procesos.gestion.repository.UsuarioRepository;
 import com.facimus.procesos.gestion.service.dto.RolProcesoConsulta;
 import com.facimus.procesos.gestion.service.dto.RolProcesoVista;
 import com.facimus.procesos.modelado.model.Lane;
-import com.facimus.procesos.modelado.repository.LaneRepository;
+import com.facimus.procesos.modelado.service.LaneService;
 import com.facimus.procesos.security.ApiPrincipal;
 
 import lombok.RequiredArgsConstructor;
@@ -31,16 +29,15 @@ import lombok.RequiredArgsConstructor;
 public class RolProcesoService {
 
     private final RolProcesoRepository rolProcesoRepository;
-    private final EmpresaRepository empresaRepository;
-    private final LaneRepository laneRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final EmpresaService empresaService;
+    private final LaneService laneService;
+    private final UsuarioService usuarioService;
     private final HistorialCambioService historialCambioService;
 
     @Transactional
     public RolProceso crear(Long empresaId, String nombre, String descripcion) {
         validarNombreUnico(empresaId, nombre, null);
-        Empresa empresa = empresaRepository.findById(empresaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada."));
+        Empresa empresa = empresaService.obtener(empresaId);
 
         RolProceso rol = new RolProceso();
         rol.setEmpresa(empresa);
@@ -64,7 +61,7 @@ public class RolProcesoService {
     @Transactional
     public void eliminar(Long empresaId, Long rolId) {
         RolProceso rol = obtener(empresaId, rolId);
-        List<Lane> lanesQueLoUsan = laneRepository.findAllByRolProcesoIdAndEmpresaId(rolId, empresaId);
+        List<Lane> lanesQueLoUsan = laneService.listarPorRolProceso(empresaId, rolId);
         if (!lanesQueLoUsan.isEmpty()) {
             String procesos = lanesQueLoUsan.stream()
                     .map(lane -> lane.getPool().getProceso().getNombre())
@@ -78,22 +75,24 @@ public class RolProcesoService {
         rolProcesoRepository.save(rol);
     }
 
+    @Transactional(readOnly = true)
     public List<RolProcesoVista> listarConUso(Long empresaId) {
         return rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId).stream()
                 .map(rol -> {
-                    long usos = laneRepository.countByRolProcesoIdAndEmpresaId(rol.getId(), empresaId);
+                    long usos = laneService.contarPorRolProceso(empresaId, rol.getId());
                     return new RolProcesoVista(rol, usos, usos > 0);
                 })
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Page<RolProcesoConsulta> buscarConProcesos(Long empresaId, String nombre, Pageable pageable) {
         Page<RolProceso> pagina = (nombre == null || nombre.isBlank())
                 ? rolProcesoRepository.findAllByEmpresaIdAndActivoTrue(empresaId, pageable)
                 : rolProcesoRepository.findAllByEmpresaIdAndActivoTrueAndNombreContainingIgnoreCase(
                         empresaId, nombre.trim(), pageable);
         return pagina.map(rol -> {
-            List<String> procesos = laneRepository.findAllByRolProcesoIdAndEmpresaId(rol.getId(), empresaId)
+            List<String> procesos = laneService.listarPorRolProceso(empresaId, rol.getId())
                     .stream()
                     .map(lane -> lane.getPool().getProceso().getNombre())
                     .distinct()
@@ -109,18 +108,20 @@ public class RolProcesoService {
                 || !empresaId.equals(principal.empresaId())) {
             return;
         }
-        usuarioRepository.findByIdAndEmpresaId(principal.usuarioId(), empresaId).ifPresent(usuario ->
-                laneRepository.findAllByRolProcesoIdAndEmpresaId(rolId, empresaId).stream()
+        usuarioService.buscar(empresaId, principal.usuarioId()).ifPresent(usuario ->
+                laneService.listarPorRolProceso(empresaId, rolId).stream()
                         .map(lane -> lane.getPool().getProceso())
                         .distinct()
                         .forEach(proceso -> historialCambioService.registrar(proceso, usuario, descripcion)));
     }
 
+    @Transactional(readOnly = true)
     public long contarUsos(Long empresaId, Long rolId) {
         obtener(empresaId, rolId);
-        return laneRepository.countByRolProcesoIdAndEmpresaId(rolId, empresaId);
+        return laneService.contarPorRolProceso(empresaId, rolId);
     }
 
+    @Transactional(readOnly = true)
     public RolProceso obtener(Long empresaId, Long rolId) {
         return rolProcesoRepository.findByIdAndEmpresaIdAndActivoTrue(rolId, empresaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol de proceso no encontrado."));
