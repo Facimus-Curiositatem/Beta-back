@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -144,5 +145,25 @@ class UsuarioServiceTest {
 
         assertThrows(RecursoNoEncontradoException.class,
                 () -> usuarioService.obtener(1L, 99L));
+    }
+
+    @Test
+    @DisplayName("HU-02: sin filtro se listan solo los usuarios activos")
+    void listarPorEmpresa_sinFiltro_listaActivos() {
+        when(usuarioRepository.findAllByEmpresaIdAndActivo(1L, true)).thenReturn(List.of());
+
+        usuarioService.listarPorEmpresa(1L, null);
+
+        verify(usuarioRepository).findAllByEmpresaIdAndActivo(1L, true);
+    }
+
+    @Test
+    @DisplayName("HU-02: con activo = false se listan los desactivados para poder reactivarlos")
+    void listarPorEmpresa_inactivos() {
+        when(usuarioRepository.findAllByEmpresaIdAndActivo(1L, false)).thenReturn(List.of());
+
+        usuarioService.listarPorEmpresa(1L, false);
+
+        verify(usuarioRepository).findAllByEmpresaIdAndActivo(1L, false);
     }
 }

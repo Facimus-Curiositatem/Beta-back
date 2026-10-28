@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -46,16 +47,18 @@ public class UsuarioController {
     private final ModelMapper modelMapper;
 
     @GetMapping
-    @Operation(summary = "Listar los colaboradores de la empresa", description = "Solo administrador.")
+    @Operation(summary = "Listar los colaboradores de la empresa",
+            description = "Solo administrador. Por defecto lista los activos; con activo=false, los desactivados.")
     @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = UsuarioResponse.class))))
     @ApiResponse(responseCode = "401", description = "No autenticado: token ausente o invalido.",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "403", description = "Sin permisos para esta operacion.",
             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    public ResponseEntity<List<UsuarioResponse>> listar(@AuthenticationPrincipal ApiPrincipal principal) {
+    public ResponseEntity<List<UsuarioResponse>> listar(@RequestParam(required = false) Boolean activo,
+            @AuthenticationPrincipal ApiPrincipal principal) {
         Long empresaId = principal.empresaId();
-        List<UsuarioResponse> usuarios = usuarioService.listarPorEmpresa(empresaId).stream()
+        List<UsuarioResponse> usuarios = usuarioService.listarPorEmpresa(empresaId, activo).stream()
                 .map(u -> modelMapper.map(u, UsuarioResponse.class))
                 .toList();
         return ResponseEntity.ok(usuarios);

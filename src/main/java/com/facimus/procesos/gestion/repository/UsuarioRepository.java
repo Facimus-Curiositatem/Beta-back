@@ -15,6 +15,8 @@ public interface UsuarioRepository extends RepositorioTenant<Usuario> {
 
     List<Usuario> findAllByEmpresaIdAndActivoTrue(Long empresaId);
 
+    List<Usuario> findAllByEmpresaIdAndActivo(Long empresaId, boolean activo);
+
     /**
      * Login-only: el formulario de inicio de sesion no conoce todavia el
      * empresaId (esa es justamente la informacion que la sesion va a fijar
