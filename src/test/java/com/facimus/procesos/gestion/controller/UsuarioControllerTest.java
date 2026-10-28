@@ -44,11 +44,24 @@ class UsuarioControllerTest {
     @DisplayName("GET /api/v1/usuarios - listar como admin (200)")
     void listar_como_admin() throws Exception {
         Usuario u = crearUsuario(1L, "Ana", "ana@acme.com", RolAcceso.EDITOR);
-        given(usuarioService.listarPorEmpresa(1L)).willReturn(List.of(u));
+        given(usuarioService.listarPorEmpresa(1L, null)).willReturn(List.of(u));
 
         mockMvc.perform(get("/api/v1/usuarios").with(principal(RolAcceso.ADMINISTRADOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Ana"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/usuarios?activo=false - lista los desactivados (200)")
+    void listar_desactivados() throws Exception {
+        Usuario u = crearUsuario(3L, "Luis", "luis@acme.com", RolAcceso.EDITOR);
+        u.setActivo(false);
+        given(usuarioService.listarPorEmpresa(1L, false)).willReturn(List.of(u));
+
+        mockMvc.perform(get("/api/v1/usuarios").param("activo", "false").with(principal(RolAcceso.ADMINISTRADOR)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Luis"))
+                .andExpect(jsonPath("$[0].activo").value(false));
     }
 
     @Test
