@@ -84,6 +84,12 @@ public class UsuarioService {
         return usuarioRepository.findAllByEmpresaIdAndActivoTrue(empresaId);
     }
 
+    /** Sin filtro lista los activos; con activo = false, los desactivados que se pueden reactivar. */
+    @Transactional(readOnly = true)
+    public List<Usuario> listarPorEmpresa(Long empresaId, Boolean activo) {
+        return usuarioRepository.findAllByEmpresaIdAndActivo(empresaId, activo == null || activo);
+    }
+
     @Transactional(readOnly = true)
     public Usuario obtener(Long empresaId, Long usuarioId) {
         return usuarioRepository.findByIdAndEmpresaId(usuarioId, empresaId)
