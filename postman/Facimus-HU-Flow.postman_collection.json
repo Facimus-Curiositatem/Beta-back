@@ -1277,7 +1277,7 @@
 							"exec": [
 								"pm.test('Correlacion actualizada (200)', () => pm.response.to.have.status(200));",
 								"pm.test('Criterio asignado', () => {",
-								"  pm.expect(pm.response.json().criterio).to.eql('empleadoId');",
+								"  pm.expect(pm.response.json().criterio).to.eql('idSolicitud');",
 								"});"
 							]
 						}
@@ -1287,7 +1287,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\"criterio\": \"empleadoId\"}"
+							"raw": "{\"criterio\": \"idSolicitud\"}"
 						},
 						"url": "{{baseUrl}}/api/v1/mensajes/{{mensaje1Id}}/correlacion"
 					}
@@ -1301,7 +1301,7 @@
 							"exec": [
 								"pm.test('Status 200', () => pm.response.to.have.status(200));",
 								"pm.test('Criterio correcto', () => {",
-								"  pm.expect(pm.response.json().criterio).to.eql('empleadoId');",
+								"  pm.expect(pm.response.json().criterio).to.eql('idSolicitud');",
 								"});"
 							]
 						}
