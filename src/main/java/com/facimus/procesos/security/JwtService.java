@@ -21,8 +21,8 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtService {
 
-    static final String CLAIM_USUARIO_ID = "usuarioId";
-    static final String CLAIM_EMPRESA_ID = "empresaId";
+    public static final String CLAIM_USUARIO_ID = "usuarioId";
+    public static final String CLAIM_EMPRESA_ID = "empresaId";
     static final String CLAIM_ROL = "rol";
 
     private static final String EMISOR = "proyecto-procesos";
