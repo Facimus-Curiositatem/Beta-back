@@ -1195,7 +1195,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\"nombre\": \"Notificar aprobacion a RRHH\", \"contenido\": \"Solicitud de vacaciones aprobada\", \"poolOrigenId\": {{pool1Id}}, \"poolDestinoId\": {{pool2Id}}, \"eventoThrowId\": {{eventoThrow1Id}}, \"claveCorrelacion\": \"idSolicitud\", \"tipoDestinoExterno\": \"SERVICIO_WEB\", \"destinoExterno\": \"https://rrhh.example.com/api/notificaciones\"}"
+							"raw": "{\"nombre\": \"Notificar aprobacion a RRHH\", \"contenido\": \"Solicitud de vacaciones aprobada\", \"poolOrigenId\": {{pool1Id}}, \"poolDestinoId\": {{pool2Id}}, \"eventoThrowId\": {{eventoThrow1Id}}, \"claveCorrelacion\": \"idSolicitud\", \"tipoDestinoExterno\": \"SERVICIO_WEB\", \"destinoExterno\": \"https://rrhh.example.com/api/notificaciones\", \"politicaFalloNotificacion\": \"CONTINUAR_FLUJO\"}"
 						},
 						"url": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes"
 					}
@@ -1217,7 +1217,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\"nombre\": \"Registrar resultado en RRHH\", \"contenido\": \"Resultado del proceso de vacaciones\", \"poolOrigenId\": {{pool1Id}}, \"poolDestinoId\": {{pool2Id}}, \"eventoThrowId\": {{eventoThrow2Id}}, \"claveCorrelacion\": \"idResultado\", \"tipoDestinoExterno\": \"CORREO\", \"destinoExterno\": \"rrhh@empresa.com\"}"
+							"raw": "{\"nombre\": \"Registrar resultado en RRHH\", \"contenido\": \"Resultado del proceso de vacaciones\", \"poolOrigenId\": {{pool1Id}}, \"poolDestinoId\": {{pool2Id}}, \"eventoThrowId\": {{eventoThrow2Id}}, \"claveCorrelacion\": \"idResultado\", \"tipoDestinoExterno\": \"CORREO\", \"destinoExterno\": \"rrhh@empresa.com\", \"politicaFalloNotificacion\": \"CONTINUAR_FLUJO\"}"
 						},
 						"url": "{{baseUrl}}/api/v1/procesos/{{procesoId}}/mensajes"
 					}
@@ -1277,7 +1277,7 @@
 							"exec": [
 								"pm.test('Correlacion actualizada (200)', () => pm.response.to.have.status(200));",
 								"pm.test('Criterio asignado', () => {",
-								"  pm.expect(pm.response.json().criterio).to.eql('empleadoId');",
+								"  pm.expect(pm.response.json().criterio).to.eql('idSolicitud');",
 								"});"
 							]
 						}
@@ -1287,7 +1287,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\"criterio\": \"empleadoId\"}"
+							"raw": "{\"criterio\": \"idSolicitud\"}"
 						},
 						"url": "{{baseUrl}}/api/v1/mensajes/{{mensaje1Id}}/correlacion"
 					}
@@ -1301,7 +1301,7 @@
 							"exec": [
 								"pm.test('Status 200', () => pm.response.to.have.status(200));",
 								"pm.test('Criterio correcto', () => {",
-								"  pm.expect(pm.response.json().criterio).to.eql('empleadoId');",
+								"  pm.expect(pm.response.json().criterio).to.eql('idSolicitud');",
 								"});"
 							]
 						}

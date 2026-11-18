@@ -1,132 +1,133 @@
-name: CI - Build and Test
+# CI/CD del backend (Beta-back)
+#
+#   Pull request a main  -> CI: build + JUnit + ArchUnit + Sonar + imagen :pr-N
+#                           + Postman y JMeter contra un backend temporal en la VM beta-back
+#                           (BD proyecto_ci, que se vacia antes y despues)
+#   Merge (push) a main  -> CD: imagen :latest y :sha-xxxxxxx, y despliegue en beta-back
+#                           despues de la aprobacion en el entorno "production"
+name: CI/CD Backend
 
 on:
-  push:
-    branches: [main, develop, entrega-1-backend]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# En un PR, un push nuevo cancela la ejecucion anterior. En main nunca se cancela un despliegue.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  IMAGEN: ghcr.io/facimus-curiositatem/beta-back
+  # Nombre de la VM del backend dentro de Tailscale
+  TS_BACK: beta-back
 
 jobs:
-  build-and-test:
-    name: Build & Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
+  # ---------------------------------------------------------------- CI
+  build-test:
+    name: Build y JUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      checks: write   # para que dorny/test-reporter publique la tabla de resultados
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
           cache: maven
 
-      - name: Build and verify
+      - name: Build, pruebas y cobertura
         run: mvn -B clean verify
 
-      - name: Upload test results
+      - name: Reporte JUnit
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results (${{ matrix.os }})
+          name: Reporte JUnit
           path: target/surefire-reports/*.xml
           reporter: java-junit
           fail-on-error: false
 
-      - name: Upload JaCoCo coverage report
-        if: matrix.os == 'ubuntu-latest'
+      - name: Guardar reporte JaCoCo
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
+          name: reporte-jacoco
           path: target/site/jacoco/
-          retention-days: 7
+          retention-days: 14
+          if-no-files-found: ignore
 
-      - name: Verify JAR exists
-        shell: bash
-        run: ls -la target/*.jar
+      - name: Guardar reportes Surefire
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-junit
+          path: target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: ignore
 
   architecture-guard:
-    name: Architecture Rules
+    name: Reglas de arquitectura
     runs-on: ubuntu-latest
-    needs: build-and-test
-
+    needs: build-test
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      checks: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
           cache: maven
 
-      - name: Run ArchUnit tests
+      - name: Pruebas ArchUnit
         run: mvn -B test -Dtest="com.facimus.procesos.arquitectura.**" -Dsurefire.failIfNoSpecifiedTests=false
 
-      - name: Architecture tests summary
+      - name: Reporte de arquitectura
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: Architecture Rules
+          name: Reglas de arquitectura
           path: target/surefire-reports/*.xml
           reporter: java-junit
           fail-on-error: true
 
-  docker-build:
-    name: Docker Image
-    runs-on: ubuntu-latest
-    needs: [build-and-test, architecture-guard]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t facimus/procesos-back:${{ github.sha }} .
-
-      - name: Verify image runs
-        run: |
-          docker run -d --name test-container -p 8080:8080 facimus/procesos-back:${{ github.sha }}
-          sleep 10
-          docker logs test-container
-          docker stop test-container
-
   sonarqube:
-    name: SonarQube Analysis
+    name: SonarCloud
     runs-on: ubuntu-latest
-    needs: build-and-test
-    # Corre en push y en pull_request. Los PRs desde forks no reciben secrets, asi que se
-    # omiten en vez de fallar (los PRs de ramas del propio repo si se analizan).
+    needs: build-test
+    timeout-minutes: 20
+    # Los PRs desde forks no reciben secretos: se omiten en vez de fallar
     if: >
-      github.event_name == 'push' ||
+      github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
           cache: maven
 
-      # sonar.qualitygate.wait=true hace que el job falle si el quality gate de SonarCloud
-      # no se cumple (cobertura de codigo nuevo >= 80 %, sin bugs/vulnerabilidades nuevas,
-      # duplicacion <= 3 %). Sin esto el analisis solo se sube y el job queda en verde
-      # aunque el gate falle.
-      - name: Build, test & analyze
+      # sonar.qualitygate.wait=true: el job falla si el quality gate no se cumple
+      - name: Build, pruebas y analisis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # necesario para leer los datos del PR
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: >
@@ -134,3 +135,336 @@ jobs:
           -Dsonar.host.url=$SONAR_HOST_URL
           -Dsonar.token=$SONAR_TOKEN
           -Dsonar.qualitygate.wait=true
+
+  docker:
+    name: Imagen Docker (GHCR)
+    runs-on: ubuntu-latest
+    needs: [build-test, architecture-guard]
+    timeout-minutes: 20
+    # Un PR desde un fork no puede publicar en GHCR
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tags.outputs.principal }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # PR #12  -> :pr-12 y :sha-abc1234
+      # main    -> :latest y :sha-abc1234   (el despliegue usa la :sha, que es inmutable)
+      - name: Calcular etiquetas
+        id: tags
+        run: |
+          SHA_TAG="sha-${GITHUB_SHA::7}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SHA_TAG="sha-$(echo '${{ github.event.pull_request.head.sha }}' | cut -c1-7)"
+            echo "principal=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "todas=pr-${{ github.event.pull_request.number }} $SHA_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "principal=$SHA_TAG" >> "$GITHUB_OUTPUT"
+            echo "todas=$SHA_TAG latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build de la imagen
+        run: >-
+          docker build
+          --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}"
+          --label "org.opencontainers.image.revision=${{ github.sha }}"
+          -t beta-back:ci .
+
+      - name: Publicar en GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for TAG in ${{ steps.tags.outputs.todas }}; do
+            docker tag beta-back:ci "$IMAGEN:$TAG"
+            docker push -q "$IMAGEN:$TAG"
+            echo "- \`$IMAGEN:$TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  pruebas-api:
+    name: Postman y JMeter (VM beta-back)
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      checks: write
+      packages: read   # para que la VM descargue la imagen :pr-N de GHCR
+    # Una sola ejecucion a la vez usa el backend temporal y la BD proyecto_ci
+    concurrency:
+      group: pruebas-api-beta-back
+      cancel-in-progress: false
+    env:
+      JMETER_VERSION: '5.6.3'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Cache de JMeter
+        id: cache-jmeter
+        uses: actions/cache@v4
+        with:
+          path: ~/jmeter
+          key: jmeter-${{ env.JMETER_VERSION }}
+
+      - name: Instalar JMeter
+        if: steps.cache-jmeter.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          mkdir -p ~/jmeter && tar -xzf jmeter.tgz -C ~/jmeter --strip-components=1
+
+      - name: Conectar a Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Preparar SSH a beta-back
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BACK_KNOWN_HOSTS }}
+        run: bash ci/preparar-ssh.sh "$TS_BACK"
+
+      - name: Levantar backend temporal con la imagen del PR
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "::error::El secreto DB_PASSWORD esta vacio. Crealo en Beta-back > Settings > Secrets and variables > Actions > Repository secrets."
+            exit 1
+          fi
+          # Credenciales temporales en la VM (las borra bajar-backend-ci.sh)
+          ssh servidor 'install -d -m 700 ~/ci'
+          printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "$DB_PASSWORD" "$(openssl rand -hex 32)" \
+            | ssh servidor 'umask 077; cat > ~/ci/ci.env'
+          echo "$GHCR_TOKEN" | ssh servidor "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+
+          SALIDA=$(ssh servidor "bash -s -- '$IMAGEN:${{ needs.docker.outputs.tag }}'" < ci/levantar-backend-ci.sh)
+          echo "$SALIDA"
+          PUERTO=$(echo "$SALIDA" | sed -n 's/^PUERTO=//p' | tail -n1)
+          [ -n "$PUERTO" ] || { echo "No se obtuvo el puerto"; exit 1; }
+          echo "PUERTO=$PUERTO" >> "$GITHUB_ENV"
+          echo "BASE_URL=http://$SERVIDOR_IP:$PUERTO" >> "$GITHUB_ENV"
+
+      - name: Esperar a que el backend responda
+        run: |
+          for i in $(seq 1 60); do
+            CODIGO=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/v1/procesos" || true)
+            # 401/403 = la app ya responde (la ruta exige token)
+            if [ "$CODIGO" != "000" ] && [ "$CODIGO" -lt 500 ]; then
+              echo "Backend listo en $BASE_URL (HTTP $CODIGO)"
+              exit 0
+            fi
+            echo "Intento $i: HTTP $CODIGO"
+            sleep 5
+          done
+          echo "El backend temporal no arranco a tiempo"
+          ssh servidor 'docker logs --tail 80 beta-back-ci'
+          exit 1
+
+      - name: Pruebas Postman (newman)
+        id: postman
+        continue-on-error: true
+        run: |
+          mkdir -p reportes/postman
+          FALLO=0
+          for COL in postman/*.postman_collection.json; do
+            NOMBRE=$(basename "$COL" .postman_collection.json)
+            echo "::group::Postman: $NOMBRE"
+            newman run "$COL" \
+              --env-var "baseUrl=$BASE_URL" \
+              --reporters cli,htmlextra,junit,json \
+              --reporter-htmlextra-export "reportes/postman/$NOMBRE.html" \
+              --reporter-htmlextra-title "Postman - $NOMBRE" \
+              --reporter-junit-export "reportes/postman/$NOMBRE.xml" \
+              --reporter-json-export "reportes/postman/$NOMBRE.json" \
+              || FALLO=1
+            echo "::endgroup::"
+          done
+          exit $FALLO
+
+      - name: Pruebas JMeter
+        id: jmeter
+        continue-on-error: true
+        run: |
+          mkdir -p reportes/jmeter
+          FALLO=0
+          for PLAN in jmeter/*.jmx; do
+            NOMBRE=$(basename "$PLAN" .jmx)
+            echo "::group::JMeter: $NOMBRE"
+            ~/jmeter/bin/jmeter -n -t "$PLAN" \
+              -JBASE_URL="$SERVIDOR_IP" -JPORT="$PUERTO" \
+              -l "reportes/jmeter/$NOMBRE/resultados.jtl" \
+              -j "reportes/jmeter/$NOMBRE/jmeter.log" \
+              -e -o "reportes/jmeter/$NOMBRE/html" \
+              || FALLO=1
+            echo "::endgroup::"
+          done
+          exit $FALLO
+
+      - name: Resumen en la pagina de la ejecucion
+        if: always()
+        run: |
+          {
+            echo "## Pruebas de API contra la VM beta-back"
+            echo ""
+            echo "Imagen probada: \`$IMAGEN:${{ needs.docker.outputs.tag }}\` · BD: \`proyecto_ci\`"
+            echo ""
+            python3 ci/resumen_newman.py reportes/postman/*.json
+            python3 ci/resumen_jmeter.py reportes/jmeter
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reporte Postman (tabla de checks)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Reporte Postman
+          path: reportes/postman/*.xml
+          reporter: java-junit
+          fail-on-error: false
+          fail-on-empty: false
+
+      - name: Guardar reporte Postman
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-postman
+          path: reportes/postman/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Guardar reporte JMeter
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-jmeter
+          path: reportes/jmeter/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # Pase lo que pase: se quita el backend temporal y se vacia proyecto_ci
+      - name: Limpiar backend temporal y BD de pruebas
+        if: always()
+        run: |
+          if [ -f ~/.ssh/config ]; then
+            ssh servidor 'bash -s' < ci/bajar-backend-ci.sh || true
+            ssh servidor 'cat ~/ci/backend-ci.log 2>/dev/null' > reportes/backend-ci.log || true
+          fi
+
+      - name: Guardar log del backend temporal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-backend-ci
+          path: reportes/backend-ci.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # JMeter solo informa. Si Postman fallo, el PR queda en rojo.
+      - name: Resultado
+        if: always()
+        run: |
+          POSTMAN="${{ steps.postman.outcome }}"
+          echo "Postman: $POSTMAN · JMeter: ${{ steps.jmeter.outcome }}"
+          if [ "$POSTMAN" = "skipped" ]; then
+            echo "::error::Las pruebas no se ejecutaron: fallo un paso anterior (revisa la preparacion del backend temporal)."
+            exit 1
+          fi
+          [ "$POSTMAN" = "success" ] || { echo "::error::Fallaron pruebas de Postman (ver el reporte)"; exit 1; }
+
+  # ---------------------------------------------------------------- CD
+  deploy:
+    name: Desplegar en beta-back
+    runs-on: ubuntu-latest
+    needs: [docker, sonarqube]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
+    # El entorno "production" tiene Required reviewers: espera tu aprobacion
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: deploy-beta-back
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conectar a Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Preparar SSH a beta-back
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BACK_KNOWN_HOSTS }}
+        run: bash ci/preparar-ssh.sh "$TS_BACK"
+
+      - name: Comprobar el servidor
+        run: |
+          ssh servidor 'bash -s' <<'EOF'
+          set -e
+          test -f /opt/beta/.env || { echo "Falta /opt/beta/.env (ver deploy/.env.example)"; exit 1; }
+          # El puerto 8080 debe estar libre o ser del contenedor beta-back
+          if ss -ltnH '( sport = :8080 )' | grep -q . && \
+             ! docker ps --format '{{.Names}}' | grep -qx beta-back; then
+            echo "El puerto 8080 lo usa otro proceso (¿el backend viejo con mvnw?). Detenlo antes de desplegar."
+            ss -ltn
+            exit 1
+          fi
+          EOF
+
+      - name: Desplegar
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.docker.outputs.tag }}
+        run: |
+          scp deploy/compose.yml servidor:/opt/beta/compose.yml
+          echo "$GHCR_TOKEN" | ssh servidor "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+          ssh servidor "cd /opt/beta && \
+            (grep -q '^BACKEND_TAG=' .env && sed -i 's/^BACKEND_TAG=.*/BACKEND_TAG=$TAG/' .env || echo 'BACKEND_TAG=$TAG' >> .env) && \
+            docker compose pull && \
+            docker compose up -d --wait --wait-timeout 300; \
+            RES=\$?; docker logout ghcr.io > /dev/null; docker compose ps; \
+            [ \$RES -eq 0 ] || docker compose logs --tail 60 backend; exit \$RES"
+          ssh servidor 'docker image prune -f > /dev/null'
+          echo "Desplegado \`$IMAGEN:$TAG\` en beta-back" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verificar por la URL publica
+        if: vars.PUBLIC_URL != ''
+        run: |
+          for i in $(seq 1 24); do
+            CODIGO=$(curl -s -o /dev/null -w '%{http_code}' "${{ vars.PUBLIC_URL }}/api/v1/procesos" || true)
+            if [ "$CODIGO" = "401" ] || [ "$CODIGO" = "403" ]; then
+              echo "La API responde por ${{ vars.PUBLIC_URL }} (HTTP $CODIGO)"
+              exit 0
+            fi
+            echo "Intento $i: HTTP $CODIGO"
+            sleep 5
+          done
+          echo "La API no respondio por la URL publica"
+          exit 1

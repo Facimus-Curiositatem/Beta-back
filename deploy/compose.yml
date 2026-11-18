@@ -1,0 +1,39 @@
+# Backend de la app publicada, en la VM beta-back (10.43.99.37).
+# Va en el servidor en /opt/beta/compose.yml (el workflow lo copia en cada despliegue).
+# Los valores salen de /opt/beta/.env (ver .env.example, se crea una sola vez a mano).
+#
+#   docker compose pull && docker compose up -d --wait
+#
+# La base de datos NO va aqui: es el PostgreSQL instalado en la VM 10.43.99.53.
+
+name: beta
+
+services:
+  backend:
+    image: ghcr.io/facimus-curiositatem/beta-back:${BACKEND_TAG:-latest}
+    container_name: beta-back
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${DB_HOST:-10.43.99.53}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-proyecto_desarrollo}
+      DB_USER: ${DB_USER:-admin}
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+      # validate: no toca el esquema, solo comprueba que coincide con las entidades
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${DDL_AUTO:-validate}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://10.43.99.76:8080}
+      # La JVM usa como maximo el 70% de la memoria del contenedor para el heap
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70
+    ports:
+      # El front (nginx en 10.43.99.76) llega aqui por la red local de la universidad
+      - "8080:8080"
+    healthcheck:
+      # Sano cuando el puerto 8080 acepta conexiones (la imagen no trae curl)
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+    mem_limit: 1g
+    restart: unless-stopped
