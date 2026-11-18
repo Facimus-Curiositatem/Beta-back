@@ -47,7 +47,7 @@ public class AuthController {
 
     @SecurityRequirements()
     @PostMapping("/login")
-    @Operation(summary = "Iniciar sesion", description = "Valida credenciales y devuelve un JWT con empresaId y rol embebidos.")
+    @Operation(summary = "Iniciar sesion", description = "Valida credenciales y devuelve un access token y un refresh token.")
     @ApiResponse(responseCode = "200", description = "Operacion exitosa.",
             content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "400", description = "Solicitud invalida (errores de validacion o JSON malformado).",
@@ -63,9 +63,11 @@ public class AuthController {
             // Asi lo resuelve JwtAuthEntryPoint con 401 y el mismo mensaje generico, exista o no el correo (HU-03).
             throw new BadCredentialsException(e.getMessage());
         }
-        String token = jwtService.generarToken(ApiPrincipal.of(usuario));
-        return ResponseEntity.ok(new LoginResponse(token, TIPO_TOKEN, jwtService.getExpirationSeconds(),
-                modelMapper.map(usuario, UsuarioResponse.class)));
+        ApiPrincipal principal = ApiPrincipal.of(usuario);
+        String token = jwtService.generarToken(principal);
+        String refreshToken = jwtService.generarRefreshToken(principal);
+        return ResponseEntity.ok(new LoginResponse(token, refreshToken, TIPO_TOKEN,
+                jwtService.getExpirationSeconds(), modelMapper.map(usuario, UsuarioResponse.class)));
     }
 
     /** Sin estado en el servidor: cerrar sesion es que el cliente descarte su token. */
