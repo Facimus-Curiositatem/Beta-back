@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Facimus Procesos - API REST",
-		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/v1/empresas)\n2. Iniciar sesion (POST /api/v1/auth/login) — el token JWT se guarda automaticamente\n3. Usar los demas endpoints (el header Authorization: Bearer se envia automaticamente)",
+		"description": "Coleccion completa de la API REST del Sistema de Gestion y Modelado de Procesos BPMN multiempresa.\n\n**Flujo recomendado:**\n1. Registrar empresa (POST /api/v1/empresas)\n2. Iniciar sesion (POST /api/v1/auth/login) — el access token y el refresh token se guardan automaticamente\n3. Usar los demas endpoints (el header Authorization: Bearer se envia automaticamente)\n4. Cuando el access token venza (15 min), Renovar tokens (POST /api/v1/auth/refresh) sin volver a iniciar sesion",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -62,6 +62,11 @@
 		},
 		{
 			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
 			"value": "",
 			"type": "string"
 		}
@@ -137,6 +142,7 @@
 									"    pm.collectionVariables.set('empresaId', json.empresaId);",
 									"    pm.collectionVariables.set('usuarioId', json.usuarioId);",
 									"    pm.collectionVariables.set('token', json.accessToken);",
+									"    pm.collectionVariables.set('refreshToken', json.refreshToken);",
 									"    pm.test('Login exitoso', function () {",
 									"        pm.expect(json.accessToken).to.not.be.empty;",
 									"    });",
@@ -165,7 +171,52 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "v1", "auth", "login"]
 						},
-						"description": "HU-03: Inicia sesion. El token JWT se guarda automaticamente en la variable {{token}}."
+						"description": "HU-03: Inicia sesion. El access token se guarda en {{token}} y el refresh token en {{refreshToken}}."
+					},
+					"response": []
+				},
+				{
+					"name": "Renovar tokens",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('token', json.accessToken);",
+									"    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+									"    pm.test('Refresh exitoso', function () {",
+									"        pm.expect(json.accessToken).to.not.be.empty;",
+									"        pm.expect(json.refreshToken).to.not.be.empty;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						},
+						"description": "HU-03 / issue #51: Canjea el refresh token por un access token y un refresh token nuevos. Endpoint publico."
 					},
 					"response": []
 				},

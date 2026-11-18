@@ -11,6 +11,7 @@
 	"variable": [
 		{"key": "baseUrl", "value": "http://localhost:8080"},
 		{"key": "token", "value": ""},
+		{"key": "refreshToken", "value": ""},
 		{"key": "runId", "value": ""},
 		{"key": "adminEmail", "value": ""},
 		{"key": "adminPassword", "value": "Admin123!"},
@@ -129,7 +130,9 @@
 								"const json = pm.response.json();",
 								"pm.test('Retorna accessToken', () => pm.expect(json.accessToken).to.be.a('string'));",
 								"pm.test('Token type es Bearer', () => pm.expect(json.tokenType).to.eql('Bearer'));",
-								"pm.collectionVariables.set('token', json.accessToken);"
+								"pm.test('Retorna refreshToken', () => pm.expect(json.refreshToken).to.be.a('string'));",
+								"pm.collectionVariables.set('token', json.accessToken);",
+								"pm.collectionVariables.set('refreshToken', json.refreshToken);"
 							]
 						}
 					}],
@@ -182,6 +185,98 @@
 					}],
 					"request": {
 						"auth": {"type": "noauth"},
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/procesos"
+					}
+				},
+				{
+					"name": "Renovar tokens con el refresh token",
+					"event": [{
+						"listen": "test",
+						"script": {
+							"type": "text/javascript",
+							"exec": [
+								"pm.test('Refresh exitoso (200)', () => pm.response.to.have.status(200));",
+								"const json = pm.response.json();",
+								"pm.test('Retorna accessToken nuevo', () => pm.expect(json.accessToken).to.be.a('string'));",
+								"pm.test('Retorna refreshToken nuevo', () => pm.expect(json.refreshToken).to.be.a('string'));",
+								"pm.test('Token type es Bearer', () => pm.expect(json.tokenType).to.eql('Bearer'));",
+								"pm.collectionVariables.set('token', json.accessToken);",
+								"pm.collectionVariables.set('refreshToken', json.refreshToken);"
+							]
+						}
+					}],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/refresh"
+					}
+				},
+				{
+					"name": "Refresh con un access token falla",
+					"event": [{
+						"listen": "test",
+						"script": {
+							"type": "text/javascript",
+							"exec": [
+								"pm.test('Access token en /refresh (401)', () => pm.response.to.have.status(401));",
+								"pm.test('ProblemDetail con titulo', () => {",
+								"  pm.expect(pm.response.json().title).to.eql('No autenticado');",
+								"});"
+							]
+						}
+					}],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{token}}\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/refresh"
+					}
+				},
+				{
+					"name": "Refresh sin refreshToken falla",
+					"event": [{
+						"listen": "test",
+						"script": {
+							"type": "text/javascript",
+							"exec": [
+								"pm.test('Falta el refreshToken (400)', () => pm.response.to.have.status(400));"
+							]
+						}
+					}],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": "{{baseUrl}}/api/v1/auth/refresh"
+					}
+				},
+				{
+					"name": "Endpoint protegido con refresh token falla",
+					"event": [{
+						"listen": "test",
+						"script": {
+							"type": "text/javascript",
+							"exec": [
+								"pm.test('Refresh token como access token (401)', () => pm.response.to.have.status(401));"
+							]
+						}
+					}],
+					"request": {
+						"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{refreshToken}}"}]},
 						"method": "GET",
 						"url": "{{baseUrl}}/api/v1/procesos"
 					}
