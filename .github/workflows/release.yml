@@ -1,0 +1,97 @@
+# Release del backend (Beta-back)
+#
+# Se dispara al subir un tag de version sobre un commit de main:
+#   git checkout main && git pull
+#   git tag -a v1.0.0 -m "Version 1.0.0"
+#   git push origin v1.0.0
+#
+# No reconstruye la imagen: etiqueta como :1.0.0 la misma imagen :sha-xxxxxxx que ya paso
+# el CI y se desplego al hacer merge. Crea la release en GitHub con notas automaticas y el JAR.
+name: Release Backend
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+env:
+  IMAGEN: ghcr.io/facimus-curiositatem/beta-back
+
+jobs:
+  release:
+    name: Publicar release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write   # crear la release
+      packages: write   # etiquetar la imagen en GHCR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar version y que el tag este en main
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::El tag $TAG no tiene el formato vX.Y.Z"
+            exit 1
+          fi
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::El tag $TAG apunta a un commit que no esta en main. Crea el tag sobre main."
+            exit 1
+          fi
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          echo "SHA_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Etiquetar la imagen con la version
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          if ! docker buildx imagetools inspect "$IMAGEN:$SHA_TAG" > /dev/null 2>&1; then
+            echo "::error::No existe $IMAGEN:$SHA_TAG. El commit del tag debe haber pasado por el CI de main (merge)."
+            exit 1
+          fi
+          docker buildx imagetools create --tag "$IMAGEN:$VERSION" "$IMAGEN:$SHA_TAG"
+          echo "Imagen \`$IMAGEN:$VERSION\` (= \`$SHA_TAG\`)" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Las pruebas ya corrieron en el CI de ese mismo commit; aqui solo se empaqueta
+      - name: Construir el JAR
+        run: |
+          mvn -B -DskipTests package
+          JAR=$(find target -maxdepth 1 -name '*.jar' ! -name '*-plain.jar' | head -n1)
+          mkdir -p dist
+          cp "$JAR" "dist/beta-back-$VERSION.jar"
+          (cd dist && sha256sum "beta-back-$VERSION.jar" > "beta-back-$VERSION.jar.sha256")
+          ls -la dist
+
+      - name: Crear la release en GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > notas.md <<EOF
+          ## Imagen Docker
+
+          \`\`\`
+          docker pull $IMAGEN:$VERSION
+          \`\`\`
+
+          Es la misma imagen que \`$SHA_TAG\`, la que se desplego en la VM beta-back.
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Beta-back $GITHUB_REF_NAME" \
+            --notes-file notas.md \
+            --generate-notes \
+            --verify-tag \
+            dist/*
+          echo "Release $GITHUB_REF_NAME publicada" >> "$GITHUB_STEP_SUMMARY"
