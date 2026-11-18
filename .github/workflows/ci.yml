@@ -248,6 +248,10 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "::error::El secreto DB_PASSWORD esta vacio. Crealo en Beta-back > Settings > Secrets and variables > Actions > Repository secrets."
+            exit 1
+          fi
           # Credenciales temporales en la VM (las borra bajar-backend-ci.sh)
           ssh servidor 'install -d -m 700 ~/ci'
           printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "$DB_PASSWORD" "$(openssl rand -hex 32)" \
@@ -379,8 +383,13 @@ jobs:
       - name: Resultado
         if: always()
         run: |
-          echo "Postman: ${{ steps.postman.outcome }} · JMeter: ${{ steps.jmeter.outcome }}"
-          [ "${{ steps.postman.outcome }}" = "success" ] || { echo "Fallaron pruebas de Postman"; exit 1; }
+          POSTMAN="${{ steps.postman.outcome }}"
+          echo "Postman: $POSTMAN · JMeter: ${{ steps.jmeter.outcome }}"
+          if [ "$POSTMAN" = "skipped" ]; then
+            echo "::error::Las pruebas no se ejecutaron: fallo un paso anterior (revisa la preparacion del backend temporal)."
+            exit 1
+          fi
+          [ "$POSTMAN" = "success" ] || { echo "::error::Fallaron pruebas de Postman (ver el reporte)"; exit 1; }
 
   # ---------------------------------------------------------------- CD
   deploy:
