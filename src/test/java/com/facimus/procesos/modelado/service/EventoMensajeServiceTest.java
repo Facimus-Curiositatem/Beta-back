@@ -53,8 +53,7 @@ class EventoMensajeServiceTest {
         lane.setPool(pool);
 
         when(laneService.obtener(1L, 2L)).thenReturn(lane);
-        when(nodoFlujoService.existeNombreEnProceso(
-                "Orden", 10L, 1L)).thenReturn(false);
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of());
         when(nodoFlujoService.guardar(any())).thenAnswer(inv -> {
             EventoMensaje e = inv.getArgument(0);
             e.setId(5L);
@@ -166,5 +165,77 @@ class EventoMensajeServiceTest {
                 "payload", "pedidoId", 10, 20, false);
 
         assertEquals(TipoEventoMensaje.CATCH_INICIO, resultado.getTipoEvento());
+    }
+
+    private Lane laneDeProceso10() {
+        Empresa empresa = new Empresa();
+        empresa.setId(1L);
+        Proceso proceso = new Proceso();
+        proceso.setId(10L);
+        Pool pool = new Pool();
+        pool.setProceso(proceso);
+        pool.setCajaNegra(false);
+        Lane lane = new Lane();
+        lane.setEmpresa(empresa);
+        lane.setPool(pool);
+        return lane;
+    }
+
+    private EventoMensaje eventoExistente(String nombre, TipoEventoMensaje tipo) {
+        EventoMensaje e = new EventoMensaje();
+        e.setId(99L);
+        e.setNombre(nombre);
+        e.setTipoEvento(tipo);
+        e.setActivo(true);
+        return e;
+    }
+
+    @Test
+    void crear_catch_con_mismo_nombre_que_su_throw_es_valido() {
+        when(laneService.obtener(1L, 2L)).thenReturn(laneDeProceso10());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L))
+                .thenReturn(List.of(eventoExistente("Pedido confirmado", TipoEventoMensaje.THROW)));
+        when(nodoFlujoService.guardar(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EventoMensaje resultado = eventoMensajeService.crear(1L, 2L, "pedido confirmado",
+                TipoEventoMensaje.CATCH_INICIO, "idPedido: numero", "idPedido", 0, 0, false);
+
+        assertEquals(TipoEventoMensaje.CATCH_INICIO, resultado.getTipoEvento());
+    }
+
+    @Test
+    void crear_segundo_throw_con_mismo_nombre_falla() {
+        when(laneService.obtener(1L, 2L)).thenReturn(laneDeProceso10());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L))
+                .thenReturn(List.of(eventoExistente("Pedido confirmado", TipoEventoMensaje.THROW)));
+
+        assertThrows(com.facimus.procesos.common.ReglaNegocioException.class, () ->
+                eventoMensajeService.crear(1L, 2L, "Pedido confirmado", TipoEventoMensaje.THROW,
+                        "idPedido: numero", "idPedido", 0, 0, false));
+    }
+
+    @Test
+    void crear_segundo_catch_con_mismo_nombre_falla() {
+        when(laneService.obtener(1L, 2L)).thenReturn(laneDeProceso10());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L))
+                .thenReturn(List.of(eventoExistente("Pedido confirmado", TipoEventoMensaje.CATCH_INTERMEDIO)));
+
+        assertThrows(com.facimus.procesos.common.ReglaNegocioException.class, () ->
+                eventoMensajeService.crear(1L, 2L, "Pedido confirmado", TipoEventoMensaje.CATCH_INICIO,
+                        "idPedido: numero", "idPedido", 0, 0, false));
+    }
+
+    @Test
+    void crear_evento_con_nombre_de_una_actividad_falla() {
+        Actividad actividad = new Actividad();
+        actividad.setId(98L);
+        actividad.setNombre("Pedido confirmado");
+        actividad.setActivo(true);
+        when(laneService.obtener(1L, 2L)).thenReturn(laneDeProceso10());
+        when(nodoFlujoService.listarActivosPorProceso(1L, 10L)).thenReturn(List.of(actividad));
+
+        assertThrows(com.facimus.procesos.common.ReglaNegocioException.class, () ->
+                eventoMensajeService.crear(1L, 2L, "Pedido confirmado", TipoEventoMensaje.CATCH_INICIO,
+                        "idPedido: numero", "idPedido", 0, 0, false));
     }
 }

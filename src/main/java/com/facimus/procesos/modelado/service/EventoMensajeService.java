@@ -32,7 +32,7 @@ public class EventoMensajeService {
             throw new ReglaNegocioException("Un pool de caja negra no puede contener eventos internos.");
         }
         Long procesoId = lane.getPool().getProceso().getId();
-        if (nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
+        if (nombreOcupado(empresaId, procesoId, nombre, tipoEvento, null)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
 
@@ -59,7 +59,7 @@ public class EventoMensajeService {
         validarProcesoActivo(evento.getLane().getPool().getProceso());
         Long procesoId = evento.getLane().getPool().getProceso().getId();
         if (!evento.getNombre().equalsIgnoreCase(nombre)
-                && nodoFlujoService.existeNombreEnProceso(nombre, procesoId, empresaId)) {
+                && nombreOcupado(empresaId, procesoId, nombre, tipoEvento, eventoId)) {
             throw new ReglaNegocioException("Ya existe un nodo con el nombre \"" + nombre + "\" en este proceso.");
         }
         if (tipoEvento == TipoEventoMensaje.CATCH_INICIO
@@ -78,6 +78,20 @@ public class EventoMensajeService {
         auditoriaModeladoService.registrar(evento.getLane().getPool().getProceso(),
                 "Evento de mensaje editado: " + evento.getNombre() + ".");
         return evento;
+    }
+
+    /**
+     * Un Throw y su Catch deben llamarse igual (correlacion). El nombre solo esta ocupado si lo usa
+     * un nodo que no es evento de mensaje, o un evento de mensaje del mismo lado (Throw/Throw, Catch/Catch).
+     */
+    private boolean nombreOcupado(Long empresaId, Long procesoId, String nombre,
+            TipoEventoMensaje tipoEvento, Long excluirId) {
+        boolean esThrow = tipoEvento == TipoEventoMensaje.THROW;
+        return nodoFlujoService.listarActivosPorProceso(empresaId, procesoId).stream()
+                .filter(nodo -> excluirId == null || !nodo.getId().equals(excluirId))
+                .filter(nodo -> nodo.getNombre() != null && nodo.getNombre().equalsIgnoreCase(nombre))
+                .anyMatch(nodo -> !(nodo instanceof EventoMensaje otro)
+                        || (otro.getTipoEvento() == TipoEventoMensaje.THROW) == esThrow);
     }
 
     @Transactional
