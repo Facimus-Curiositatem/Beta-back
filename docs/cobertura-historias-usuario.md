@@ -79,13 +79,17 @@ del usuario) sí se cumplen.
 (incluyendo su empresa) en cada petición futura, sin usar sesión de servidor.
 
 **Dónde está:**
-- Controller: [`AuthController`](src/main/java/com/facimus/procesos/gestion/controller/AuthController.java) — `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`
+- Controller: [`AuthController`](src/main/java/com/facimus/procesos/gestion/controller/AuthController.java) — `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`
 - Service: `UsuarioService.autenticar()`
 - Seguridad: [`JwtService.java`](src/main/java/com/facimus/procesos/security/JwtService.java), [`JwtAuthenticationFilter.java`](src/main/java/com/facimus/procesos/security/JwtAuthenticationFilter.java), `SecurityConfig.passwordEncoder()` (BCrypt)
 
 **Verificación:** contraseña con BCrypt, mensaje de error idéntico ("Correo o contraseña incorrectos")
 exista o no el correo (mitiga enumeración), el JWT lleva `empresaId` y se revalida el usuario contra BD
 en cada request. Sin huecos.
+Desde el issue #51 el login entrega un access token de 15 minutos y un refresh token de 7 dias
+(`tipo: "refresh"`, sin rol); `POST /api/v1/auth/refresh` lo canjea por tokens nuevos recargando al
+usuario desde BD (un cambio de rol o una desactivacion se reflejan), y el filtro rechaza refresh tokens
+usados como access token.
 
 ---
 

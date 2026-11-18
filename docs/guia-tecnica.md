@@ -259,13 +259,13 @@ ciclo entre servicios.
 |---|---|---|---|
 | Contexto | 1 | 1 | Spring Boot arranca correctamente |
 | Arquitectura (ArchUnit) | 7 | 35 | Empaquetado, multi-tenencia, herencia JPA, seguridad, separacion de repositorios y 0 ciclos entre servicios |
-| Controllers (gestion) | 8 | 53 | Endpoints REST, validaciones, permisos |
+| Controllers (gestion) | 8 | 58 | Endpoints REST, validaciones, permisos |
 | Controllers (modelado) | 8 | 65 | Endpoints REST de modelado BPMN |
 | Servicios (gestion) | 10 | 52 | Logica de negocio de gestion, incluye los orquestadores |
 | Servicios (modelado) | 12 | 129 | Logica de negocio de modelado, incluye los orquestadores y los `@EventListener` |
-| Seguridad e integracion | 4 | 92 | JWT, aislamiento de tenants, roles |
+| Seguridad e integracion | 4 | 101 | JWT, aislamiento de tenants, roles |
 | Transaccionalidad (integracion, H2 real) | 7 | 8 | Rollback real de cada orquestador, cumplimiento de reglas de negocio llamando al Service directamente, y lectura de relaciones LAZY fuera de la transaccion (ProcesoCompartido, Arco) |
-| **Total** | **57** | **435** | |
+| **Total** | **57** | **449** | |
 
 ### 3.2 Ejecucion local
 
@@ -305,7 +305,7 @@ Push o PR a main/develop
 │
 ├── Job 1: Build & Test (ubuntu + windows, en paralelo)
 │   ├── Compilar con Maven
-│   ├── Ejecutar los 435 tests
+│   ├── Ejecutar los 449 tests
 │   ├── Generar reporte de tests
 │   ├── Subir reporte JaCoCo como artefacto
 │   └── Empaquetar JAR
