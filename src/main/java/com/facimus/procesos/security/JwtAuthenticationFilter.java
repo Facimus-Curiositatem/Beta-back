@@ -19,10 +19,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/**
- * Autentica la peticion si trae "Authorization: Bearer <token>" valido y el usuario sigue activo.
- * Si no, deja pasar sin autenticar: decide SecurityConfig.
- */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String PREFIJO = "Bearer ";
@@ -48,6 +44,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private Optional<ApiPrincipal> usuarioVigente(Claims claims) {
+        if (jwtService.esRefreshToken(claims)) {
+            return Optional.empty();
+        }
         Long empresaId = claims.get(JwtService.CLAIM_EMPRESA_ID, Long.class);
         Long usuarioId = claims.get(JwtService.CLAIM_USUARIO_ID, Long.class);
         if (empresaId == null || usuarioId == null) {

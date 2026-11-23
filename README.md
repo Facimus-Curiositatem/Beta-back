@@ -31,7 +31,8 @@ La aplicacion inicia en `http://localhost:8080`. Se crea automaticamente una emp
 | Variable                | Descripcion                           | Default                    |
 |-------------------------|---------------------------------------|----------------------------|
 | `JWT_SECRET`            | Clave para firmar tokens JWT          | (generada aleatoriamente)  |
-| `JWT_EXPIRATION_SECONDS`| Duracion del token en segundos        | `1800`                     |
+| `JWT_EXPIRATION_MINUTES`| Duracion del access token en minutos  | `15`                       |
+| `JWT_REFRESH_DAYS`      | Duracion del refresh token en dias    | `7`                        |
 | `CORS_ALLOWED_ORIGINS`  | Origenes permitidos (separados por ,) | `http://localhost:4200`    |
 | `DB_HOST`               | Host de PostgreSQL (perfil prod)      | `localhost`                |
 | `DB_PORT`               | Puerto de PostgreSQL (perfil prod)    | `5432`                     |
@@ -41,20 +42,20 @@ La aplicacion inicia en `http://localhost:8080`. Se crea automaticamente una emp
 
 ## Endpoints principales
 
-| Recurso        | Base path                              |
-|----------------|----------------------------------------|
-| Auth           | `POST /api/v1/auth/login`, `/logout`   |
-| Empresas       | `POST /api/v1/empresas`                |
-| Procesos       | `/api/v1/procesos`                     |
-| Usuarios       | `/api/v1/usuarios`                     |
-| Roles          | `/api/v1/roles`                        |
-| Pools          | `/api/v1/procesos/{id}/pools`          |
-| Lanes          | `/api/v1/pools/{id}/lanes`             |
-| Actividades    | `/api/v1/lanes/{id}/actividades`       |
-| Gateways       | `/api/v1/lanes/{id}/gateways`          |
-| Arcos          | `/api/v1/arcos`                        |
-| Mensajes       | `/api/v1/procesos/{id}/mensajes`       |
-| Correlaciones  | `/api/v1/mensajes/{id}/correlacion`    |
+| Recurso        | Base path                                        |
+|----------------|--------------------------------------------------|
+| Auth           | `POST /api/v1/auth/login`, `/refresh`, `/logout` |
+| Empresas       | `POST /api/v1/empresas`                          |
+| Procesos       | `/api/v1/procesos`                               |
+| Usuarios       | `/api/v1/usuarios`                               |
+| Roles          | `/api/v1/roles`                                  |
+| Pools          | `/api/v1/procesos/{id}/pools`                    |
+| Lanes          | `/api/v1/pools/{id}/lanes`                       |
+| Actividades    | `/api/v1/lanes/{id}/actividades`                 |
+| Gateways       | `/api/v1/lanes/{id}/gateways`                    |
+| Arcos          | `/api/v1/arcos`                                  |
+| Mensajes       | `/api/v1/procesos/{id}/mensajes`                 |
+| Correlaciones  | `/api/v1/mensajes/{id}/correlacion`              |
 
 Documentacion interactiva disponible en `/swagger-ui/index.html`.
 
